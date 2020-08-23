@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "clean": "rm -rf build"
+  },
+  "dependencies": {
+    "@truffle/hdwallet-provider": "^1.0.42"
+  }
+}
