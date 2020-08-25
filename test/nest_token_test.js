@@ -1,23 +1,31 @@
-const { accounts, contract, web3 } = require('@openzeppelin/test-environment');
 const { expect } = require('chai');
 require('chai').should();
+const IBNEST = artifacts.require("IBNEST");
+const IterableMapping = artifacts.require("IterableMapping");
 const { BN, constants, expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
-const IBNEST = contract.fromArtifact("IBNEST");
-const IterableMapping = contract.fromArtifact("IterableMapping");
+// const { accounts, contract, web3 } = require('@openzeppelin/test-environment');
+// const IBNEST = contract.fromArtifact("IBNEST");
+// const IterableMapping = contract.fromArtifact("IterableMapping");
 
+// https://www.trufflesuite.com/docs/truffle/testing/writing-tests-in-javascript
 // https://docs.openzeppelin.com/test-environment/0.1/api
 // https://docs.openzeppelin.com/test-helpers/0.5/api
 
-describe('NEST V3.5', function () {
-    const [deployer, userA, userB] = accounts;
-
-
+contract('NEST V3.5', (accounts) => {
+// describe('NEST V3.5', function () {
+    // const [deployer, userA, userB] = accounts;
+    const deployer = accounts[0];
+    const userA = accounts[1];
+    const userB = accounts[2];
 
     before(async () => {
-        await IBNEST.detectNetwork();
-        iterableMapping = await IterableMapping.new({ from: deployer });
-        IBNEST.link("IterableMapping", iterableMapping.address); // link libraries
-        NestToken = await IBNEST.new({ from: deployer });
+        // // for @openzeppelin/test-environment
+        // // we can migrate to openzeppelin, if it has completed support for test coverage and gas cost measurement
+        // await IBNEST.detectNetwork();
+        // iterableMapping = await IterableMapping.new({ from: deployer });
+        // IBNEST.link("IterableMapping", iterableMapping.address); // link libraries
+        // NestToken = await IBNEST.new({ from: deployer });
+        NestToken = await IBNEST.deployed();
     });
 
     describe('template', function () {
