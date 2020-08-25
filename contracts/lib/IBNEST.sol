@@ -326,7 +326,7 @@ contract IBNEST is StandardToken {
     uint8 public decimals = 18;
     uint256 public INITIAL_SUPPLY = 10000000000 ether;
 
-    constructor () {
+    constructor () public {
     	totalSupply_ = INITIAL_SUPPLY;
     	IterableMapping.insert(balances, tx.origin, INITIAL_SUPPLY);
     }
