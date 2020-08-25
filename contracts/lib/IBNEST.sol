@@ -1,66 +1,7 @@
-pragma solidity ^0.5.1;
+// SPDX-License-Identifier: UNLICENSED
 
-library IterableMapping {
-  struct itmap
-  {
-    mapping(address => IndexValue) data;
-    KeyFlag[] keys;
-    uint size;
-  }
-  struct IndexValue { uint keyIndex; uint value; }
-  struct KeyFlag { address key; bool deleted; }
-  function insert(itmap storage self, address key, uint value) public returns (bool replaced)
-  {
-    uint keyIndex = self.data[key].keyIndex;
-    self.data[key].value = value;
-    if (keyIndex > 0)
-      return true;
-    else
-    {
-      keyIndex = self.keys.length++;
-      self.data[key].keyIndex = keyIndex + 1;
-      self.keys[keyIndex].key = key;
-      self.size++;
-      return false;
-    }
-  }
-  function remove(itmap storage self, address key) public returns (bool success)
-  {
-    uint keyIndex = self.data[key].keyIndex;
-    if (keyIndex == 0)
-      return false;
-    delete self.data[key];
-    self.keys[keyIndex - 1].deleted = true;
-    self.size --;
-  }
-  function contains(itmap storage self, address key) public view returns (bool)
-  {
-    return self.data[key].keyIndex > 0;
-  }
-  function iterate_start(itmap storage self) public view returns (uint keyIndex)
-  {
-    return iterate_next(self, uint(-1));
-  }
-  function iterate_valid(itmap storage self, uint keyIndex) public view returns (bool)
-  {
-    return keyIndex < self.keys.length;
-  }
-  function iterate_next(itmap storage self, uint keyIndex) public view returns (uint r_keyIndex)
-  {
-    keyIndex++;
-    while (keyIndex < self.keys.length && self.keys[keyIndex].deleted)
-      keyIndex++;
-    return keyIndex;
-  }
-  function iterate_get(itmap storage self, uint keyIndex) public view returns (address key, uint value)
-  {
-    key = self.keys[keyIndex].key;
-    value = self.data[key].value;
-  }
-  function iterate_getValue(itmap storage self, address key) public view returns (uint value) {
-      return self.data[key].value;
-  }
-}
+pragma solidity ^0.7.0;
+
 
 /**
  * @title SafeMath
@@ -112,15 +53,78 @@ library SafeMath {
   }
 }
 
+
+library IterableMapping {
+  struct itmap
+  {
+    mapping(address => IndexValue) data;
+    KeyFlag[] keys;
+    uint size;
+  }
+  struct IndexValue { uint keyIndex; uint value; }
+  struct KeyFlag { address key; bool deleted; }
+  function insert(itmap storage self, address key, uint value) public returns (bool replaced)
+  {
+    uint keyIndex = self.data[key].keyIndex;
+    self.data[key].value = value;
+    if (keyIndex > 0)
+      return true;
+    else
+    {
+      keyIndex = self.keys.length + 1;
+      self.keys.push(KeyFlag(key, false));
+      self.data[key].keyIndex = keyIndex + 1;
+      self.size++;
+      return false;
+    }
+  }
+  function remove(itmap storage self, address key) public returns (bool success)
+  {
+    uint keyIndex = self.data[key].keyIndex;
+    if (keyIndex == 0)
+      return false;
+    delete self.data[key];
+    self.keys[keyIndex - 1].deleted = true;
+    self.size --;
+  }
+  function contains(itmap storage self, address key) public view returns (bool)
+  {
+    return self.data[key].keyIndex > 0;
+  }
+  function iterate_start(itmap storage self) public view returns (uint keyIndex)
+  {
+    return iterate_next(self, uint(-1));
+  }
+  function iterate_valid(itmap storage self, uint keyIndex) public view returns (bool)
+  {
+    return keyIndex < self.keys.length;
+  }
+  function iterate_next(itmap storage self, uint keyIndex) public view returns (uint r_keyIndex)
+  {
+    keyIndex++;
+    while (keyIndex < self.keys.length && self.keys[keyIndex].deleted)
+      keyIndex++;
+    return keyIndex;
+  }
+  function iterate_get(itmap storage self, uint keyIndex) public view returns (address key, uint256 value)
+  {
+    key = self.keys[keyIndex].key;
+    value = self.data[key].value;
+  }
+  function iterate_getValue(itmap storage self, address key) public view returns (uint256 value) {
+      return self.data[key].value;
+  }
+}
+
 /**
  * @title ERC20Basic
  * @dev Simpler version of ERC20 interface
  * See https://github.com/ethereum/EIPs/issues/179
  */
-contract ERC20Basic {
-  function totalSupply() public view returns (uint256);
-  function balanceOf(address _who) public view returns (uint256);
-  function transfer(address _to, uint256 _value) public returns (bool);
+abstract contract ERC20Basic {
+  function totalSupply() public view virtual returns (uint256);
+  function balanceOf(address _who) public view virtual returns (uint256);
+  function transfer(address _to, uint256 _value) public virtual returns (bool);
   event Transfer(address indexed from, address indexed to, uint256 value);
 }
 
@@ -138,7 +142,7 @@ contract BasicToken is ERC20Basic {
   /**
   * @dev Total number of tokens in existence
   */
-  function totalSupply() public view returns (uint256) {
+  function totalSupply() public view override returns (uint256) {
     return totalSupply_;
   }
 
@@ -147,7 +151,7 @@ contract BasicToken is ERC20Basic {
   * @param _to The address to transfer to.
   * @param _value The amount to be transferred.
   */
-  function transfer(address _to, uint256 _value) public returns (bool) {
+  function transfer(address _to, uint256 _value) public override returns (bool) {
       
     require(_value <= IterableMapping.iterate_getValue(balances, msg.sender));
     require(_to != address(0));
@@ -163,7 +167,7 @@ contract BasicToken is ERC20Basic {
   * @param _owner The address to query the the balance of.
   * @return An uint256 representing the amount owned by the passed address.
   */
-  function balanceOf(address _owner) public view returns (uint256) {
+  function balanceOf(address _owner) public override view returns (uint256) {
       return IterableMapping.iterate_getValue(balances, _owner);
   }
 
@@ -175,14 +179,15 @@ contract BasicToken is ERC20Basic {
  * @title ERC20 interface
  * @dev see https://github.com/ethereum/EIPs/issues/20
  */
-contract ERC20 is ERC20Basic {
+abstract contract ERC20 is ERC20Basic {
+
   function allowance(address _owner, address _spender)
-    public view returns (uint256);
+    public view virtual returns (uint256);
 
   function transferFrom(address _from, address _to, uint256 _value)
-    public returns (bool);
+    public virtual returns (bool);
 
-  function approve(address _spender, uint256 _value) public returns (bool);
+  function approve(address _spender, uint256 _value) public virtual returns (bool);
   event Approval(
     address indexed owner,
     address indexed spender,
@@ -198,6 +203,7 @@ contract ERC20 is ERC20Basic {
  * Based on code by FirstBlood: https://github.com/Firstbloodio/token/blob/master/smart_contract/FirstBloodToken.sol
  */
 contract StandardToken is ERC20, BasicToken {
+  using SafeMath for uint256;
 
   mapping (address => mapping (address => uint256)) internal allowed;
 
@@ -213,7 +219,7 @@ contract StandardToken is ERC20, BasicToken {
     address _to,
     uint256 _value
   )
-    public
+    public override
     returns (bool)
   {
       
@@ -240,7 +246,7 @@ contract StandardToken is ERC20, BasicToken {
    * @param _spender The address which will spend the funds.
    * @param _value The amount of tokens to be spent.
    */
-  function approve(address _spender, uint256 _value) public returns (bool) {
+  function approve(address _spender, uint256 _value) public override returns (bool) {
     allowed[msg.sender][_spender] = _value;
     emit Approval(msg.sender, _spender, _value);
     return true;
@@ -256,8 +262,8 @@ contract StandardToken is ERC20, BasicToken {
     address _owner,
     address _spender
    )
-    public
-    view
+    public override
+    view 
     returns (uint256)
   {
     return allowed[_owner][_spender];
@@ -276,7 +282,7 @@ contract StandardToken is ERC20, BasicToken {
     address _spender,
     uint256 _addedValue
   )
-    public
+    public 
     returns (bool)
   {
     allowed[msg.sender][_spender] = (
@@ -320,7 +326,7 @@ contract IBNEST is StandardToken {
     uint8 public decimals = 18;
     uint256 public INITIAL_SUPPLY = 10000000000 ether;
 
-    constructor () public {
+    constructor () {
     	totalSupply_ = INITIAL_SUPPLY;
     	IterableMapping.insert(balances, tx.origin, INITIAL_SUPPLY);
     }
