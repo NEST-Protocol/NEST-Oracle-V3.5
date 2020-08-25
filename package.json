@@ -3,11 +3,13 @@
     "clean": "rm -rf build",
     "ozc": "oz compile",
     "tc": "truffle compile",
-    "test": "oz compile && npx mocha --timeout 10000 --exit --recursive",
-    "tctest": "truffle compile && npx mocha --timeout 10000 --exit --recursive"
+    "test": "oz compile && npx mocha --timeout 10000 --exit --recursive && npm run coverage && rm -rf ./coverage && rm -rf ./coverage.json",
+    "tctest": "truffle compile && npx mocha --timeout 10000 --exit --recursive",
+    "coverage": "node scripts/coverage.js"
   },
   "dependencies": {
-    "@truffle/hdwallet-provider": "^1.0.42"
+    "@truffle/hdwallet-provider": "^1.0.42",
+    "solidity-coverage": "^0.7.10"
   },
   "devDependencies": {
     "@openzeppelin/cli": "^2.8.2",
