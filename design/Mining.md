@@ -13,6 +13,13 @@
 
 矿工报价调用 `postPriceSheet()`，关闭报价单则调用 `closePriceSheet()`。为了优化 GAS，矿工可以一次性 close 多个报价单。
 
+
+TODO: 在吃单的时候，如果是 biteTokens, 新报价单规模需要2倍以上，这时候应该用 tokenAmount 来计算，而不是 ethAmount。否则这个地方会有一个奇怪的 case 判断。而在 biteEths 时，新报价单规模应该用 ethAmount 来计算。
+
+TODO: PriceSheetData 中的 OriginalEthAmount, OriginalTokenAmount 似乎不再需要
+
+TODO: 在 PriceSheetData 中增加一个位，标记这个Sheet 已经被 close 
+
 ## 数据结构
 
 一个报价单结构体长度为 `5 * 256b` 
@@ -62,7 +69,7 @@ struct PricePair{
 
 ## 参数
 
-- `_nest_yield_cutback_period = 2,400,000`：挖矿衰减周期（一年）     `_blockAttenuation = 2 400 000 `
+- `c_mining_nest_yield_cutback_period = 2,400,000`：挖矿衰减周期（一年）     `_blockAttenuation = 2 400 000 `
 
 - `_nest_yield_per_block_base = 400` : 每个区块可以挖出的 nest 数量为 400 个  | 无
 
@@ -70,7 +77,7 @@ struct PricePair{
 
 - `_nest_yield_off_period_amount = 40`: 10年以后，挖矿量固定下来 = 40 个  | `_afterMiningAmount` 
 
-- `_nest_genesis_block_height`: 挖矿的起始区块   `_firstBlockNum = 6236588`
+- `c_mining_nest_genesis_block_height`: 挖矿的起始区块   `_firstBlockNum = 6236588`
 
 - `_ntoken_yield_per_block_base = 4` : 每个区块可以挖出的 ntoken 数量为 4 个  | 无
 
@@ -82,7 +89,7 @@ struct PricePair{
 
 - `x_bite_fee_thousandth = 1`：吃单手续费千分比  改名 <= _tranEth 
 
-- `x_bite_mining_factor = 2`：吃单报价增量因子 改名 <= _tranAddition
+- `c_bite_amount_factor = 2`：吃单报价增量因子 改名 <= _tranAddition
 
 - `x_bidder_reward_percentage = 5` nToken 拍卖胜者的挖矿抽成比例 5%  <= _ownerMining; 
 
@@ -100,7 +107,7 @@ struct PricePair{
 
 - `x_price_deviation_rate = 10`: 吃单的价格正常偏离百分比  改名 <= _deviate
 
-- `x_price_deviateion_mining_factor = 10`: 吃单价格偏离后的报价规模放大因子  改名 <= _deviationFromScale
+- `c_mining_price_deviateion_factor = 10`: 吃单价格偏离后的报价规模放大因子  改名 <= _deviationFromScale
 
 - `x_price_duration = 25` :  价格等待生效时长为 25 个区块，在这 25 个区块内，可以被任意吃单。 改名 <= _blockLimit
 
@@ -166,10 +173,10 @@ function postPriceSheet(uint128 ethAmount, uint128 tokenAmount, address token, b
     uint256 nest_nToken;
 
     if (!isNToken) {
-        require(_token_allowed_list[tokenAddr], "token is not listed");
+        require(_token_allowed_list[token], "token is not listed");
         nest_nToken = _C_nest_token_address;
     } else {
-        nest_nToken = NestPool.getNToken(tokenAddr);  
+        nest_nToken = NestPool.getNToken(token);  
     }
 
     // 判断价格是否偏离

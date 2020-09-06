@@ -18,11 +18,12 @@
 
 - `getNTokenAmount(nestNtoken, address user)`
 - `getNTokenBonusAmount(address nestNtoken)`
-- `transferFrom(sender, nestNtoken, amount)`
-- `transferTo(receiver, nestNtoken, amount)`
 
-- `ethTransferFrom(nestNtoken, amount)`
-- `ethTransferTo(recevier, ntoken, amount)`
+- `lockNToken(sender, nestNtoken, amount)`
+- `unlockNToken(receiver, nestNtoken, amount)`
+
+- `pumpinEth(nestNtoken, amount)`
+- `pickupEth(recevier, ntoken, amount)`
 
 - `moveBonusToLeveling(amount)`
 - `moveBonusFromLeveling(nestNtoken, amount)`
@@ -31,7 +32,7 @@
 
 - (关键数据)`_bonus_ledger_eth: nestNtoken => amount` 记录 nestToken/nToken 对应的分红用 eth 数量
 
-- (关键数据)`_bonus_leveling_ledger_eth: nestNtoken => amount` 记录 平准基金账本
+- (关键数据)`_leveling_ledger_eth: nestNtoken => amount` 记录 平准基金账本
 
 - (关键数据)`_staking_ledger: nestNtoken => user => amount` ：记录每一个人 stake 的 token 数量 (<= _baseMapping)
 
@@ -39,9 +40,9 @@
 
 -----------------------------------------------------
 
-- `ethTransferFrom(nestNtoken, amount)`
+- `pumpinEth(nestNtoken, amount)`
 
-权限：仅允许 [[Mining]] 合约调用
+权限：仅允许 [[Mining]] [[PriceOracle]] 合约调用
 
 功能：将 eth 手续费的数额计入 nestNtoken 所对应的分红池账本，但是这时候 eth 并没有真正转账过来。
 
@@ -58,7 +59,7 @@ Callsites:
 实现:
 
 ```js
-function ethTransferFrom(address nestNtoken, uint128 amount) public payable onlyStakingContract {
+function pumpinEth(address nestNtoken, uint128 amount) public payable onlyStakingContract {
     require(msg.value >= amount, "");
     _bonus_ledger_eth[nestNtoken] = _bonus_ledger_eth[nestNtoken].add(amount);
 }
@@ -66,7 +67,7 @@ function ethTransferFrom(address nestNtoken, uint128 amount) public payable only
 
 -----------------------------------------------------
 
-- `ethTransferTo(recevier, nestNtoken, amount)`
+- `pickupEth(recevier, nestNtoken, amount)`
 
 权限: 仅允许 [[Staking]] 合约调用
 
@@ -86,7 +87,7 @@ Callsites:
 实现:
 
 ```js
-function ethTransferTo(address recevier, address nestNtoken, uint128 amount) public onlyStakingContract {
+function pickupEth(address recevier, address nestNtoken, uint128 amount) public onlyStakingContract {
     _bonus_ledger_eth[nestNtoken] = _bonus_ledger_eth[nestNtoken].sub(amount);
     recevier.transfer(amount);
 }

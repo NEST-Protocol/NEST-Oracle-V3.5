@@ -1,18 +1,14 @@
 {
   "scripts": {
-<<<<<<< HEAD
-    "clean": "rm -rf build"
-  },
-  "dependencies": {
-    "@truffle/hdwallet-provider": "^1.0.42"
-=======
     "clean": "rm -rf build",
     "ozc": "oz compile",
-    "test": "truffle test"
+    "test": "truffle test",
+    "ganache": "ganache-cli -a 20 --deterministic --port 8545 -l 10000000 -i 1666 --defaultBalanceEther 1000000"
   },
   "dependencies": {
     "@truffle/hdwallet-provider": "^1.0.42",
-    "solidity-coverage": "^0.7.10"
+    "solidity-coverage": "^0.7.10",
+    "truffle": "^5.1.16-truffleLogger.0"
   },
   "devDependencies": {
     "@openzeppelin/cli": "^2.8.2",
@@ -21,6 +17,5 @@
     "chai": "^4.2.0",
     "eth-gas-reporter": "^0.2.17",
     "mocha": "^8.1.1"
->>>>>>> 3c2b0dc8525546c484ebf03315a258a1cd13175d
   }
 }

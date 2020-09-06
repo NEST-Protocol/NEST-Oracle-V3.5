@@ -1,16 +1,18 @@
-# 价格预言机合约 PriceOracle
+# 价格预言机合约 NestPrice
 
 价格预言机模块负责对外提供 价格查询服务，主要对外的接口函数：
 
 - `setFee(token)` 设置针对 token 「价格」的预言机服务费用
 
-- `queryPrice(token)`  查询价格，对外 Client 公开
-- `addPrice(token)` 增加token的价格信息，仅对[[Mining]] 合约公开
+- `queryPrice(token)`  查询价格，对外 Client 公开，提供 **随机红包** 奖励
 - `checkPrice(token)` 用于链下用户通过 API 查询 token 价格
-- `getPrice(address token)`
+- `queryPriceForMonthlyClient(token)` 用于包月 Client 的询价服务，不提供红包奖励
 
 - `activateClient()` 激活 Client，设置服务生效时间
-- `topupClient()`  Client 进行充值，仅对于包月的 Client 生效。
+- `renewalClient()` 包月续费 Client，设置服务生效时间
+
+- `AmountOfNestClient()`  查询 Client 账户中的红包总额
+- `claimNestClient()` 用于提取全部的红包（Nest）到 Client 地址
 
 合约负责维护两个重要的数据结构
 1. 一个是 token 的价格信息数据
@@ -24,70 +26,87 @@
 
 TODO: 在 queryPrice() 中有多笔 eth 转账，优化方法是把所有的 eth 一次性发给 BonusPool, 后续再结账
 
+TODO: 询价手续费会给当初报价的矿工进行分成，请注意，这里是给最新的报价矿工分成
+
+TODO: [20200906] 优化？能否让 client 一次充值，多次查询？
+
+### 询价红包算法
+
+1. 每一次 client 询价的时候，记录这时的 block.number 的最后32位,记录在 last_height 中
+2. 当 client 第二次询价的时候，判断这时  block.number - last_height < 256，如果否则退出
+3. 这时计算 rand = block.hash(last_height) + last_seed，假设 block.hash 是一个符合要求的随机数
+4. 根据 rand 的高位等零来计算概率
+4. 如果 最高 10 位 = 0， 概率 < 1/1024, 获得 50% 的 nest 红包
+5. 如果 最高 6 位 = 0 概率 < 1/64，获得 10% 的 nest 红包
+6. 如果 最高 3 位 = 0 概率 < 1/8，获得 1% 的 nest 红包
+7. 设置 last_seed = rand 低 32 位
+
+TODO: 增加一个函数来修改询价红包算法的参数
+
 ## 数据结构
 
-价格预言机合约有两个重要的映射表：
+NestPrice 合约有两个重要的映射表：
 
 - `_token_prices: token => TokenPrice`
 
-从 token 地址到 TokenInfo 结构体的映射。一个 TokenInfo 记录当前 Token 的价格服务费用还有产生的按区块排列的价格列表。
+从 token address 到 TokenPrice 结构体的映射。一个 TokenPrice 记录当前 Token 的价格服务费用。
 
-区块
-
-```js
-struct TokenInfo { //  token报价信息
-    mapping(blockno => PriceInfo) priceInfoList;  //  区块价格列表,区块号 => 区块价格
-    uint128 latestBlock;    //  最新生效区块 
-    uint32 priceCostLeast;  //  价格 ETH 最少费用  <= priceCostLeast
-    uint32 priceCostMost;   //  价格 ETH 最多费用 
-    uint32 priceCostSingle;  //  价格 ETH 单条数据费用
-    uint32 priceCostUser;  //  价格 ETH 费用用户比例
-}
-```
-
-TokenInfo 结构体的第一个变量为 从区块高度到 PriceInfo 的映射，在这个映射上，价格形成了一个单向链表结构。`latestBlock` 为链表头指针。
-
-下面是 PriceInfo 的定义，其长度为 `3 * 256b` 的结构体，包含价格的报价人地址 `priceMiner`（用于服务费分成），价格对，指向上一个价格信息的区块高度 `prevBlock`
+*注: 在 NestV3 中，TokenInfo 除了价格费用之外，还保存了按区块的 token 报价，在 V3.5中，报价信息只保存在 NestMining 合约的报价单列表中。*
 
 ```js
-struct PriceInfo {//  区块价格
-    address priceMiner;  //  报价地址  // 
-    uint128 ethAmount;  //  ETH 数量
-    uint128 tokenAmount; //  ERC20 数量
-    uint128 prevBlock; //  上一个生效区块
-    uint128 _padding;
-}
+    struct TokenPrice {    // 改名 <== TokenInfo
+        uint256 priceCostLeast;
+        uint256 priceCostMost;
+        uint256 priceCostSingle;
+        uint256 priceCostUser;
+    }
 ```
-*注: 这里的 priceInfoList 字段也可以用数组表示，但是否省 GAS 需要讨论*
+
+TODO: TokenPrice 结构体可以优化存储空间，压缩到一个 256B。
 
 - `_clients: client => ClientInfo` 
 
-从 Client 地址到 ClientInfo 的映射。在 NestV3 中这个映射结构对应 `_addressEffect` 与 `_blocklist`。
+第二个映射表是维护 Client 的信息。它是从 Client 地址到 ClientInfo 的映射。在 NestV3 中这个映射结构对应 `_addressEffect` 与 `_blocklist`。
 
-ClientInfo 长度为 `256b` 包含，月服务费 `monthly`，服务生效时间 `startTime`，截止时间 `endTime`。 
+```js
+    struct ClientInfo {
+        // monthlyFee == 0, the client pays fee per query
+        // monthlyFee != 0, the client pays fee monthly
+        uint32 monthlyFee;
+        uint64 startTime;
+        uint64 endTime;  // endTime==0 for non-monthly clients
+        uint32 lastHeight;
+        uint64 lastSeed;
+    }
+```
 
-客户服务生效时间如果是 (uint256)(-1)， 则表示禁止服务。如果 `endTime` 为 (uint256)(-1)，则表示该 Client 是按次收费，否则是按月收费。
+ClientInfo 长度为 `256B`，包含月服务费 `monthlyFee`，服务生效时间 `startTime`，截止时间 `endTime`。 
 
-客户通过调用 `TopupClient()` 进行按月续费。
+客户服务生效时间 `startTime` 如果是 0， 则表示禁止服务。如果 `endTime` 为 0，则表示该 Client 是按次收费，否则是按月收费。`monthlyFee` 如果为 0，则表示是包月客户，否则为按次收费客户。
+
+包月客户通过调用 `renewalClient()` 进行按月续费。
 
 当 Client 调用服务时，会检查 `now > start_time`。
 
-```js
-struct ClientInfo {
-    uint32 monthly;
-    uint96 _padding;
-    uint64 startTime;
-    uint64 endTime;
-}
-```
 
-## 参数
+## 合约变量
 
-- `x_client_oracle_nest_burned_amount = 10000 ether` : nestToken 销毁数量，改名 <= destructionAmount
 
-- `x_client_activation_duration = 1 days` ： 一个 token 报价服务从注册到激活之间的时间间隔 <= effectTime
+- `_x_nest_burn_address`  nest 的销毁地址，需要管理员重置 (与 [[NestPool]] 中的变量设置一致)
 
-- `x_nest_burn_address`  nest 的销毁地址，需要管理员重置 (与 [[NestPool]] 中的变量设置一致)
+- `_x_dev_address` nest dev 奖励地址，需要管理员重置，与[[NestPool]] 中的变量设置一致
+
+## 合约参数
+
+- `c_client_oracle_nest_burned_amount = 10000 ether` : nestToken 销毁数量，改名 <= destructionAmount
+
+- `c_client_activation_duration = 1 days` ： 一个 token 报价服务从注册到激活之间的时间间隔 <= effectTime
+
+- `c_1st_prize_thousandth = 500`  一等奖为 dev 奖池的 50%
+
+- `c_2nd_prize_thousandth = 100` 二等奖为 dev 奖池的 10%
+
+- `c_3rd_prize_thousandth = 10` 二等奖为 dev 奖池的 1%
 
 ## 关键函数
 
@@ -95,18 +114,20 @@ struct ClientInfo {
 - `setFee(address token) public onlyAuctionContract` 
     + token: 被报价的 token 合约地址
 
-权限：只能被拍卖合约 [[Auction]] 调用
+权限：
+1. 被拍卖合约 [[Auction]] 调用
+2. 被[[DAO]]合约调用
 
-功能：设置 Price Oracle 的价格，在拍卖结束后调用
+功能：设置 token 询价的服务费用。在拍卖结束后会被调用一次
 
 改名: NestV3 <= addPriceCost 
 
-Assumes: 
+Assumes: N/A 
 
 副作用: 修改 `_token_prices[token]` 中的服务费信息
 
 Callsites: 
-1. NToken.closeAuction()
+1. Auction.closeAuction()
 
 资金流向: none
 
@@ -121,7 +142,7 @@ function setFee(address token) public onlyAuctionContract {
     tp.priceCostUser = 2;
 }
 ```
-
+<!-- 
 -----------------------------------------------------
 - `addPrice(ethAmount, tokenAmount, atHeight, token, miner) external onlyMiningContract`
     + ethAmount: eth 数量
@@ -130,6 +151,8 @@ function setFee(address token) public onlyAuctionContract {
     + token: token 合约地址
     + miner: 这个价格的报价挖矿者
 
+TODO: [20200831] 这个函数可以被优化掉，直接在 price sheets 里面取价格
+ 
 权限：只能被报价合约[[Mining]] 调用
 
 功能：为某个 token 追加一个有效的报价，
@@ -185,45 +208,256 @@ function cutPrice(uint128 ethAmount, uint128 tokenAmount, address token, uint128
     priceInfo.ethAmount = price.ethAmount.sub(ethAmount);
     priceInfo.tokenAmount = price.erc20Amount.sub(tokenAmount);
 }
-```
+``` -->
 
 -----------------------------------------------------
-- `queryPrice(token) external payable returns(ethAmount, erc20Amount, atHeight)`
+- `queryPrice(token) external payable returns(ethAmount, tokenAmount, atHeight)`
     + token: 取得 token 的预言机价格（经过计算）
-    + 返回报价对加上区块生效高度
+    + return: 报价对以及区块生效高度
 
-**高频接口**，需要 GAS 优化
+优化: **高频接口**，需要 GAS 优化
 
 改名: Nestv3 <= updateAndCheckPriceNow()
 
 权限: 公开任何人
 
-功能: Oracle 主服务接口。如果 token 是一个无效值，则返回 (eth, usd) 的报价 
+功能: 预言机主服务接口
 
-1. 检查 client 的资质（黑名单？是否注册？地址是否生效？）
-2. 获得 token 信息 tokenInfo
+TODO: 如果 token 是一个无效值，则返回 (eth, usd) 的报价 
+
+1. 检查 client 的资质
+2. 获得 token 对应的 TokenPrice
 3. 寻找第一个不为零的低于当前区块高度的生效价格的区块号，checkBlock // 改名 => priceHeight
-4. priceHeight 不能为零 // 似乎可以优化掉
-5. 获得 priceHeight 处的报价信息 priceInfo
-6. 得到 nTokenMapping 的 nToken 地址，如果 nToken == 0，则把服务费 eth 的 80% 加入到 nestToken 分红池中，否则将 服务费 eth 的 80% 放入 nToken 所对应的分红池中
-7. 付给报价挖矿者的预言机服务费的 20%
-8. 把剩余的 eth 打回给 client
-9. 产生一个事件，`NowTokenPrice`
-10. 返回 (eth, token, 价格所在区块高度)
+4. 得到 nToken 地址，把服务费 eth 的 80% 加入到 nToken 分红池中
+5. 付给报价挖矿者的预言机服务费的 20%
+6. 把剩余的 eth 打回 client
+7. 领取随机红包
+8. 产生一个事件，`PriceOracle`
+9. 返回 (eth, token, 价格所在区块高度)
 
-Assumes: `_clients`, `_token_prices`
+Assumes: 
+1. token 地址正确
+2. NestPool 中 dev 账户有一定数量的 nest token
+3. 当前 client 已经被激活
 
-副作用: none
+副作用:
+1. 修改 _clients[msg.sender] 中的 lastSeed 与 lastHeight 的值
 
 资金流向:
 
-1. 服务费 eth 的 __% 转给 [[BonusPool]]
+1. 服务费 eth 的 80% 转给 [[BonusPool]]
 2. 服务费 eth 的 20% 转给 priceMiner
 3. 返还 Client 多余的 eth
-4. 挖矿所得 nest/ntoken，在 [[NestPool]] 中记账
+4. 领取的随机红包 nest，在 [[NestPool]] 中完成转账 dev => client
 
 事件: PriceQuery(token, ethAmount, tokenAmount, height, msg.sender)
 
+实现:
+
+```js
+    function queryPrice(address token) public payable returns (uint256, uint256, uint64) 
+    {
+        // check
+        ClientInfo memory c = _clients[address(msg.sender)];
+        require(c.monthlyFee == 0, "No monthly client");
+        uint256 startTime = uint256(c.startTime);
+        uint256 endTime = uint256(c.endTime);
+        require(!startTime && startTime < block.timestamp && endTime == 0, "Client not activated");
+    
+        // lookup the latest effective price
+        (uint256 ethAmount, uint256 tokenAmount, uint256 bn, address miner) = _C_NestMining.lookupTokenPrice(token);
+        TokenPrice memory tp = _token_prices[token];  
+
+        address nToken = _C_NestPool.getNTokenFromToken(token); 
+        uint256 ethFee = tp.priceCostLeast.sub(tp.priceCostLeast.mul(tp.priceCostUser).div(10));
+        // fee * 80% => bonus pool
+        _C_BonusPool.pumpinEth{value:ethFee}(address(nToken), ethFee);
+        // fee * 20% => miner who posted the price
+        TransferHelper.safeTransferETH(miner, tp.priceCostLeast.mul(tp.priceCostUser).div(10));
+        // pay back the surplus
+        TransferHelper.safeTransferETH(address(msg.sender), msg.value.sub(tp.priceCostLeast));
+        
+        // randomized mining
+        uint32 lh = uint32(block.number - uint256(c.lastHeight)); //safe math
+        uint256 pool = _C_NestPool.balanceOfNestInPool(_x_dev_address);
+        if (lh < uint32(256) && pool > 0) {
+            uint64 hash = uint64(blockhash(block.number - uint256(lh))) + c.lastSeed; //safe math
+            uint256 prize = 0;
+            if (hash >> 54 == uint64(0)) {
+                prize = pool.mul(c_1st_prize_thousandth).div(1000);
+            } else if (hash >> 58 == uint64(0)){
+                prize = pool.mul(c_2nd_prize_thousandth).div(1000);
+            } else if (hash >> 61 == uint64(0)) {
+                prize = pool.mul(c_3rd_prize_thousandth).div(1000);
+            }
+            if (prize > 0) {
+                _C_NestPool.transferNestInPool(_x_dev_address, address(msg.sender), prize);
+            }
+            c.lastSeed = hash;
+        } 
+        c.lastHeight = uint32(block.number);
+        _clients[address(msg.sender)] = c;
+        
+        emit PriceOracle(token, ethAmount, tokenAmount, bn);
+        return (ethAmount, tokenAmount, bn);
+    }
+```
+
+-----------------------------------------------------
+
+
+-----------------------------------------------------
+<!-- - `getPrice(address token)`
+
+权限: 仅能被 viewonlyMiningContract 调用
+
+功能: 得到 token 的最新的生效价格
+
+参数要求:
+
+副作用:
+
+资金流向: none
+
+实现: 
+
+```js
+function getPrice(address token) public viewonlyMiningContract returns(uint128 ethAmount, uint128erc20Amount) {
+    TokenPrice storage tp = _token_prices[token];
+    uint256 bn = tp.latestBlock;
+    while(bn > 0 && (bn >= block.number || tp.priceInfoList[bn].ethAmount == 0)) {
+        bn = tp.priceInfoList[bn].prevBlock;
+    }
+    if (bn == 0) {
+        return (0,0);
+    }
+    PriceInfo memory price = tp.priceInfoList[bn];
+    return (price.ethAmount, price.erc20Amount);
+}
+``` -->
+
+-----------------------------------------------------
+- `activateClient(monthlyFee) external`
+
+权限：
+1. 由 client 调用，任何人
+
+功能：注册激活一个 client 的地址，设置激活时间，销毁 c_client_oracle_nest_burned_amount = 10,000 个 nest
+
+TODO: 
+1. 销毁 nest 的操作应该交给 [[NestPool]] 合约
+2. 一个已经被激活的client能否被再次激活?
+
+改名: <= activation
+
+Assumes: 
+1. 参数 `_x_nest_burn_address` 被正确设置
+2. 当前用户还未被激活 
+
+副作用: 
+1. 修改 _clients，设置 startTime, endTime, lastSeed, lastHeight
+2. 设置 client 服务的起始时间为当前时间 + `c_client_activation_duration`
+
+资金流转: 从 client 账户中销毁若干 nest 
+
+事件: `ClientActivation()`
+
+```js
+    function activateClient(uint32 monthlyFee) public {
+        ClientInfo memory client;
+        client.monthlyFee = monthlyFee;
+        client.startTime = now.add(c_client_activation_duration);
+        client.endTime = 0;
+        client.lastSeed = uint64(keccak256(abi.encodePacked(msg.sender, block.number)));
+        client.lastHeight = uint32(block.number);
+        _clients[address(msg.sender)] = client;
+        emit ClientActivation(address(msg.sender), client.startTime, client.endTime);
+        _C_NestToken.transferFrom(address(msg.sender), _x_nest_burn_address, c_client_oracle_nest_burned_amount);
+    }
+```
+
+-----------------------------------------------------
+- `renewalClient(uint8 months) external return (uint64)`
+    + months: Client 要续费的月数
+    + return: 返回服务截止时间的时间戳
+
+权限：Client 调用，任何人
+
+功能：为包月 Client 续费
+
+Assumes: 
+1. months 至少为 1 个月
+2. `_clients[msg.sender]` 已经被正确设置，特别是 c.MonthlyFee
+3. _C_NestToken 被正确设置
+4. _C_BonusPool 被正确设置
+
+副作用: 
+1. 更新 `_clients[client].endTime`
+2. 调用 [[BonusPool]] 合约，打入 eth，并更改 nest 分红账本
+
+资金流向:
+1. ethFee (=months * monthlyFee) | client ==>  [[BonusPool]] 合约
+2. 零钱 eth | this ==> client
+
+事件: 客户续费事件 `ClientSubscribe(msg.sender, start_time, end_time, months)`
+
+```js
+    function renewalClient(uint8 months) external return (uint64) {
+        require(months > 0, "At least one month");
+        ClientInfo memory c = _clients[address(msg.sender)];
+        uint256 monthlyFee = uint256(c.monthlyFee);
+        require(monthlyFee > 0, "only for monthly client");
+        ethFee = monthlyFee.mul(1 ether).mul(months);
+        require(msg.value >= ethFee, "Insufficient monthly fee");
+
+        if (c.endTime != 0) {
+            c.endTime = uint64(uint256(c.endTime).add(uint256(months).mul(1 months))); 
+        } else {
+            c.endTime = uint64(uint256(c.startTime).add(uint256(months).mul(1 months))); 
+        }
+        _clients[address(msg.sender)] = c;
+        
+        emit ClientSubscribe(msg.sender, start_time, end_time, months);
+        _C_BonusPool.pumpinEth{value:ethFee}(_C_NestToken, ethFee);
+        TransferHelper.safeTransferETH(address(msg.sender), msg.value - ethFee); // safe math;
+        return c.endTime;
+    }
+```
+
+-----------------------------------------------------
+- `claimNestClient() return (uint256)` 
+    + 返回领取的 nest 数量
+
+权限: Client 调用，任何人
+
+功能: 领取 Client 询价后所领取的随机红包 nest token
+
+Assumes: 
+1. _C_NestPool 被正确设置
+
+副作用: 
+1. 更改 [[NestPool]] 合约状态
+
+资金流转: 
+1. 把 nest 转出 [[NestPool]]，转入到 Client 地址
+
+事件: none
+
+```js
+    function claimNestClient() external returns (uint256) {
+        return (_C_NestPool.distributeRewards(address(msg.sender)));
+    }    
+```
+
+-----------------------------------------------------
+- `checkPriceNow(tokenAddress) public view returns (ethAmount, erc20Amount, blockNum)`
+
+权限：任何用户公开查看，禁止合约调用
+
+功能：得到当前有效的价格，无需服务费
+
+
+<!-- 
 ```js
 function queryPrice(address token) public payable return(uint128 ethAmount, uint128 tokenAmount, uint128 blockNum) {
     // 资格检查
@@ -256,10 +490,8 @@ function queryPrice(address token) public payable return(uint128 ethAmount, uint
     emit GetTokenOraclePrice(token, price.ethAmount, price.erc20Amount);
     return (price.ethAmount, price.erc20Amount, bn);
 }
-```
-
------------------------------------------------------
-
+``` -->
+<!-- 
 ```js 
 function getPriceListOracle(address token, uint8 num) public payable returns (uint128[] memory) {
     // 资格检查
@@ -306,125 +538,4 @@ function getPriceListOracle(address token, uint8 num) public payable returns (ui
     repayEth(address(msg.sender), msg.value.sub(ethFee));
     return data;
 }
-```
-
------------------------------------------------------
-- `getPrice(address token)`
-
-权限: 仅能被 viewonlyMiningContract 调用
-
-功能: 得到 token 的最新的生效价格
-
-参数要求:
-
-副作用:
-
-资金流向: none
-
-实现: 
-
-```js
-function getPrice(address token) public viewonlyMiningContract returns(uint128 ethAmount, uint128erc20Amount) {
-    TokenPrice storage tp = _token_prices[token];
-    uint256 bn = tp.latestBlock;
-    while(bn > 0 && (bn >= block.number || tp.priceInfoList[bn].ethAmount == 0)) {
-        bn = tp.priceInfoList[bn].prevBlock;
-    }
-    if (bn == 0) {
-        return (0,0);
-    }
-    PriceInfo memory price = tp.priceInfoList[bn];
-    return (price.ethAmount, price.erc20Amount);
-}
-```
-
------------------------------------------------------
-- `activateClient() external`
-
-权限：由 client 调用，任何人
-
-功能：注册激活一个 client 的地址，设置激活时间，销毁 x_token_price_oracle_nest_burned_amount = 10,000 个 nest
-
-改名 <= activation
-
-Assumes: 
-1. 从参数 `x_nest_burn_address` 得到销毁得知
-2. Client 要委托 [[PriceOracle]] 合约转账 nest，实现 burn nest 
-
-副作用: 设置 client 服务的起始时间， `x_client_activation_duration`
-
-资金流转: 从 client 账户中销毁若干 nest 
-
-事件: none
-
-```js
-function activateClient() public {
-    uint256 burningAddr = _C_NestPool.getNestBurnAddress();
-    uint64 burned = x_client_oracle_nest_burned_amount;
-    uint64 period  = x_client_activation_duration;
-    _nest_token_contract.safeTransferFrom(address(msg.sender), burningAddr, burned);
-    _client_service_start_time[address(msg.sender)] = now.add(period);  // gy: effectTime 默认是一天，
-}
-```
-
------------------------------------------------------
-- `topupClient(uint8 months) external return (uint64)`
-    + months: Client 要续费的月数
-    + 返回服务截止时间的时间戳
-
-权限：Client 调用，任何人
-
-功能：为 Client 续费
-
-Assumes: `_clients`
-
-副作用: 
-1. 更新 `_clients[client].endTime`
-2. 调用 [[BonusPool]] 合约，更改 nest 分红账本
-
-资金流转: (eth, months * monthly) | client ==>  [[BonusPool]] 合约
-
-事件: 客户续费事件 ClientSubscribe(msg.sender, start_time, end_time)
-
-```js
-function topupClient(uint8 months) external return (uint64) {
-    require(months > 0, "");
-    ClientInfo storage c = _clients[address(msg.sender)];
-    ethFee = c.monthly.mul(months);
-    require(msg.value > ethFee, "");
-
-    emit ClientSubscribe(msg.sender, start_time, end_time);
-    _clients[address(msg.sender)] = c.endTime.add(months.mul(1 months)); 
-    _C_BonusPool.ethTransferFrom(_C_NestToken, ethFee);
-    repayEth(address(_C_BonusPool), ethFee);
-}
-```
-
------------------------------------------------------
-- `claimNestClient() return (uint128)` 
-    + 返回领取的 nest 数量
-
-权限: Client 调用，任何人
-
-功能: 领取 Client 询价后挖到的 nest
-
-Assumes: [[NestPool]] 合约的 `_nest_ledger`
-
-副作用: 更改 [[NestPool]] 合约状态
-
-资金流转: 把 nest 转出 [[NestPool]]，转入到 Client 地址
-
-事件: none
-
-```js
-
-```
-
------------------------------------------------------
-- `checkPriceNow(tokenAddress) public view returns (ethAmount, erc20Amount, blockNum)`
-
-权限：任何用户公开查看，禁止合约调用
-
-功能：得到当前有效的价格，无需服务费
-
-
+``` -->

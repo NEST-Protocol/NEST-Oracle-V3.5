@@ -25,9 +25,9 @@ dividend/bonus
 
 - (关键数据)`_next_bonus_counter` 记录现在已经发生了多少次分红 ( <= _times ) 
 
-- (关键数据)`_user_bonus_claimed: token => user => bool` 记录每一个人是否已经领取 nestToken/nToken 所对应的分红 ( <= _getMapping)
+- (关键数据)`_user_bonus_claimed: token => user => bool` 记录每一个人是否已经领取 nestToken/nToken 所对应的分红 ( <= _getMapping) // TODO: 不必要
 
-- (关键数据)`_user_bonus_claim_hist : token => user => amount` 记录每个用户领取分红的历史，记录用户在某轮所质押的 token 数量 (<= _tokenSelfHistory)
+- (关键数据)`_user_bonus_claim_hist : token => index => user => amount` 记录每个用户领取分红的历史，记录用户在某轮所质押的 token 数量 (<= _tokenSelfHistory)
 
 - (关键数据) `_token_snapshot_total: (token, int) => amount`  记录第 i 次分红时，所有的 nestToken/nToken 的流通量( <= _tokenAllValueHistory)
 
@@ -49,9 +49,9 @@ dividend/bonus
 
 - `x_bonus_duration` = 60 hours : 分红持续时间 <= _getAbonusTimeLimit
 
-- `x_nest_bonus_life_span` = 10,000,000 ether ：按 10亿 进行划分，把 nest 流通量划分为 10 个阶段  <= _expectedSpanForNest
+- `x_bonus_nest_life_span` = 1,000,000,000 ether ：按 10亿 进行划分，把 nest 流通量划分为 10 个阶段  <= _expectedSpanForNest
 
-- `x_ntoken_bonus_life_span`  = 1,000,000 ether ：按 一百万 进行划分，把 nToken 流通量划分为 若干个阶段 <= _expectedSpanForNToken
+- `x_bonus_ntoken_life_span`  = 1,000,000 ether ：按 一百万 进行划分，把 nToken 流通量划分为 若干个阶段 <= _expectedSpanForNToken
 
 - `x_bonus_minimum` = 100 ether：期望最小的分红量  <= _expectedMinimum
 
