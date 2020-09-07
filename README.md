@@ -36,4 +36,4 @@ export mnemonic=YOUR_OWN_MNEMONIC
 export INFURA_PROJECT_ID=YOUR_OWN_INFURA_PROJECT_ID
 truffle migrate --network ropsten
 ```
-
+## Changelog
