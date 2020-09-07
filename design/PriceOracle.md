@@ -96,7 +96,7 @@ ClientInfo 长度为 `256B`，包含月服务费 `monthlyFee`，服务生效时�
 
 - `_x_dev_address` nest dev 奖励地址，需要管理员重置，与[[NestPool]] 中的变量设置一致
 
-## 合约参数
+## 算法参数
 
 - `c_client_oracle_nest_burned_amount = 10000 ether` : nestToken 销毁数量，改名 <= destructionAmount
 
