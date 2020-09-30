@@ -6,11 +6,11 @@ import "./lib/SafeMath.sol";
 import "./lib/AddressPayable.sol";
 import "./iface/IBonusPool.sol";
 import "./lib/SafeERC20.sol";
+import "./iface/IStaking.sol";
 
 // import "truffle/Console.sol";
 
-
-contract Staking {
+contract Staking is IStaking {
 
     using SafeMath for uint256;
     // using SafeMath for uint128;
@@ -142,6 +142,34 @@ contract Staking {
             endTime = startTime.add(duration);
         }
 //        */
+        // currIndex = counter.sub(1);
+        return (startTime, endTime, currIndex);
+    }
+
+    function timeOfNextBonus() override public returns (uint256, uint256, uint256) 
+    {
+        uint256 nowTime = block.timestamp;
+        uint256 nextTime = _next_bonus_time;
+        uint256 counter = _next_bonus_counter;
+        uint256 cycle = uint256(x_bonus_time_cycle_hour).mul(1 hours);
+        uint256 duration = uint256(x_bonus_duration_hour).mul(1 hours);
+        uint256 startTime;
+        uint256 endTime;
+        uint256 currIndex;
+
+        emit LogUint("nextTime", nextTime);
+        emit LogUint("counter", counter);
+        emit LogUint("cycle", cycle);
+        emit LogUint("duration", duration);
+
+        if (nowTime >= nextTime) {
+            uint256 c = nowTime.sub(nextTime).div(cycle);
+            startTime = nextTime.add((c).mul(cycle));
+            endTime = startTime.add(cycle);
+        } else {
+            startTime = nextTime.sub(cycle);
+            endTime = startTime.add(duration);
+        }
         // currIndex = counter.sub(1);
         return (startTime, endTime, currIndex);
     }
@@ -305,7 +333,7 @@ contract Staking {
         */
     }
 
-     //  下次分红时间，本次分红截止时间，ETH数，nest数, 参与分红的nest, 可领取分红,授权金额，余额，是否可以分红
+    //  下次分红时间，本次分红截止时间，ETH数，nest数, 参与分红的nest, 可领取分红,授权金额，余额，是否可以分红
 
     /**
      * return startNext: the start time of next bonus cycle
