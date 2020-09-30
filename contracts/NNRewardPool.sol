@@ -21,10 +21,14 @@ contract NNRewardPool is INNRewardPool {
     uint128 _NN_reward_sum;
     uint128 _NN_total_supply;
 
-    mapping(address => uint256) _NN_reward_sum_checkpoint;
-
     ERC20 _C_NNToken;
     ERC20 _C_NestToken;
+    INestPool _C_NestPool;
+
+    mapping(address => uint256) _NN_reward_sum_checkpoint;
+
+    event NNRewardAdd(uint128 reward, uint128 allRewards);
+    event NNRewardClaim(address nnode, uint128 share);
 
     constructor(address C_NestToken, address C_NNToken) public
     {
@@ -33,14 +37,25 @@ contract NNRewardPool is INNRewardPool {
         _NN_total_supply = uint128(_C_NNToken.totalSupply());
     }
 
-
-    function addNNReward(uint256 amount) override external
+    function loadContracts(address C_NestToken, address C_NNToken, address C_NestPool) public 
     {
-        _NN_reward_sum = uint128(uint256(_NN_reward_sum).add(amount));
+        _C_NestToken = ERC20(C_NestToken);
+        _C_NNToken = ERC20(C_NNToken);
+        _C_NestPool = INestPool(C_NestPool);
+    }
+
+    function addNNReward() override external // onlyNestMining
+    {
+        uint256 amount = _C_NestPool.distributeRewards(address(this));
+        if (amount > 0) {
+            _NN_reward_sum = uint128(uint256(_NN_reward_sum).add(amount));
+            emit NNRewardAdd(uint128(amount), _NN_reward_sum);
+        }
         return;
     }
 
-    function claimNNReward() override external returns (uint256) {
+    function claimNNReward() override external returns (uint256) // noContract
+    {
         uint256 blnc =  _C_NNToken.balanceOf(address(msg.sender));
         require(blnc > 0, "Insufficient NNToken");
         uint256 total = _NN_total_supply;
@@ -51,6 +66,9 @@ contract NNRewardPool is INNRewardPool {
         require(_C_NestToken.balanceOf(address(this)) >= uint256(share), "Insufficient NestTokens"); 
         _C_NestToken.transfer(address(msg.sender), share);
         _NN_reward_sum_checkpoint[address(msg.sender)] = sum;
+
+        emit NNRewardClaim(address(msg.sender), uint128(share));
+        
         return share;
     }
 
@@ -69,6 +87,9 @@ contract NNRewardPool is INNRewardPool {
         uint256 toReward = sum.sub(_NN_reward_sum_checkpoint[to]).mul(toBlnc).div(total);
         _C_NestToken.transfer(to, toReward);
         _NN_reward_sum_checkpoint[to] = _NN_reward_sum_checkpoint[to].add(sum);
+
+        emit NNRewardClaim(from, uint128(fromReward));
+        emit NNRewardClaim(to, uint128(toReward));
         return;
     }
 

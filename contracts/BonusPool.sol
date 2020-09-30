@@ -19,6 +19,7 @@ contract BonusPool is IBonusPool {
     event LogUint(string msg, uint256 v);
     event LogAddress(string msg, address a);
 
+    // 
     mapping(address => uint256) private _bonus_ledger_eth;
     mapping(address => uint256) private _leveling_ledger_eth;
 

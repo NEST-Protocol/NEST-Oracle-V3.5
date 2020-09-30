@@ -12,7 +12,7 @@ pragma solidity ^0.6.12;
 
 interface INNRewardPool {
  
-    function addNNReward(uint256 amount) external ;
+    function addNNReward() external ;
 
     function claimNNReward() external returns (uint256);  
 

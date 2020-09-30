@@ -1,4 +1,5 @@
 const UERC20 = artifacts.require("test/UERC20");
+const WBTC = artifacts.require("test/UERC20");
 
 const IBNEST = artifacts.require("IBNEST");
 const IterableMapping = artifacts.require("IterableMapping");
@@ -15,6 +16,13 @@ const NNRewardPool = artifacts.require("NNRewardPool");
 
 const NNToken = artifacts.require("test/NNToken");
 
+const NestPrice = artifacts.require("NestPrice");
+
+const NTokenAuction = artifacts.require("NTokenAuction");
+
+const DeFiMock = artifacts.require("test/DeFiMock");
+
+
 // const WETH9 = artifacts.require("test/WETH9");
 // const NEST3PriceOracleMock = artifacts.require("mock/NEST3PriceOracleMock");
 // const CofiXFactory = artifacts.require("CofiXFactory");
@@ -26,6 +34,7 @@ module.exports = async function(deployer) {
     // Test token
     let totalSupply = (10**12)*(10**6);  
     await deployer.deploy(UERC20, "10000000000000000", "USDT Test Token", "USDT", 6);
+    await deployer.deploy(WBTC, "2100000000000000", "WBTC Test Token", "WBTC", 6);
 
     await deployer.deploy(IterableMapping);
     await deployer.link(IterableMapping, IBNEST);
@@ -46,6 +55,12 @@ module.exports = async function(deployer) {
     await deployer.deploy(NNToken, 1500, "NNT");
 
     await deployer.deploy(NNRewardPool, IBNEST.address, NNToken.address);
+
+    await deployer.deploy(NestPrice);
+
+    await deployer.deploy(NTokenAuction);
+
+    await deployer.deploy(DeFiMock, NestPrice.address);
 
     // // WETH contract
     // await deployer.deploy(WETH9);
