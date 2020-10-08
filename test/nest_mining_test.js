@@ -78,6 +78,13 @@ contract('NEST V3.5', (accounts) => {
         return (amount.div(usdtdec).toString(10) + '.' + amount.mod(usdtdec).div(usdtskip).toString(10, 5));
     };
 
+    const show_64x64 = function (s) {
+        const sep = new BN(2).pow(new BN(64));
+        const s1 = new BN(s).div(sep).toString(10);
+        const s2 = new BN(s).mod(sep).toString(10,12);
+        return (s1 + '.' + s2);
+    }
+
     const show_price_sheet_list = async function () {
 
         function Record(miner, ethAmount, tokenAmount, dealEthAmount, dealTokenAmount, ethFee, atHeight, deviated) {
@@ -638,6 +645,7 @@ contract('NEST V3.5', (accounts) => {
 
             let eth_amount = web3.utils.toWei("30", 'ether');
             let usdt_amount = new BN('1500').mul(usdtdec);
+            let usdt_amount2 = new BN('1401').mul(usdtdec);
             let msg_value = web3.utils.toWei("32", 'ether');
 
             block_of_post = await time.latestBlock();
@@ -657,8 +665,8 @@ contract('NEST V3.5', (accounts) => {
             console.log(`>> [VIEW] yield at ${block_of_post.add(new BN(1))}: ${yield_2}`);
 
             // Post #2
-            console.log(`>> [CALL] userA: NestMining.postPriceSheet(ethAmount=${eth_amount}, tokenAmount=${usdt_amount}, token=${_C_USDT}), value:${msg_value/ethdec}`);
-            tx = await NestMiningContract.postPriceSheet(eth_amount, usdt_amount, _C_USDT, { from: userA, value: msg_value });
+            console.log(`>> [CALL] userA: NestMining.postPriceSheet(ethAmount=${eth_amount}, tokenAmount=${new BN('1401').mul(usdtdec)}, token=${_C_USDT}), value:${msg_value/ethdec}`);
+            tx = await NestMiningContract.postPriceSheet(eth_amount, new BN('1401').mul(usdtdec), _C_USDT, { from: userA, value: msg_value });
             console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
 
             await go_block(4);
@@ -668,7 +676,7 @@ contract('NEST V3.5', (accounts) => {
             console.log(`>> [VIEW] yield at ${block_of_post.add(new BN(1))}: ${yield_3}`);
 
             // Post #3
-            console.log(`>> [CALL] userA: NestMining.postPriceSheet(ethAmount=${eth_amount}, tokenAmount=${usdt_amount}, token=${_C_USDT}), value:${msg_value/ethdec}`);
+            console.log(`>> [CALL] userA: NestMining.postPriceSheet(ethAmount=${eth_amount}, tokenAmount=${new BN('1500').mul(usdtdec)}, token=${_C_USDT}), value:${msg_value/ethdec}`);
             tx = await NestMiningContract.postPriceSheet(eth_amount, usdt_amount, _C_USDT, { from: userA, value: msg_value });
             console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
 
@@ -679,8 +687,8 @@ contract('NEST V3.5', (accounts) => {
             console.log(`>> [VIEW] yield at ${block_of_post.add(new BN(1))}: ${yield_4}`);
 
             // Post #4
-            console.log(`>> [CALL] userA: NestMining.postPriceSheet(ethAmount=${eth_amount}, tokenAmount=${usdt_amount}, token=${_C_USDT}), value:${msg_value/ethdec}`);
-            tx = await NestMiningContract.postPriceSheet(eth_amount, usdt_amount, _C_USDT, { from: userA, value: msg_value });
+            console.log(`>> [CALL] userA: NestMining.postPriceSheet(ethAmount=${eth_amount}, tokenAmount=${new BN('1401').mul(usdtdec)}, token=${_C_USDT}), value:${msg_value/ethdec}`);
+            tx = await NestMiningContract.postPriceSheet(eth_amount, new BN('1401').mul(usdtdec), _C_USDT, { from: userA, value: msg_value });
             console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
 
             await go_block(4);
@@ -691,7 +699,7 @@ contract('NEST V3.5', (accounts) => {
             console.log(`>> [VIEW] yield at ${block_of_post.add(new BN(1))}: ${yield_5}`);
 
             // Post #5
-            console.log(`>> [CALL] userA: NestMining.postPriceSheet(ethAmount=${eth_amount}, tokenAmount=${usdt_amount}, token=${_C_USDT}), value:${msg_value/ethdec}`);
+            console.log(`>> [CALL] userA: NestMining.postPriceSheet(ethAmount=${eth_amount}, tokenAmount=${new BN('1500').mul(usdtdec)}, token=${_C_USDT}), value:${msg_value/ethdec}`);
             tx = await NestMiningContract.postPriceSheet(eth_amount, usdt_amount, _C_USDT, { from: userA, value: msg_value });
             console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
 
@@ -730,10 +738,92 @@ contract('NEST V3.5', (accounts) => {
             expect(sheet["tokenAmount"]).to.bignumber.equal(new BN(0));
             sheet = await NestMiningContract.contentOfPriceSheet(_C_USDT, 4);
             expect(sheet["ethAmount"]).to.bignumber.equal(new BN(eth_amount));
-            expect(sheet["tokenAmount"]).to.bignumber.equal(new BN(usdt_amount));
+            expect(sheet["tokenAmount"]).to.bignumber.equal(new BN(usdt_amount2));
             sheet = await NestMiningContract.contentOfPriceSheet(_C_USDT, 5);
             expect(sheet["ethAmount"]).to.bignumber.equal(new BN(eth_amount));
             expect(sheet["tokenAmount"]).to.bignumber.equal(new BN(usdt_amount));
+
+            let ev;
+            // console.log(`>> [CALL] NestMining.calcVolatility(_C_USDT)`);
+            // tx = await NestMiningContract.calcVolatility(_C_USDT);
+            // console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
+            // let ev = tx.logs.find(v => v.event == 'VolaComputed').args;
+            // console.log(`  >> [DEBG] event=(pos:${ev.pos}, h:${ev.h}, eth:${ev.ethA}, token:${ev.tokenA}, sigma_sq:${show_64x64(ev.sigma_sq)}, ut_sq:${new BN(ev.ut_sq).toString(10)}`);
+            // rs = await NestMiningContract.volatility(_C_USDT);
+            // console.log(`  >> [DEBG] vola=(pos:${rs.position}, h:${rs.atHeight}, eth:${rs.ethAmount}, token:${rs.tokenAmount}, sigma_sq:${new BN(rs.volatility_sigma_sq).toString(10)}, ut_sq:${new BN(rs.volatility_ut_sq).toString(10)}`);
+
+            // console.log(`>> [CALL] NestMining.calcMultiVolatilities(_C_USDT)`);
+            // tx = await NestMiningContract.calcMultiVolatilities(_C_USDT);
+            // console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
+            // if (ev = tx.logs.find(v => v.event == 'VolaComputed')) {
+            //     ev = ev.args;
+            //     console.log(`  >> [DEBG] event=(pos:${ev.pos}, h:${ev.h}, eth:${ev.ethA}, token:${ev.tokenA}, sigma_sq:${new BN(ev.sigma_sq).toString(10)}, ut_sq:${new BN(ev.ut_sq).toString(10)}`);
+            // }           
+            // rs = await NestMiningContract.volatility(_C_USDT);
+            // console.log(`  >> [DEBG] vola=(pos:${rs.position}, h:${rs.atHeight}, eth:${rs.ethAmount}, token:${rs.tokenAmount}, sigma_sq:${new BN(rs.volatility_sigma_sq).toString(10)}, ut_sq:${new BN(rs.volatility_ut_sq).toString(10)}`);
+
+            // await go_block(15);
+
+            // console.log(`>> [CALL] NestMining.calcMultiVolatilities(_C_USDT)`);
+            // tx = await NestMiningContract.calcMultiVolatilities(_C_USDT);
+            // console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
+            // if (ev = tx.logs.find(v => v.event == 'VolaComputed')) {
+            //     ev = ev.args;
+            //     console.log(`  >> [DEBG] event=(pos:${ev.pos}, h:${ev.h}, eth:${ev.ethA}, token:${ev.tokenA}, sigma_sq:${show_64x64(ev.sigma_sq)}, ut_sq:${show_64x64(ev.ut_sq)}`);
+            // }           
+            // rs = await NestMiningContract.volatility(_C_USDT);
+            // console.log(`  >> [DEBG] vola=(pos:${rs.position}, h:${rs.atHeight}, eth:${rs.ethAmount}, token:${rs.tokenAmount}, sigma_sq:${show_64x64(rs.volatility_sigma_sq)}, ut_sq:${show_64x64(rs.volatility_ut_sq)}`);
+
+
+            await go_block(15);
+
+            console.log(`>> [CALL] NestMining.calcVolatility(_C_USDT)`);
+            tx = await NestMiningContract.calcVolatility(_C_USDT);
+            console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
+            ev = tx.logs.find(v => v.event == 'VolaComputed').args;
+            console.log(`  >> [DEBG] event=(pos:${ev.pos}, h:${ev.h}, eth:${ev.ethA}, token:${ev.tokenA}, sigma_sq:${new BN(ev.sigma_sq).toString(10)}, ut_sq:${new BN(ev.ut_sq).toString(10)}`);
+            rs = await NestMiningContract.volatility(_C_USDT);
+            console.log(`  >> [DEBG] vola=(pos:${rs.position}, h:${rs.atHeight}, eth:${rs.ethAmount}, token:${rs.tokenAmount}, sigma_sq:${new BN(rs.volatility_sigma_sq).toString(10)}, ut_sq:${new BN(rs.volatility_ut_sq).toString(10)}`);
+
+            console.log(`>> [CALL] NestMining.calcVolatility(_C_USDT)`);
+            tx = await NestMiningContract.calcVolatility(_C_USDT);
+            console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
+            ev = tx.logs.find(v => v.event == 'VolaComputed').args;
+            console.log(`  >> [DEBG] event=(pos:${ev.pos}, h:${ev.h}, eth:${ev.ethA}, token:${ev.tokenA}, sigma_sq:${new BN(ev.sigma_sq).toString(10)}, ut_sq:${new BN(ev.ut_sq).toString(10)}`);
+            rs = await NestMiningContract.volatility(_C_USDT);
+            console.log(`  >> [DEBG] vola=(pos:${rs.position}, h:${rs.atHeight}, eth:${rs.ethAmount}, token:${rs.tokenAmount}, sigma_sq:${show_64x64(rs.volatility_sigma_sq)}, ut_sq:${show_64x64(rs.volatility_ut_sq)}`);
+
+            console.log(`>> [CALL] NestMining.calcVolatility(_C_USDT)`);
+            tx = await NestMiningContract.calcVolatility(_C_USDT);
+            console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
+            ev = tx.logs.find(v => v.event == 'VolaComputed').args;
+            console.log(`  >> [DEBG] event=(pos:${ev.pos}, h:${ev.h}, eth:${ev.ethA}, token:${ev.tokenA}, sigma_sq:${show_64x64(ev.sigma_sq)}, ut_sq:${show_64x64(ev.ut_sq)}`);
+            rs = await NestMiningContract.volatility(_C_USDT);
+            console.log(`  >> [DEBG] vola=(pos:${rs.position}, h:${rs.atHeight}, eth:${rs.ethAmount}, token:${rs.tokenAmount}, sigma_sq:${show_64x64(rs.volatility_sigma_sq)}, ut_sq:${show_64x64(rs.volatility_ut_sq)}`);
+
+            console.log(`>> [CALL] NestMining.calcVolatility(_C_USDT)`);
+            tx = await NestMiningContract.calcVolatility(_C_USDT);
+            console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
+            ev = tx.logs.find(v => v.event == 'VolaComputed').args;
+            console.log(`  >> [DEBG] event=(pos:${ev.pos}, h:${ev.h}, eth:${ev.ethA}, token:${ev.tokenA}, sigma_sq:${show_64x64(ev.sigma_sq)}, ut_sq:${show_64x64(ev.ut_sq)}`);
+            rs = await NestMiningContract.volatility(_C_USDT);
+            console.log(`  >> [DEBG] vola=(pos:${rs.position}, h:${rs.atHeight}, eth:${rs.ethAmount}, token:${rs.tokenAmount}, sigma_sq:${show_64x64(rs.volatility_sigma_sq)}, ut_sq:${show_64x64(rs.volatility_ut_sq)}`);
+
+            console.log(`>> [CALL] NestMining.calcVolatility(_C_USDT)`);
+            tx = await NestMiningContract.calcVolatility(_C_USDT);
+            console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
+            if (ev = tx.logs.find(v => v.event == 'VolaComputed')) {
+                ev = ev.args;
+                console.log(`  >> [DEBG] event=(pos:${ev.pos}, h:${ev.h}, eth:${ev.ethA}, token:${ev.tokenA}, sigma_sq:${new BN(ev.sigma_sq).toString(10)}, ut_sq:${new BN(ev.ut_sq).toString(10)}`);
+            }
+            rs = await NestMiningContract.volatility(_C_USDT);
+            console.log(`  >> [DEBG] vola=(pos:${rs.position}, h:${rs.atHeight}, eth:${rs.ethAmount}, token:${rs.tokenAmount}, sigma_sq:${show_64x64(rs.volatility_sigma_sq)}, ut_sq:${show_64x64(rs.volatility_ut_sq)}`);
+
+
+            console.log(`>> [CALL] NestMining.priceAndSigmaOfToken(_C_USDT)`);
+            rs = await NestMiningContract.priceAndSigmaOfToken(_C_USDT);
+            console.log(`price=`, rs);
+            console.log(`  >> [INFO] price=(eth:${rs['0']}, token:${rs['1']}, h:${rs['2']}), sigma=${show_64x64(rs['3'])})`);
 
         });
 
@@ -1223,8 +1313,8 @@ contract('NEST V3.5', (accounts) => {
                 console.log(`>> [INFO] block mined +1, height=${block_h.toString(10)}`);
             }
 
-            let rs = await NestMiningContract.priceOfToken(_C_USDT, {from: userA});
-            console.log(`>> [VIEW] userA: NestMining.priceOfToken(token=${_C_USDT}) = (ethAmount=${rs["ethAmount"]}, tokenAmount=${rs["tokenAmount"]}, bn=${rs["bn"]}`);
+            let rs = await NestMiningContract.latestPriceOfToken(_C_USDT, {from: userA});
+            console.log(`>> [VIEW] userA: NestMining.latestPriceOfToken(token=${_C_USDT}) = (ethAmount=${rs["ethAmount"]}, tokenAmount=${rs["tokenAmount"]}, bn=${rs["bn"]}`);
 
             expect(rs["ethAmount"]).to.bignumber.equal(eth_amount);
             expect(rs["tokenAmount"]).to.bignumber.equal(usdt_amount);
@@ -1242,7 +1332,7 @@ contract('NEST V3.5', (accounts) => {
             let msg_value = web3.utils.toWei("32", 'ether');
 
             let rs = await NestMiningContract.priceOfTokenAtHeight(_C_USDT, block_of_1_of_5_posts);
-            console.log(`>> [VIEW] NestMiningpriceOfTokenAtHeight(token=${_C_USDT},bn=${block_of_1_of_5_posts})`);
+            console.log(`>> [VIEW] NestMining.priceOfTokenAtHeight(token=${_C_USDT},bn=${block_of_1_of_5_posts})`);
             console.log(`>> [VIEW] rs.ethAmount=${rs["ethAmount"]}, rs.tokenAmount=${rs["tokenAmount"]}, rs.bn=${rs["bn"]}`);
             expect(rs["ethAmount"]).to.bignumber.equal(new BN(eth_amount));
             expect(rs["tokenAmount"]).to.bignumber.equal(new BN(usdt_amount));

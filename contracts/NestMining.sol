@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "./lib/SafeMath.sol";
 import "./iface/INestPool.sol";
@@ -8,6 +9,7 @@ import "./lib/SafeERC20.sol";
 import './lib/TransferHelper.sol';
 import "./iface/IBonusPool.sol";
 import "./iface/INToken.sol";
+import "./lib/ABDKMath64x64.sol";
 
 contract NestMining {
     
@@ -22,24 +24,45 @@ contract NestMining {
         uint160 miner;       //  miner who posted the price (most significant bits, or left-most)
         uint64 atHeight;
         uint32 ethFeeTwei;   
-        // The balances of assets can increase or decrease if others take them on either side
-        // They can be withdrawn if the owner closes the sheet
+
         uint128 ethAmount;   //  the balance of eth
         uint128 tokenAmount; //  the balance of token 
- 
         // The balances of assets that can be bitten, they can only decrease
-        // Note that (dealEthAmount:dealTokenAmount) is equal to the original (ethAmount:tokenAmount)
+        // Note that (pEthAmount:pTokenAmount) is equal to the original (ethAmount:tokenAmount)
         uint128 dealEthAmount;  
         uint128 dealTokenAmount;
-
-        // uint128 originalEthAmount;
-        // uint128 originalTokenAmount;
-
-        // uint128 ethFee;      // a small percentage of fee paid to that bonus pool
-        // uint64  atHeight;    // the block height when the price goes into effect 
-        // uint8   deviated;    // is deviated too much
-        // uint56  _padding;    // padding for alignment   
+        // The balances of assets can increase or decrease if others take them on either side
+        // They can be withdrawn if the owner closes the sheet
     }
+
+
+    // struct PriceSheetData {    
+    //     uint256 miner;       //  miner who posted the price (most significant bits, or left-most)
+
+    //     uint128 tokenAmount; //  the balance of token 
+    //     // The balances of assets that can be bitten, they can only decrease
+    //     // Note that (pEthAmount:pTokenAmount) is equal to the original (ethAmount:tokenAmount)
+    //     uint128 pTokenAmount;
+    //     // The balances of assets can increase or decrease if others take them on either side
+    //     // They can be withdrawn if the owner closes the sheet
+    //     uint32 ethAmount;   //  the balance of eth
+    //     uint32 pEthAmount;  
+
+    //     uint32 atHeight;
+    //     uint32 ethFeeTwei;   
+    //     uint128 _padding;
+    // }
+    struct PriceInfo {
+        uint32  position;
+        uint32  atHeight;
+        uint32  ethAmount;   //  the balance of eth
+        uint32  _padding;
+        uint128 tokenAmount; //  the balance of token 
+        int128  volatility_sigma_sq;
+        int128  volatility_ut_sq;
+    }
+
+    mapping(address => PriceInfo) private _price_info;
 
     INestPool private _C_NestPool;
     ERC20 private _C_NestToken;
@@ -90,7 +113,6 @@ contract NestMining {
     uint256 constant c_bite_amount_factor = 2;
     uint256 constant c_bite_fee_thousandth = 1; 
 
-
     // We use mapping (from `token_address` to an array of `priceSheetData`) to remove the owner field 
     // from the PriceSheetData so that to save 256b. The idea is from Fei.
     mapping(address => PriceSheetData[]) _price_list;
@@ -116,6 +138,117 @@ contract NestMining {
 
     event NTokenMining(uint256 height, uint256 yieldAmount, address ntoken);
     event NestMining(uint256 height, uint256 yieldAmount);
+
+    uint256 constant c_ethereum_block_interval = 14; // 14 seconds per block on average
+
+    function _calcEWMA(
+        uint256 ethA0, 
+        uint256 tokenA0, 
+        uint256 ethA1, 
+        uint256 tokenA1, 
+        int128 _sigma_sq, 
+        int128 _ut_sq,
+        uint256 _interval) private pure returns (int128, int128)
+    {
+        int128 _ut2 = ABDKMath64x64.div(_sigma_sq, 
+            ABDKMath64x64.fromUInt(_interval * c_ethereum_block_interval));
+
+        int128 _new_sigma_sq = ABDKMath64x64.add(
+            ABDKMath64x64.mul(ABDKMath64x64.divu(95, 100), _sigma_sq), 
+            ABDKMath64x64.mul(ABDKMath64x64.divu(5,100), _ut_sq));
+
+        int128 _new_ut_sq;
+        if (ethA0 == 0 || tokenA0 == 0) {
+            _new_ut_sq = int128(0);
+        } else {
+            _new_ut_sq = ABDKMath64x64.sub(ABDKMath64x64.divu(
+                    tokenA1 * ethA0, 
+                    tokenA0 * ethA1 
+                ), ABDKMath64x64.fromUInt(1));
+        }
+        
+        return (_new_sigma_sq, _new_ut_sq);
+    }
+
+    event VolaComputed(uint32 h, uint32 pos, uint32 ethA, uint128 tokenA, int128 sigma_sq, int128 ut_sq);
+
+    function _moveVolatility(
+        PriceInfo memory p0,
+        PriceSheetData[] memory pL
+    ) private returns (PriceInfo memory p1)
+    {   
+        uint256 i = p0.position + 1;
+        if (i >= pL.length) {
+            return (PriceInfo(0,0,0,0,0,int128(0),int128(0)));
+        }
+
+        uint256 h = uint256(pL[i].atHeight);
+        if (h + c_price_duration_block >= block.number) {
+            return (PriceInfo(0,0,0,0,0,int128(0),int128(0)));
+        }
+        
+        uint256 ethA1 = 0;
+        uint256 tokenA1 = 0;
+        while (i < pL.length && pL[i].atHeight == h 
+                            && pL[i].atHeight + c_price_duration_block < block.number) {
+            ethA1 = ethA1 + uint256(pL[i].dealEthAmount).div(1e18);
+            tokenA1 = tokenA1 + uint256(pL[i].dealTokenAmount);
+            i = i + 1;
+        }
+        i = i - 1;
+        (int128 new_sigma_sq, int128 new_ut_sq) = _calcEWMA(
+            p0.ethAmount, p0.tokenAmount, 
+            ethA1, tokenA1, 
+            p0.volatility_sigma_sq, p0.volatility_ut_sq, 
+            i - p0.position);
+        return(PriceInfo(uint32(i), uint32(h), uint32(ethA1), uint32(0), uint128(tokenA1), 
+            new_sigma_sq, new_ut_sq));
+    }
+
+    function calcMultiVolatilities(address token) public {
+        PriceInfo memory p0 = _price_info[token];
+        PriceSheetData[] memory pL = _price_list[token];
+        PriceInfo memory p1;
+        if (pL.length < 2) {
+            emit VolaComputed(0,0,0,0,int128(0),int128(0));
+            return;
+        }
+        while (uint256(p0.position) < pL.length && uint256(p0.atHeight) + c_price_duration_block < block.number){
+            p1 = _moveVolatility(p0, pL);
+            if (p1.position <= p0.position) {
+                break;
+            }
+            p0 = p1;
+        }
+
+        if (p0.position > _price_info[token].position) {
+            _price_info[token] = p0;
+            emit VolaComputed(p0.atHeight, p0.position, uint32(p0.ethAmount), uint128(p0.tokenAmount), 
+                p0.volatility_sigma_sq, p0.volatility_ut_sq);
+        }
+        return;
+    }
+
+    function calcVolatility(address token) public {
+        PriceInfo memory p0 = _price_info[token];
+        PriceSheetData[] memory pL = _price_list[token];
+        if (pL.length < 2) {
+            emit VolaComputed(0,0,0,0,int128(0),int128(0));
+            return;
+        }
+        (PriceInfo memory p1) = _moveVolatility(p0, _price_list[token]);
+        if (p1.position > p0.position) {
+            _price_info[token] = p1;
+            emit VolaComputed(p1.atHeight, p1.position, uint32(p1.ethAmount), uint128(p1.tokenAmount), 
+                p1.volatility_sigma_sq, p1.volatility_ut_sq);
+        } 
+        return;
+    }
+
+    function volatility(address token) public view returns (PriceInfo memory p) {
+        // TODO: no contract allowed
+        return _price_info[token];
+    }
 
     function decode(bytes32 x) internal pure returns (uint64 a, uint64 b, uint64 c, uint64 d) {
         assembly {
@@ -728,20 +861,16 @@ contract NestMining {
 
 
     // Get the latest effective price for a token
-    function priceOfToken(address token) public view returns(uint256 ethAmount, uint256 tokenAmount, uint256 bn) 
+    function latestPriceOfToken(address token) public view returns(uint256 ethAmount, uint256 tokenAmount, uint256 bn) 
     {
         PriceSheetData[] storage tp = _price_list[token];
         uint256 len = tp.length;
-        // emit LogUint("priceOfToken> len", len);
         PriceSheetData memory p;
         if (len == 0) {
             return (0, 0, 0);
         }
 
         uint256 first = 0;
-        // p = tp[len-1];
-        // ethAmount = p.dealEthAmount;
-        // tokenAmount = p.dealTokenAmount;
         for (uint i = 1; i <= len; i++) {
             p = tp[len-i];
             if (first == 0 && p.atHeight + c_price_duration_block < block.number) {
@@ -758,8 +887,29 @@ contract NestMining {
         }
     }
 
+    function priceOfToken(address token) public view returns(uint256 ethAmount, uint256 tokenAmount, uint256 bn) 
+    {
+        // TODO: no contract allowed
+        require(_C_NestPool.getNTokenFromToken(token) != address(0), "Nest::Mine: !token");
+        PriceInfo memory pi = _price_info[token];
+        return (pi.ethAmount, pi.tokenAmount, pi.atHeight);
+    }
+
+    function priceAndSigmaOfToken(address token) public view returns (
+        uint256, uint256, uint256, int128) 
+    {
+        // TODO: no contract allowed
+        require(_C_NestPool.getNTokenFromToken(token) != address(0), "Nest::Mine: !token");
+        PriceInfo memory pi = _price_info[token];
+        // int128 v = 0;
+        int128 v = ABDKMath64x64.sqrt(ABDKMath64x64.abs(pi.volatility_sigma_sq));
+        return (uint256(pi.ethAmount), uint256(pi.tokenAmount), uint256(pi.atHeight), v);
+    }
+
     function priceOfTokenAtHeight(address token, uint64 atHeight) public view returns(uint256 ethAmount, uint256 tokenAmount, uint64 bn) 
     {
+        // TODO: no contract allowed
+
         PriceSheetData[] storage tp = _price_list[token];
         uint256 len = _price_list[token].length;
         PriceSheetData memory p;
