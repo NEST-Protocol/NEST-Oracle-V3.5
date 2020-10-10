@@ -306,8 +306,8 @@ contract('NEST V3.5', (accounts) => {
         rs = await NestPriceContract.setContracts(_C_NestToken, _C_NestMining, _C_BonusPool, _C_NestPool, _C_DAO);
         console.log(`> [INIT] deployer: NestPrice.setContracts(C_NestToken=${_C_NestToken}, C_NestMining=${_C_NestMining}, C_BonusPool=${_C_BonusPool}, C_BonusPool=${_C_BonusPool}, C_NestPool=${_C_NestPool})`);
 
-        rs = await NTokenAuctionContract.setContracts(_C_NestToken, _C_NestMining, _C_NestPool, _C_Staking, _C_DAO);
-        console.log(`> [INIT] deployer: NTokenAuction.setContracts(C_NestToken=${_C_NestToken}, C_NestMining=${_C_NestMining}, C_NestPool=${_C_NestPool}, C_Staking=${_C_Staking})`);
+        rs = await NTokenAuctionContract.setContracts(_C_NestToken, _C_NestPool, _C_DAO);
+        console.log(`> [INIT] deployer: NTokenAuction.setContracts(C_NestToken=${_C_NestToken}, C_NestPool=${_C_NestPool}, C_DAO=${_C_DAO})`);
 
         rs = await NestPriceContract.setBurnAddr(burnNest);
         console.log(`> [INIT] deployer: NestPrice.setBurnAddr(burnAddr=${burnNest})`);
@@ -438,7 +438,7 @@ contract('NEST V3.5', (accounts) => {
             let tx = await NestMiningContract.postPriceSheet(eth_amount, usdt_amount, _C_USDT, { from: userA, value: msg_value });
             console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
             console.log("  >> [DEBG] tx = ", tx.logs.map((v, i)=> {
-                if (v.event == "PostPrice") {
+                if (v.event == "PricePosted") {
                     index = v.args["index"];
                     itoken = v.args["token"];
                 }
@@ -538,7 +538,7 @@ contract('NEST V3.5', (accounts) => {
                 if (typeof(v2) == 'object') {
                     return {s:v1, v:v2.toString(10)};
                 }
-                if (v.event == "PostPrice") {
+                if (v.event == "PricePosted") {
                     index = v.args["index"];
                     itoken = v.args["token"];
                 }
@@ -716,8 +716,8 @@ contract('NEST V3.5', (accounts) => {
             tx = await NestMiningContract.closePriceSheetList(_C_USDT, [1,2,3,4,5], {from: userA});
             console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
             console.log("  >> [DEBG] event: ", tx.logs.map((v, i)=> {
-                if (v.event == "closePrice") {
-                    return {s: "closePrice", v: `miner=${v.args["miner"]}, index=${v.args["index"]}, token=${v.args["token"]}`}
+                if (v.event == "PriceClosed") {
+                    return {s: "PriceClosed", v: `miner=${v.args["miner"]}, index=${v.args["index"]}, token=${v.args["token"]}`}
                 }
                 if (v.event == "LogUint") {
                     return {s:v.args[0], v:v.args[1].toString(10)};
@@ -879,7 +879,7 @@ contract('NEST V3.5', (accounts) => {
         //         if (typeof(v2) == 'object') {
         //             return {s:v1, v:v2.toString(10)};
         //         }
-        //         if (v.event == "PostPrice") {
+        //         if (v.event == "PricePosted") {
         //             index = v.args["index"];
         //             itoken = v.args["token"];
         //         }
@@ -941,7 +941,7 @@ contract('NEST V3.5', (accounts) => {
                 if (typeof(v2) == 'object') {
                     return {s:v1, v:v2.toString(10)};
                 }
-                if (v.event == "PostPrice") {
+                if (v.event == "PricePosted") {
                     index = v.args["index"];
                     itoken = v.args["token"];
                 }
@@ -975,11 +975,11 @@ contract('NEST V3.5', (accounts) => {
             console.log("  >> [DEBG] tx = ", tx.logs.map((v, i)=> {
                 const v1 = v.args[0];
                 const v2 = v.args[1];
-                if (v.event == "PostPrice") {
+                if (v.event == "PricePosted") {
                     // console.log(`  >> [DEBG] event=${v.args[0]}, ${v.args[1]}, ${v.args[2]}, ${v.args[3]}`);
                     index_2 = v.args["index"];
                     itoken_2 = v.args["token"];
-                } else if (v.event == "BiteToken") {
+                } else if (v.event == "TokenBought") {
                     // console.log(`  >> [DEBG] BiteToken=${v.args["biteEthAmount"]}, ${v.args["biteTokenAmount"]}, ${v.args["index"]}, ${v.args["token"]}`);
                     index_bitten = v.args["index"];
                     itoken_bitten = v.args["token"];
@@ -1044,7 +1044,7 @@ contract('NEST V3.5', (accounts) => {
                 if (typeof(v2) == 'object') {
                     return {s:v1, v:v2.toString(10)};
                 }
-                if (v.event == "PostPrice") {
+                if (v.event == "PricePosted") {
                     index = v.args["index"];
                     itoken = v.args["token"];
                 }
@@ -1071,11 +1071,11 @@ contract('NEST V3.5', (accounts) => {
             console.log("  >> [DEBG] tx = ", tx.logs.map((v, i)=> {
                 const v1 = v.args[0];
                 const v2 = v.args[1];
-                if (v.event == "PostPrice") {
+                if (v.event == "PricePosted") {
                     index_2 = v.args["index"];
                     itoken_2 = v.args["token"];
                     return;
-                } else if (v.event == "BiteEth") {
+                } else if (v.event == "TokenSold") {
                     ev_index_bitten = v.args["index"];
                     ev_token_bitten = v.args["token"];
                     ev_bite_eth_amount = v.args["biteEthAmount"];
@@ -1133,7 +1133,7 @@ contract('NEST V3.5', (accounts) => {
         //     let tx = await NestMiningContract.postPriceSheet(eth_amount, usdt_amount, _C_USDT, { from: userA, value: msg_value });
         //     console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
         //     console.log("  >> [DEBG] event: ", tx.logs.map((v, i)=> {
-        //         if (v.event == "PostPrice") {
+        //         if (v.event == "PricePosted") {
         //             index = v.args["index"];
         //             itoken = v.args["token"];
         //         }
@@ -1147,8 +1147,8 @@ contract('NEST V3.5', (accounts) => {
         //     tx = await NestMiningContract.closePriceSheet(_C_USDT, 0, {from: userA});
         //     console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
         //     console.log("  >> [DEBG] event: ", tx.logs.map((v, i)=> {
-        //         if (v.event == "closePrice") {
-        //             return {s: "closePrice", v: `miner=${v.args["miner"]}, index=${v.args["index"]}, token=${v.args["token"]}`}
+        //         if (v.event == "PriceClosed") {
+        //             return {s: "PriceClosed", v: `miner=${v.args["miner"]}, index=${v.args["index"]}, token=${v.args["token"]}`}
         //         }
         //         if (v.event == "LogUint") {
         //             return {s:v.args[0], v:v.args[1].toString(10)};
@@ -1171,7 +1171,7 @@ contract('NEST V3.5', (accounts) => {
         //     tx = await NestMiningContract.postPriceSheet(eth_amount, usdt_amount, _C_USDT, { from: userA, value: msg_value });
         //     console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
         //     console.log("  >> [DEBG] event: ", tx.logs.map((v, i)=> {
-        //         if (v.event == "PostPrice") {
+        //         if (v.event == "PricePosted") {
         //             index = v.args["index"];
         //             itoken = v.args["token"];
         //         }
@@ -1185,8 +1185,8 @@ contract('NEST V3.5', (accounts) => {
         //     tx = await NestMiningContract.closePriceSheet(_C_USDT, 1, {from: userA});
         //     console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
         //     console.log("  >> [DEBG] event: ", tx.logs.map((v, i)=> {
-        //         if (v.event == "closePrice") {
-        //             return {s: "closePrice", v: `miner=${v.args["miner"]}, index=${v.args["index"]}, token=${v.args["token"]}`}
+        //         if (v.event == "PriceClosed") {
+        //             return {s: "PriceClosed", v: `miner=${v.args["miner"]}, index=${v.args["index"]}, token=${v.args["token"]}`}
         //         }
         //         if (v.event == "LogUint") {
         //             return {s:v.args[0], v:v.args[1].toString(10)};
@@ -1209,7 +1209,7 @@ contract('NEST V3.5', (accounts) => {
         //     tx = await NestMiningContract.postPriceSheet(eth_amount, usdt_amount, _C_USDT, { from: userA, value: msg_value });
         //     console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
         //     console.log("  >> [DEBG] event: ", tx.logs.map((v, i)=> {
-        //         if (v.event == "PostPrice") {
+        //         if (v.event == "PricePosted") {
         //             index = v.args["index"];
         //             itoken = v.args["token"];
         //         }
@@ -1223,8 +1223,8 @@ contract('NEST V3.5', (accounts) => {
         //     tx = await NestMiningContract.closePriceSheet(_C_USDT, 2, {from: userA});
         //     console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
         //     console.log("  >> [DEBG] event: ", tx.logs.map((v, i)=> {
-        //         if (v.event == "closePrice") {
-        //             return {s: "closePrice", v: `miner=${v.args["miner"]}, index=${v.args["index"]}, token=${v.args["token"]}`}
+        //         if (v.event == "PriceClosed") {
+        //             return {s: "PriceClosed", v: `miner=${v.args["miner"]}, index=${v.args["index"]}, token=${v.args["token"]}`}
         //         }
         //         if (v.event == "LogUint") {
         //             return {s:v.args[0], v:v.args[1].toString(10)};
@@ -1257,8 +1257,8 @@ contract('NEST V3.5', (accounts) => {
         //     let tx = await NestMiningContract.closePriceSheetList(_C_USDT, [3,4,5,6], {from: userA});
         //     console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
         //     console.log("  >> [DEBG] event: ", tx.logs.map((v, i)=> {
-        //         if (v.event == "closePrice") {
-        //             return {s: "closePrice", v: `miner=${v.args["miner"]}, index=${v.args["index"]}, token=${v.args["token"]}`}
+        //         if (v.event == "PriceClosed") {
+        //             return {s: "PriceClosed", v: `miner=${v.args["miner"]}, index=${v.args["index"]}, token=${v.args["token"]}`}
         //         }
         //         if (v.event == "LogUint") {
         //             return {s:v.args[0], v:v.args[1].toString(10)};
@@ -1296,7 +1296,7 @@ contract('NEST V3.5', (accounts) => {
             let tx = await NestMiningContract.postPriceSheet(eth_amount, usdt_amount, _C_USDT, { from: userA, value: msg_value });
             console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
             console.log("  >> [DEBG] event: ", tx.logs.map((v, i)=> {
-                if (v.event == "PostPrice") {
+                if (v.event == "PricePosted") {
                     index = v.args["index"];
                     itoken = v.args["token"];
                 }

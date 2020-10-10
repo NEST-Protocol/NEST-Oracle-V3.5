@@ -297,7 +297,7 @@ contract('NEST V3.5', (accounts) => {
         rs = await NestPoolContract.setContracts(NestMiningContract.address, _C_NestToken);
         console.log(`> [INIT] deployer: NestPool.setContracts(_C_NestMining=${NestMiningContract.address}, _C_NestToken=${_C_NestToken})`);
 
-        rs = await NestMiningContract.setAddresses(dev, NN);
+        rs = await NestMiningContract.setAddresses(dev, NN, {from: deployer});
         console.log(`> [INIT] deployer: NestMining.setAddresses(dev=${dev}, NN=${NN})`);
 
         rs = await NNTokenContract.setContracts(_C_NNRewardPool);
@@ -306,8 +306,8 @@ contract('NEST V3.5', (accounts) => {
         rs = await NestPriceContract.setContracts(_C_NestToken, _C_NestMining, _C_BonusPool, _C_NestPool, _C_DAO);
         console.log(`> [INIT] deployer: NestPrice.setContracts(C_NestToken=${_C_NestToken}, C_NestMining=${_C_NestMining}, C_BonusPool=${_C_BonusPool}, C_BonusPool=${_C_BonusPool}, C_NestPool=${_C_NestPool})`);
 
-        rs = await NTokenAuctionContract.setContracts(_C_NestToken, _C_NestMining, _C_NestPool, _C_Staking, _C_DAO);
-        console.log(`> [INIT] deployer: NTokenAuction.setContracts(C_NestToken=${_C_NestToken}, C_NestMining=${_C_NestMining}, C_NestPool=${_C_NestPool}, C_Staking=${_C_Staking})`);
+        rs = await NTokenAuctionContract.setContracts(_C_NestToken, _C_NestPool, _C_DAO, {from: deployer});
+        console.log(`> [INIT] deployer: NTokenAuction.setContracts(C_NestToken=${_C_NestToken}, C_NestPool=${_C_NestPool}, C_DAO=${_C_DAO})`);
 
         rs = await NestPriceContract.setBurnAddr(burnNest);
         console.log(`> [INIT] deployer: NestPrice.setBurnAddr(burnAddr=${burnNest})`);
@@ -428,15 +428,23 @@ contract('NEST V3.5', (accounts) => {
 
             let amount = web3.utils.toWei("100000", 'ether');
 
-            console.log(`>> [CALL] userC: NTokenAuction.startAuction(token=${_C_WBTC}, bidAmount=${amount})`);
-            let tx = await NTokenAuctionContract.startAuction(_C_WBTC, amount, {from: userC});
+            console.log(`>> [CALL] userC: NTokenAuction.start(token=${_C_WBTC}, bidAmount=${amount})`);
+            let tx = await NTokenAuctionContract.start(_C_WBTC, amount, {from: userC});
             console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
             console.log("  >> [DEBG] tx = ", tx.logs.map((v, i)=> {
-                if (v.event == "AuctionStart") {
+                if (v.event == "AuctionStarted") {
                     e_token = v.args["token"];
                     e_bid = v.args["bid"];
                     e_bidder = v.args["e_bidder"];
-                }
+                } else if (v.event == "AuctionBid") {
+                    e_token = v.args["token"];
+                    e_bid = v.args["bid"];
+                    e_bidder = v.args["e_bidder"];
+                } else if (v.event == "AuctionClosed") {
+                    e_token = v.args["token"];
+                    e_ntoken = v.args["ntoken"];
+                    e_winner = v.args["e_winner"];
+                } 
                 if (v.event == "LogUint") {
                     return {s:v.args[0], v:v.args[1].toString(10)};
                 }
@@ -474,11 +482,11 @@ contract('NEST V3.5', (accounts) => {
 
             let amount = web3.utils.toWei("200000", 'ether');
 
-            console.log(`>> [CALL] userD: NTokenAuction.bidAuction(token=${_C_WBTC}, bidAmount=${amount})`);
-            let tx = await NTokenAuctionContract.bidAuction(_C_WBTC, amount, {from: userD});
+            console.log(`>> [CALL] userD: NTokenAuction.bid(token=${_C_WBTC}, bidAmount=${amount})`);
+            let tx = await NTokenAuctionContract.bid(_C_WBTC, amount, {from: userD});
             console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
             console.log("  >> [DEBG] tx = ", tx.logs.map((v, i)=> {
-                if (v.event == "AuctionStart") {
+                if (v.event == "AuctionStarted") {
                     e_token = v.args["token"];
                     e_bid = v.args["bid"];
                     e_bidder = v.args["e_bidder"];
@@ -486,6 +494,10 @@ contract('NEST V3.5', (accounts) => {
                     e_token = v.args["token"];
                     e_bid = v.args["bid"];
                     e_bidder = v.args["e_bidder"];
+                } else if (v.event == "AuctionClosed") {
+                    e_token = v.args["token"];
+                    e_ntoken = v.args["ntoken"];
+                    e_winner = v.args["e_winner"];
                 } 
                 if (v.event == "LogUint") {
                     return {s:v.args[0], v:v.args[1].toString(10)};
@@ -535,11 +547,11 @@ contract('NEST V3.5', (accounts) => {
 
             await time.increase(time.duration.days(7));
 
-            console.log(`>> [CALL] userD: NTokenAuction.closeAuction(token=${_C_WBTC})`);
-            let tx = await NTokenAuctionContract.closeAuction(_C_WBTC, {from: userD});
+            console.log(`>> [CALL] userD: NTokenAuction.close(token=${_C_WBTC})`);
+            let tx = await NTokenAuctionContract.close(_C_WBTC, {from: userD});
             console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
             console.log("  >> [DEBG] tx = ", tx.logs.map((v, i)=> {
-                if (v.event == "AuctionStart") {
+                if (v.event == "AuctionStarted") {
                     e_token = v.args["token"];
                     e_bid = v.args["bid"];
                     e_bidder = v.args["e_bidder"];
@@ -547,7 +559,7 @@ contract('NEST V3.5', (accounts) => {
                     e_token = v.args["token"];
                     e_bid = v.args["bid"];
                     e_bidder = v.args["e_bidder"];
-                } else if (v.event == "AuctionClose") {
+                } else if (v.event == "AuctionClosed") {
                     e_token = v.args["token"];
                     e_ntoken = v.args["ntoken"];
                     e_winner = v.args["e_winner"];
@@ -586,20 +598,6 @@ contract('NEST V3.5', (accounts) => {
             // let total = await ntoken.totalSupply();
             // console.log(`>> [VIEW] ntoken.totalSupply() = ${total}`);
 
-        });
-
-        it("lookup price posted", 
-        async () => {
-            // let tx = await NestMiningContract.queryPrice(_C_USDT, {from: userB});
-            // console.log(`>> [CALL] userB: NestMining.queryPrice(token=${_C_USDT})`);
-            // console.log(">> [INFO] tx = ", tx.logs.map((v, i)=> {
-            //     const v1 = v.args[0];
-            //     const v2 = v.args[1];
-            //     if (typeof(v2) == 'object') {
-            //         return {s:v1, v:v2.toString(10)};
-            //     }
-            //     return {s:v1, v:v2};
-            // }));
         });
 
     });

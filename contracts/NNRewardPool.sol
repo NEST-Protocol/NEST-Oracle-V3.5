@@ -14,47 +14,95 @@ import "./iface/INNRewardPool.sol";
 contract NNRewardPool is INNRewardPool {
     using SafeMath for uint256;
 
-    event Log(string msg);
-    event LogUint(string msg, uint256 v);
-    event LogAddress(string msg, address a);
-
-    uint128 _NN_reward_sum;
-    uint128 _NN_total_supply;
+    uint128 private _NN_reward_sum;
+    uint128 private _NN_total_supply;
 
     ERC20 _C_NNToken;
     ERC20 _C_NestToken;
     INestPool _C_NestPool;
+    address _C_NestMining;
 
-    mapping(address => uint256) _NN_reward_sum_checkpoint;
+    address public governance;
 
-    event NNRewardAdd(uint128 reward, uint128 allRewards);
-    event NNRewardClaim(address nnode, uint128 share);
+    mapping(address => uint256) private _NN_reward_sum_checkpoint;
 
-    constructor(address C_NestToken, address C_NNToken) public
+    /* ========== EVENTS ============== */
+
+    /// @notice When rewards are added to the pool
+    /// @param reward The amount of Nest Token
+    /// @param allRewards The snapshot of all rewards accumulated
+    event NNRewardAdded(uint256 reward, uint256 allRewards);
+
+    /// @notice When rewards are claimed by nodes 
+    /// @param nnode The address of the nest node
+    /// @param share The amount of Nest Token claimed by the nest node
+    event NNRewardClaimed(address nnode, uint256 share);
+
+    /* ========== CONSTRUCTOR ========== */
+
+    /// @notice Constructor of NNRewardPool contract
+    /// @dev The NNToken contract was created on the Ethereum mainnet 
+    /// @param _NestToken The address of Nest Token Contract
+    /// @param _NNToken The address of NestNode Token Contract
+    constructor(address _NestToken, address _NNToken) public
     {
-        _C_NestToken = ERC20(C_NestToken);
-        _C_NNToken = ERC20(C_NNToken);
+        _C_NestToken = ERC20(_NestToken);
+        _C_NNToken = ERC20(_NNToken);
         _NN_total_supply = uint128(_C_NNToken.totalSupply());
+        governance = msg.sender;
     }
 
-    function loadContracts(address C_NestToken, address C_NNToken, address C_NestPool) public 
+    modifier onlyBy(address _account)
     {
-        _C_NestToken = ERC20(C_NestToken);
-        _C_NNToken = ERC20(C_NNToken);
-        _C_NestPool = INestPool(C_NestPool);
+        require(msg.sender == _account,
+            "Nest:NNPl:!Auth");
+        _;
     }
 
-    function addNNReward() override external // onlyNestMining
+    modifier noContract() 
     {
-        uint256 amount = _C_NestPool.distributeRewards(address(this));
-        if (amount > 0) {
-            _NN_reward_sum = uint128(uint256(_NN_reward_sum).add(amount));
-            emit NNRewardAdd(uint128(amount), _NN_reward_sum);
+        require(address(msg.sender) == address(tx.origin), "Nest::NNPl> BAN(contract)");
+        _;
+    }
+
+
+    /* ========== GOVERNANCE ========== */
+
+    modifier onlyGovernanceOrBy(address _account)
+    {
+        if (msg.sender != governance) { 
+            require(msg.sender == _account,
+                "Nest:NNPl:!Auth");
+        }
+        _;
+    }
+
+    /// @notice 
+    function loadContracts(address _NestToken, address _NNToken, address _NestPool, address _NestMining) 
+        public onlyBy(governance)
+    {
+        _C_NestToken = ERC20(_NestToken);
+        _C_NNToken = ERC20(_NNToken);
+        _C_NestPool = INestPool(_NestPool);
+        _C_NestMining = _NestMining;
+    }
+
+    /// @notice Add rewards for Nest-Nodes, only governance or NestMining (contract) are allowed
+    /// @dev The rewards need to pull from NestPool
+    function addNNReward() override external onlyGovernanceOrBy(_C_NestMining)
+    {
+        uint256 _amount = _C_NestPool.distributeRewards(address(this));
+        if (_amount > 0) {
+            uint256 _newSum = uint256(_NN_reward_sum).add(_amount);
+            _NN_reward_sum = uint128(_newSum);
+            emit NNRewardAdded(_amount, _newSum);
         }
         return;
     }
 
-    function claimNNReward() override external returns (uint256) // noContract
+    /// @notice Claim rewards by Nest-Nodes
+    /// @dev The rewards need to pull from NestPool
+    function claimNNReward() override external noContract
     {
         uint256 blnc =  _C_NNToken.balanceOf(address(msg.sender));
         require(blnc > 0, "Insufficient NNToken");
@@ -67,13 +115,12 @@ contract NNRewardPool is INNRewardPool {
         _C_NestToken.transfer(address(msg.sender), share);
         _NN_reward_sum_checkpoint[address(msg.sender)] = sum;
 
-        emit NNRewardClaim(address(msg.sender), uint128(share));
+        emit NNRewardClaimed(address(msg.sender), share);
         
-        return share;
+        return;
     }
 
     function settleNNReward(address from, address to) internal 
-        // onlyNNToken
     {
         uint256 fromBlnc = _C_NNToken.balanceOf(address(from));
         require (fromBlnc > 0, "No NNToken to transfer");
@@ -88,16 +135,20 @@ contract NNRewardPool is INNRewardPool {
         _C_NestToken.transfer(to, toReward);
         _NN_reward_sum_checkpoint[to] = _NN_reward_sum_checkpoint[to].add(sum);
 
-        emit NNRewardClaim(from, uint128(fromReward));
-        emit NNRewardClaim(to, uint128(toReward));
+        emit NNRewardClaimed(from, uint128(fromReward));
+        emit NNRewardClaimed(to, uint128(toReward));
         return;
     }
 
-    function nodeCount(address fromAdd, address toAdd) override external {
+    /// @dev The callback function called by NNToken.transfer()
+    /// @param fromAdd The address of 'from' to transfer
+    /// @param toAdd The address of 'to' to transfer
+    function nodeCount(address fromAdd, address toAdd) override external onlyBy(address(_C_NNToken)) {
         settleNNReward(fromAdd, toAdd);
         return;
     }
 
+    /// @notice Show the amount of rewards unclaimed
     function unclaimedNNReward() override external view returns (uint256 reward) {
         uint256 blnc = _C_NNToken.balanceOf(address(msg.sender));
         uint256 sum = uint256(_NN_reward_sum);

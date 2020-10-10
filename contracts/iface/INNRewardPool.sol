@@ -14,7 +14,7 @@ interface INNRewardPool {
  
     function addNNReward() external ;
 
-    function claimNNReward() external returns (uint256);  
+    function claimNNReward() external ;  
 
     function nodeCount(address fromAdd, address toAdd) external;
 

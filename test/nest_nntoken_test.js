@@ -165,8 +165,8 @@ contract('NEST V3.5', (accounts) => {
         rs = await NNTokenContract.setContracts(_C_NNRewardPool);
         console.log(`> [INIT] deployer: NNToken.setContracts(C_NNRewardPool=${_C_NNRewardPool})`);
 
-        rs = await NNRewardPoolContract.loadContracts(_C_NestToken, _C_NNToken, _C_NestPool);
-        console.log(`> [INIT] deployer: NNRewardPool.loadContracts(C_NestToken=${_C_NestToken}, C_NNToken=${_C_NNToken}, C_NestPool=${_C_NestPool})`);
+        rs = await NNRewardPoolContract.loadContracts(_C_NestToken, _C_NNToken, _C_NestPool, _C_NestMining);
+        console.log(`> [INIT] deployer: NNRewardPool.loadContracts(C_NestToken=${_C_NestToken}, C_NNToken=${_C_NNToken}, C_NestPool=${_C_NestPool}, C_NestMining=${_C_NestMining})`);
 
         /*
          *  Transfer 1,000,000,000 [1 billion], 1/10 nest tokens to NEST-POOL
@@ -264,10 +264,10 @@ contract('NEST V3.5', (accounts) => {
             tx = await NNRewardPoolContract.claimNNReward({from: NNodeA});
             console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
             tx.logs.forEach((v, i, arr)=> {
-                if (v.event == "NNRewardAdd") {
+                if (v.event == "NNRewardAdded") {
                     console.log(`  >> event: NNRewardAdd(reward=${v.args["reward"]}, allRewards=${v.args["allRewards"]})`);
                 }                
-                if (v.event == "NNRewardClaim") {
+                if (v.event == "NNRewardClaimed") {
                     console.log(`  >> event: NNRewardClaim(nnode=${v.args["nnode"]}, share=${v.args["share"]})`);
                 }
             });
@@ -284,10 +284,10 @@ contract('NEST V3.5', (accounts) => {
             tx = await NNTokenContract.transfer(NNodeB, 600, {from: NNodeS});
             console.log(`  >> gasUsed: ${tx.receipt.gasUsed}`);
             tx.logs.forEach((v, i, arr)=> {
-                if (v.event == "NNRewardAdd") {
+                if (v.event == "NNRewardAdded") {
                     console.log(`  >> event: NNRewardAdd(reward=${v.args["reward"]}, allRewards=${v.args["allRewards"]})`);
                 }                
-                if (v.event == "NNRewardClaim") {
+                if (v.event == "NNRewardClaimed") {
                     console.log(`  >> event: NNRewardClaim(nnode=${v.args["nnode"]}, share=${v.args["share"]})`);
                 }
             });
@@ -318,10 +318,10 @@ contract('NEST V3.5', (accounts) => {
             tx = await NNRewardPoolContract.claimNNReward({from: NNodeB});
             console.log(` >> gasUsed: ${tx.receipt.gasUsed}`);
             tx.logs.forEach((v, i, arr)=> {
-                if (v.event == "NNRewardAdd") {
+                if (v.event == "NNRewardAdded") {
                     console.log(`  >> event: NNRewardAdd(reward=${v.args["reward"]}, allRewards=${v.args["allRewards"]})`);
                 }                
-                if (v.event == "NNRewardClaim") {
+                if (v.event == "NNRewardClaimed") {
                     console.log(`  >> event: NNRewardClaim(nnode=${v.args["nnode"]}, share=${v.args["share"]})`);
                 }
             });

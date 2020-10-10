@@ -11,32 +11,35 @@ import "./lib/ReentrancyGuard.sol";
 import './lib/TransferHelper.sol';
 
 
-//TODO: shall we use a separated pool to escrow ntokens and rewards? It'd be friendly to 
-//      contract upgrading.
-
-// 
-
 contract NestStaking is INestStaking, ReentrancyGuard {
 
     using SafeMath for uint256;
 
-    // staking global state
-    // 0: open | 1: no staking | 2: no reward | 3: no staking & no reward | 4: | 127: shutdown
+    /// @dev  The flag of staking global state
+    ///     bits[0]: open 
+    ///     bits[1]: staking 
+    ///     bits[2]: unstaking  
+    ///     bits[3]: claiming 
+    ///     bits[4]: reward
     uint8 private _state; 
-
-    // 50% to Nest/NToken holders as dividend
-    // 50% to saving for buying back (future)
+    
+    /// @dev The percentage of dividends 
+    ///      - 50% to Nest/NToken holders as dividend
+    ///      - 50% to saving for buying back (future)
     uint8 private _dividend_share = 50; 
 
     address private _C_NestToken;
 
     address public governance;
 
-    // _pending_saving_Amount: ntoken => saving amount
+    /// @dev The balance of savings w.r.t a ntoken(or nest-token)
+    ///     _pending_saving_Amount: ntoken => saving amount
     mapping(address => uint256) private _pending_saving_amount;
 
-    // _reward_per_ntoken_stored: ntoken => amount
+    /// @dev The per-ntoken-reward (ETH) w.r.t a ntoken(or nest-token)
+    ///     _reward_per_ntoken_stored: ntoken => amount
     mapping(address => uint256) private _reward_per_ntoken_stored;
+
     // _reward_per_ntoken_claimed: (ntoken, acount, amount) => amount
     mapping(address => mapping(address => uint256)) _reward_per_ntoken_claimed;
 
@@ -65,9 +68,8 @@ contract NestStaking is INestStaking, ReentrancyGuard {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(
-        address _nestToken // CM: 被奖励的 token 地址
-    ) public {
+    constructor(address _nestToken) public 
+    {
         _C_NestToken = _nestToken;
         governance = msg.sender;
         _state = 0;
@@ -75,50 +77,50 @@ contract NestStaking is INestStaking, ReentrancyGuard {
 
     receive() external payable {}
 
-    modifier onlyGovernance() {
-        require(msg.sender == governance, "CoFi: !governance");
+    /* ========== GOVERNANCE ========== */
+
+    modifier onlyGovernance() 
+    {
+        require(msg.sender == governance, "Nest: !governance");
         _;
     }
 
-    modifier updateReward(address ntoken, address account) {
-        uint256 _total = _ntoken_staked_total[ntoken];
-        uint256 _accrued = rewardsTotal[ntoken].sub(lastRewardsTotal[ntoken]);
-        uint256 _rewardPerToken;      
+    function setGovernance(address _newGov) external onlyGovernance
+    {
+        governance = _newGov;
+    }
 
-        if (_total == 0) {
-            // use the old rewardPerTokenStored, and accrued should be zero here
-            // if not the new accrued amount will never be distributed to anyone
-            _rewardPerToken = _reward_per_ntoken_stored[ntoken];
-        } else {
-            // 50% of accrued to CoFi holders as dividend
-            _rewardPerToken = _reward_per_ntoken_stored[ntoken].add(
-                _accrued.mul(1e18).mul(_dividend_share).div(_total).div(100) 
-            );
-            // update _reward_per_ntoken_stored
-            _reward_per_ntoken_stored[ntoken] = _rewardPerToken;
-            lastRewardsTotal[ntoken] = rewardsTotal[ntoken];
-            uint256 _newSaving = _accrued.sub(_accrued.mul(_dividend_share).div(100)); // left 50%
-            _pending_saving_amount[ntoken] = _pending_saving_amount[ntoken].add(_newSaving);
-        }
+    function setState(uint8 _newSt) external onlyGovernance
+    {
+        _state = _newSt;
+    }
+    
+    function state() external onlyGovernance returns (uint8)
+    {
+        return _state;
+    }
 
-        uint256 _newEarned = _staked_balances[ntoken][account].mul(
-                _rewardPerToken.sub(_reward_per_ntoken_claimed[ntoken][account])
-            ).div(1e18);
+    function withdrawSavingByGov(address ntoken, address to, uint256 amount) external nonReentrant onlyGovernance {
+        _pending_saving_amount[ntoken] = _pending_saving_amount[ntoken].sub(amount);
+        TransferHelper.safeTransferETH(to, amount);
 
-        if (account != address(0)) { // 问题：为何要判断 address 为 0 的情况？
-            rewardBalances[ntoken][account] = rewardBalances[ntoken][account].add(_newEarned);
-            _reward_per_ntoken_claimed[ntoken][account] = _reward_per_ntoken_stored[ntoken];
-        }
-        _;
+        // must refresh WETH balance record after updating WETH balance
+        // or lastRewardsTotal could be less than the newest WETH balance in the next update
+        uint256 _newTotal = rewardsTotal[ntoken].sub(amount);
+        lastRewardsTotal[ntoken] = _newTotal;
+        rewardsTotal[ntoken] = _newTotal;
+        emit SavingWithdrawn(ntoken, to, amount);
     }
 
     /* ========== VIEWS ========== */
     // 
-    function totalStaked(address ntoken) external override view returns (uint256) {
+    function totalStaked(address ntoken) external override view returns (uint256) 
+    {
         return _ntoken_staked_total[ntoken];
     }
 
-    function stakedBalanceOf(address ntoken, address account) external override view returns (uint256) {
+    function stakedBalanceOf(address ntoken, address account) external override view returns (uint256) 
+    {
         return _staked_balances[ntoken][account];
     }
 
@@ -161,16 +163,50 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         }
         uint256 _accrued = accrued(ntoken);
         uint256 _rewardPerToken = _reward_per_ntoken_stored[ntoken].add(
-                _accrued.mul(1e18).mul(_dividend_share).div(_total).div(100) // 50% of accrued to CoFi holders as dividend
-            );
+                _accrued.mul(1e18).mul(_dividend_share).div(_total).div(100) 
+            ); // 50% of accrued to CoFi holders as dividend
         return (_rewardPerToken, _accrued);
     }
 
-    /* ========== CALLS ========== */
+    /* ========== STAK/UNSTAK/CLAIM ========== */
 
-        // CM: 锁仓
-    function stake(address ntoken, uint256 amount) external override nonReentrant updateReward(ntoken, msg.sender) {
-        require(amount > 0, "Nest::Stak: !0");
+    modifier updateReward(address ntoken, address account) {
+        uint256 _total = _ntoken_staked_total[ntoken];
+        uint256 _accrued = rewardsTotal[ntoken].sub(lastRewardsTotal[ntoken]);
+        uint256 _rewardPerToken;      
+
+        if (_total == 0) {
+            // use the old rewardPerTokenStored, and accrued should be zero here
+            // if not the new accrued amount will never be distributed to anyone
+            _rewardPerToken = _reward_per_ntoken_stored[ntoken];
+        } else {
+            // 50% of accrued to CoFi holders as dividend
+            _rewardPerToken = _reward_per_ntoken_stored[ntoken].add(
+                _accrued.mul(1e18).mul(_dividend_share).div(_total).div(100) 
+            );
+            // update _reward_per_ntoken_stored
+            _reward_per_ntoken_stored[ntoken] = _rewardPerToken;
+            lastRewardsTotal[ntoken] = rewardsTotal[ntoken];
+            uint256 _newSaving = _accrued.sub(_accrued.mul(_dividend_share).div(100)); // left 50%
+            _pending_saving_amount[ntoken] = _pending_saving_amount[ntoken].add(_newSaving);
+        }
+
+        uint256 _newEarned = _staked_balances[ntoken][account].mul(
+                _rewardPerToken.sub(_reward_per_ntoken_claimed[ntoken][account])
+            ).div(1e18);
+
+        if (account != address(0)) { // 问题：为何要判断 address 为 0 的情况？
+            rewardBalances[ntoken][account] = rewardBalances[ntoken][account].add(_newEarned);
+            _reward_per_ntoken_claimed[ntoken][account] = _reward_per_ntoken_stored[ntoken];
+        }
+        _;
+    }
+
+    // CM: 锁仓
+    function stake(address ntoken, uint256 amount) external override nonReentrant updateReward(ntoken, msg.sender) 
+    {
+        require(_state & 0x02 == 0, "Nest::Stak> !_state");
+        require(amount > 0, "Nest::Stak> !0");
         _ntoken_staked_total[ntoken] = _ntoken_staked_total[ntoken].add(amount);
         _staked_balances[ntoken][msg.sender] = _staked_balances[ntoken][msg.sender].add(amount);
         TransferHelper.safeTransferFrom(ntoken, msg.sender, address(this), amount);
@@ -179,7 +215,8 @@ contract NestStaking is INestStaking, ReentrancyGuard {
 
     // CM: 解除锁仓
     function unstake(address ntoken, uint256 amount) public override nonReentrant updateReward(ntoken, msg.sender) {
-        require(amount > 0, "Nest::Unstak: !0");
+        require(_state & 0x04 == 0, "Nest::Unstak> !_state");
+        require(amount > 0, "Nest::Unstak> !0");
         _ntoken_staked_total[ntoken] = _ntoken_staked_total[ntoken].sub(amount);
         _staked_balances[ntoken][msg.sender] = _staked_balances[ntoken][msg.sender].sub(amount);
         TransferHelper.safeTransfer(ntoken, msg.sender, amount);
@@ -188,6 +225,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
 
     // CM: 领取奖励
     function claim(address ntoken) public override nonReentrant updateReward(ntoken, msg.sender) {
+        require(_state & 0x08 == 0, "Nest::Claim> !_state");
         uint256 _reward = rewardBalances[ntoken][msg.sender];
         if (_reward > 0) {
             rewardBalances[ntoken][msg.sender] = 0;
@@ -204,28 +242,11 @@ contract NestStaking is INestStaking, ReentrancyGuard {
 
     /* ========== INTER-CALLS ========== */
 
-    function addETHReward(address ntoken) external payable override { 
+    function addETHReward(address ntoken) external payable override {
+        require(_state & 0x10 == 0, "Nest::AddEth> !_state");
         // NOTE: no need to update reward here
         // support for sending ETH for rewards
         rewardsTotal[ntoken] = rewardsTotal[ntoken].add(msg.value); 
     }
 
-    /* ========== GOVERNANCE ========== */
-
-    function setGovernance(address _new) external onlyGovernance{
-        governance = _new;
-    }
-
-    // TODO: move to a reward pool
-    function withdrawSavingByGov(address ntoken, address to, uint256 amount) external nonReentrant onlyGovernance {
-        _pending_saving_amount[ntoken] = _pending_saving_amount[ntoken].sub(amount);
-        TransferHelper.safeTransferETH(to, amount);
-
-        // must refresh WETH balance record after updating WETH balance
-        // or lastRewardsTotal could be less than the newest WETH balance in the next update
-        uint256 _newTotal = rewardsTotal[ntoken].sub(amount);
-        lastRewardsTotal[ntoken] = _newTotal;
-        rewardsTotal[ntoken] = _newTotal;
-        emit SavingWithdrawn(ntoken, to, amount);
-    }
 }
