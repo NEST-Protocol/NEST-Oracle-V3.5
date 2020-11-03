@@ -12,15 +12,17 @@ pragma solidity ^0.6.12;
 
 interface INestPrice {
  
-    function setFee() external;
+    function setFee(uint256 _min, uint256 _max, uint256 _single) external;
 
-    function activateClient(address defiAddress) external;
+    function activate(address _defi) external;
 
-    function registerClient(uint32 monthlyFee) external;
+    function register(uint256 monthlyFee) external;
 
-    function renewalClient(uint8 months) external payable returns (uint64);
+    function renewal(uint256 months) external payable;
 
-    function queryPrice(address token, address payback) external payable returns (uint256, uint256, uint64);
+    function query(address token, address payback) external payable returns (uint256, uint256, uint64);
+
+    function queryForMonthlyClient(address token) external returns (uint256, uint256, uint64);
 
     function queryPriceList(address token, uint8 num, address payback) external payable returns (uint128[] memory);
 

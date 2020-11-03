@@ -510,7 +510,7 @@ contract('NEST V3.5', (accounts) => {
             );
             console.log(`  >> revert`);
 
-         });
+        });
 
         it("should be able to close an EFFECTIVE price sheet", async () => {
 

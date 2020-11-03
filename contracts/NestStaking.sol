@@ -26,7 +26,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     /// @dev The percentage of dividends 
     ///      - 50% to Nest/NToken holders as dividend
     ///      - 50% to saving for buying back (future)
-    uint8 private _dividend_share = 50; 
+    uint8 private _dividend_share = 80;
 
     address private _C_NestToken;
 

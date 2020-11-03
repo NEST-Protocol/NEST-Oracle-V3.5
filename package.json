@@ -11,11 +11,16 @@
     "truffle": "^5.1.16-truffleLogger.0"
   },
   "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.0",
+    "@nomiclabs/hardhat-waffle": "^2.0.0",
     "@openzeppelin/cli": "^2.8.2",
     "@openzeppelin/test-environment": "git+https://github.com/OpenZeppelin/openzeppelin-test-environment.git#80179acb79b31456e4ad8427523555d241300447",
     "@openzeppelin/test-helpers": "^0.5.6",
     "chai": "^4.2.0",
     "eth-gas-reporter": "^0.2.17",
+    "ethereum-waffle": "^3.2.0",
+    "ethers": "^5.0.19",
+    "hardhat": "^2.0.2",
     "mocha": "^8.1.1"
   }
 }

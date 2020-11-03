@@ -67,7 +67,7 @@ contract NTokenAuction is  ReentrancyGuard {
     address public governance;
 
     /* ========== EVENTS ============== */
-    
+
     /// @notice when the auction of a token gets started
     /// @param token    The address of the (ERC20) token
     /// @param bid      The amount of nest-token as the initial bid
@@ -118,9 +118,21 @@ contract NTokenAuction is  ReentrancyGuard {
         _C_DAO = _DAO;
     }
 
+    function ban(address token) public onlyGovernance
+    {
+        Auction storage auc = _auctions_map[token];
+        auc.disabled = 1;
+    }
+
+    function unban(address token) public onlyGovernance
+    {
+        Auction storage auc = _auctions_map[token];
+        auc.disabled = 0;
+    }
+
     /* ========== AUCTION ========== */
 
-    // TODO: If we allow callings from contracts to start/bid/close ?
+    // TODO: Shall we allow callings from contracts to start/bid/close ?
 
     /// @notice Start an auction for a (ERC20) token
     /// @dev  The code is nonReentrant protected
@@ -214,7 +226,7 @@ contract NTokenAuction is  ReentrancyGuard {
         NestNToken nToken = NestNToken(address(this));
         // NestNToken nToken = new NestNToken(strConcat("NToken", getAddressStr(_x_ntoken_counter)), strConcat("N", getAddressStr(_x_ntoken_counter)), address(_C_DAO), address(auction.winner));
         //  burn nest tokens
-        address burnAddr = _C_NestPool.addressOfBurnNest();
+        address burnAddr = _C_NestPool.addressOfBurnedNest();
         // emit LogAddress("burnAddr", burnAddr);
         _C_NestToken.transfer(burnAddr, auc.nestBurnedAmount);
         auc.nestBurnedAmount = 0;

@@ -8,7 +8,7 @@ const NestPool = artifacts.require("NestPool");
 const DAO = artifacts.require("DAO");
 
 const BonusPool = artifacts.require("BonusPool");
-const Staking = artifacts.require("Staking");
+const NestStaking = artifacts.require("NestStaking");
 
 const NestMining = artifacts.require("NestMining");
 
@@ -46,11 +46,9 @@ module.exports = async function(deployer) {
 
     await deployer.deploy(BonusPool);
 
-    await deployer.deploy(Staking, BonusPool.address, IBNEST.address);
+    await deployer.deploy(NestStaking, IBNEST.address);
 
-    await deployer.deploy(NestMining, IBNEST.address, NestPool.address, BonusPool.address);
-
-    await deployer.deploy(NestMining, IBNEST.address, NestPool.address, BonusPool.address);
+    await deployer.deploy(NestMining, IBNEST.address, NestPool.address, NestStaking.address);
 
     await deployer.deploy(NNToken, 1500, "NNT");
 

@@ -4,12 +4,15 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "./lib/SafeMath.sol";
-import "./iface/INestPool.sol";
 import "./lib/SafeERC20.sol";
 import './lib/TransferHelper.sol';
-import "./iface/IBonusPool.sol";
-import "./iface/INToken.sol";
 import "./lib/ABDKMath64x64.sol";
+
+import "./iface/INestPool.sol";
+import "./iface/INestStaking.sol";
+import "./iface/INToken.sol";
+import "./iface/INNRewardPool.sol";
+
 
 contract NestMining {
     
@@ -25,7 +28,8 @@ contract NestMining {
 
     INestPool private _C_NestPool;
     ERC20 private _C_NestToken;
-    IBonusPool private _C_BonusPool;
+    INestStaking private _C_NestStaking;
+    INNRewardPool private _C_NNRewardPool;
     // IPriceOracle private _C_PriceOracle;
 
     address private _developer_address;
@@ -54,94 +58,110 @@ contract NestMining {
 
     // the minimum mining fee (ethers)
     // uint256 constant c_mining_eth_minimum = 10 ether; // removed
-    uint256 constant c_mining_eth_unit = 10 ether;
+    uint256 public ethNumPerChunk = 10;  // 10 ether
+
+    uint256 constant c_mining_eth_unit = 10;  // 10 ether
     // uint256 constant c_mining_price_deviateion_factor = 10; // removed
     uint256 constant c_mining_fee_thousandth = 10; 
     uint256 constant c_mining_gasprice_tax_thousandth = 10; 
 
 
-    uint256 constant c_team_reward_percentage = 5;
+    uint256 constant c_dev_reward_percentage = 5;
     uint256 constant c_NN_reward_percentage = 15;
     uint256 constant c_nest_reward_percentage = 80;
 
     uint256 constant c_ntoken_bidder_reward_percentage = 5;
     uint256 constant c_ntoken_miner_reward_percentage = 95;
 
+    uint256 constant c_price_eth_unit = 1;
     uint256 constant c_price_deviation_rate = 10;
     uint256 constant c_price_duration_block = 25;
 
+    uint256 constant c_sheet_duration_block = 4 * 60 * 6; // = 1440 (6 hours) if avg. rate of eth-block mining ~ 14 seconds
+
     // uint256 constant c_bite_amount_price_deviateion_factor = 10; // removed
-    uint256 constant c_bite_amount_factor = 2;
-    uint256 constant c_bite_fee_thousandth = 1; 
+    uint256 constant c_take_amount_factor = 2;
+    uint256 constant c_take_fee_thousandth = 1; 
 
     uint256 constant c_ethereum_block_interval = 14; // 14 seconds per block on average
 
-    // size: (4 x 256 byte)
-    struct PriceSheet {    
-        uint160 miner;       //  miner who posted the price (most significant bits, or left-most)
-        uint64 atHeight;
-        uint32 ethFeeTwei;   
+    uint32  public nestPerChunk = 10_000;
 
-        uint128 ethAmount;   //  the balance of eth
-        uint128 tokenAmount; //  the balance of token 
-        // The balances of assets that can be bitten, they can only decrease
-        // Note that (pEthAmount:pTokenAmount) is equal to the original (ethAmount:tokenAmount)
-        uint128 dealEthAmount;  
-        uint128 dealTokenAmount;
-        // The balances of assets can increase or decrease if others take them on either side
-        // They can be withdrawn if the owner closes the sheet
+    /// @dev size: 2 x 256bit, 11 fields
+    struct PriceSheet {    
+        uint160 miner;          //  miner who posted the price (most significant bits, or left-most)
+        uint32  height;         // the height of block where the sheet was posted
+        uint8  chunkNum;        // the amount of chunks deposited
+        uint8  chunkSize;       // ethers per chunk
+        uint8  remainChunk;     // the remain chunks of deposits, which decrease if some chunks are biten
+        uint8  ethChunk;        // the number of eth chunks
+        uint8  tokenChunk;     // the number of token1 chunk, each of which has `tokenPrice` tokens
+        // uint8  token2Chunk;     // the number of token2 chunk 
+        uint8  state;           // =0: closed | =1: cleared | =2: posted | =3: bite_and_posted2 | =4: bite_and_posted4 
+                                //            | =5: bite_and_posted8 | =6: bite_and_posted16 ...| =15: 
+                                //            | =128: invalid | > 128: bitten |
+                                //            | 0xFF: refuted
+        uint16  _reserved;       // for padding 
+
+        uint128 tokenPrice;     // the amount of (token1 : 1 ether)
+        uint128 _reserved2;     // the amount of (token2 : 1 ether)
     }
 
-    // We use mapping (from `token_address` to an array of `PriceSheet`) to remove the owner field 
-    // from the PriceSheet so that to save 256b. The idea is from Fei.
-    mapping(address => PriceSheet[]) _price_list;
+    ///@dev  A mapping (from token(address) to an array of PriceSheet)
+    mapping(address => PriceSheet[]) private _priceSheetList;
 
-    // size: (4 x 256 byte)
-    struct PriceInfo {
-        uint32  position;
-        uint32  atHeight;
+    /// @dev size: (3 x 256 bit)
+    struct Price {
+        uint32  index;
+        uint32  height;
         uint32  ethAmount;   //  the balance of eth
-        uint32  _padding;
         uint128 tokenAmount; //  the balance of token 
         int128  volatility_sigma_sq;
         int128  volatility_ut_sq;
+        uint160  _reserved;
     }
 
-    mapping(address => PriceInfo) private _price_info;
+    /// @dev from token(address) to Price
+    mapping(address => Price) private _priceInEffect;
 
+    struct Taker {
+        uint160 takerAddress;
+        uint8 ethChunk;
+        uint8 tokenChunk;
+        uint80 _reserved;
+    }
+
+    /// @dev from token(address), index to array of Taker
+    mapping(address => mapping(uint256 => Taker[])) internal _takers;
 
     // The following two mappings collects all of the nest mined and eth fee 
     // paid at each height, such that the distribution can be calculated
 
-    // _mined_nest_to_eth_at_height: block height => nest amount
-    mapping(uint256 => uint256) public _mined_nest_to_eth_at_height;
+    // _nest_at_height: block height => nest amount
+    mapping(uint256 => uint256) private _nest_at_height;
     
-    // // _eth_fee_at_height: block height => eth amount
-    // mapping(uint256 => uint256) _eth_fee_at_height;
-    
-    // _mined_ntoken_to_eth_at_height: ntoken => block height => (ntoken amount, eth amount)
-    mapping(address => mapping(uint256 => uint256)) _mined_ntoken_to_eth_at_height;
+    // _ntoken_at_height: ntoken => block height => (ntoken amount, eth amount)
+    mapping(address => mapping(uint256 => uint256)) _ntoken_at_height;
 
     /* ========== EVENTS ========== */
 
     event PricePosted(address miner, address token, uint256 index, uint256 ethAmount, uint256 tokenAmount);
     event PriceClosed(address miner, address token, uint256 index);
-    event Deposit(address miner, address token, uint256 amount);
-    event Withdraw(address miner, address token, uint256 amount);
+    event Deposited(address miner, address token, uint256 amount);
+    event Withdrawn(address miner, address token, uint256 amount);
     event TokenBought(address miner, address token, uint256 index, uint256 biteEthAmount, uint256 biteTokenAmount);
     event TokenSold(address miner, address token, uint256 index, uint256 biteEthAmount, uint256 biteTokenAmount);
 
     event VolaComputed(uint32 h, uint32 pos, uint32 ethA, uint128 tokenA, int128 sigma_sq, int128 ut_sq);
-    // event NTokenMining(uint256 height, uint256 yieldAmount, address ntoken);
-    // event NestMining(uint256 height, uint256 yieldAmount);
+
 
     /* ========== CONSTRUCTOR ========== */
 
-
-    constructor(address NestToken, address NestPool, address BonusPool) public {
+    constructor(address NestToken, address NestPool, address NestStaking) public 
+    {
         _C_NestToken = ERC20(NestToken);
         _C_NestPool = INestPool(NestPool);
-        _C_BonusPool = IBonusPool(BonusPool);
+        _C_NestStaking = INestStaking(NestStaking);
         _latest_mining_height = block.number;
         uint256 amount = c_mining_nest_yield_per_block_base;
         for (uint i =0; i < 10; i++) {
@@ -154,6 +174,7 @@ contract NestMining {
             _mining_ntoken_yield_per_block_amount[i] = amount;
             amount = amount.mul(c_mining_ntoken_yield_cutback_rate).div(100);
         }
+
         governance = msg.sender;
     }
 
@@ -164,28 +185,40 @@ contract NestMining {
 
     modifier onlyGovernance() 
     {
-        require(msg.sender == governance, "Nest::Mine> !governance");
+        require(msg.sender == governance, "Nest:Mine:!governance");
         _;
     }
 
     modifier noContract() 
     {
-        require(address(msg.sender) == address(tx.origin), "Nest::Mine> X contract");
+        require(address(msg.sender) == address(tx.origin), "Nest:Mine:BAN(contract)");
         _;
     }
 
 
     /* ========== GOVERNANCE ========== */
 
-    function setAddresses(address developer_address, address NN_address) public onlyGovernance {
-        _developer_address = developer_address;
-        _NN_address = NN_address;
+    function setAddresses(address developer_address) public onlyGovernance 
+    {
+        if (uint256(developer_address) != 0) {
+            _developer_address = developer_address;
+        }
     }
 
-    function setContracts(address NestToken, address NestPool, address BonusPool) public onlyGovernance {
-        _C_NestToken = ERC20(NestToken);
-        _C_NestPool = INestPool(NestPool);
-        _C_BonusPool = IBonusPool(BonusPool);
+    function setContracts(address NestToken, address NestPool, address NestStaking, address NNRewardPool) public onlyGovernance 
+    {
+        if (uint256(NestToken) != 0) {
+            _C_NestToken = ERC20(NestToken);
+        }
+        if (uint256(NestPool) != 0) {
+            _C_NestPool = INestPool(NestPool);
+        }
+        if (uint256(NestStaking) != 0) {
+            _C_NestStaking = INestStaking(NestStaking);
+        }
+        if (uint256(NNRewardPool) != 0) {
+            _C_NNRewardPool = INNRewardPool(NNRewardPool);
+        }
     }
 
     /* ========== HELPERS ========== */
@@ -219,28 +252,27 @@ contract NestMining {
         return (_new_sigma_sq, _new_ut_sq);
     }
 
-
     function _moveVolatility(
-        PriceInfo memory p0,
+        Price memory p0,
         PriceSheet[] memory pL
-    ) private returns (PriceInfo memory p1)
+    ) private returns (Price memory p1)
     {   
-        uint256 i = p0.position + 1;
+        uint256 i = p0.index + 1;
         if (i >= pL.length) {
-            return (PriceInfo(0,0,0,0,0,int128(0),int128(0)));
+            return (Price(0,0,0,0,int128(0),int128(0), 0));
         }
 
-        uint256 h = uint256(pL[i].atHeight);
+        uint256 h = uint256(pL[i].height);
         if (h + c_price_duration_block >= block.number) {
-            return (PriceInfo(0,0,0,0,0,int128(0),int128(0)));
+            return (Price(0,0,0,0,int128(0),int128(0), 0));
         }
         
         uint256 ethA1 = 0;
         uint256 tokenA1 = 0;
-        while (i < pL.length && pL[i].atHeight == h 
-                            && pL[i].atHeight + c_price_duration_block < block.number) {
-            ethA1 = ethA1 + uint256(pL[i].dealEthAmount).div(1e18);
-            tokenA1 = tokenA1 + uint256(pL[i].dealTokenAmount);
+        while (i < pL.length && pL[i].height == h 
+                            && pL[i].height + c_price_duration_block < block.number) {
+            ethA1 = ethA1 + uint256(pL[i].remainChunk).mul(pL[i].chunkSize);
+            tokenA1 = tokenA1 + uint256(pL[i].remainChunk).mul(pL[i].chunkSize).mul(pL[i].tokenPrice);
             i = i + 1;
         }
         i = i - 1;
@@ -248,177 +280,423 @@ contract NestMining {
             p0.ethAmount, p0.tokenAmount, 
             ethA1, tokenA1, 
             p0.volatility_sigma_sq, p0.volatility_ut_sq, 
-            i - p0.position);
-        return(PriceInfo(uint32(i), uint32(h), uint32(ethA1), uint32(0), uint128(tokenA1), 
-            new_sigma_sq, new_ut_sq));
+            i - p0.index);
+        return(Price(uint32(i), uint32(h), uint32(ethA1), uint128(tokenA1), 
+            new_sigma_sq, new_ut_sq, uint160(0)));
     }
 
-    function calcMultiVolatilities(address token) public {
-        PriceInfo memory p0 = _price_info[token];
-        PriceSheet[] memory pL = _price_list[token];
-        PriceInfo memory p1;
+    function calcMultiVolatilities(address token) public 
+    {
+        Price memory p0 = _priceInEffect[token];
+        PriceSheet[] memory pL = _priceSheetList[token];
+        Price memory p1;
         if (pL.length < 2) {
             emit VolaComputed(0,0,0,0,int128(0),int128(0));
             return;
         }
-        while (uint256(p0.position) < pL.length && uint256(p0.atHeight) + c_price_duration_block < block.number){
+        while (uint256(p0.index) < pL.length && uint256(p0.height) + c_price_duration_block < block.number){
             p1 = _moveVolatility(p0, pL);
-            if (p1.position <= p0.position) {
+            if (p1.index <= p0.index) {
                 break;
             }
             p0 = p1;
         }
 
-        if (p0.position > _price_info[token].position) {
-            _price_info[token] = p0;
-            emit VolaComputed(p0.atHeight, p0.position, uint32(p0.ethAmount), uint128(p0.tokenAmount), 
+        if (p0.index > _priceInEffect[token].index) {
+            _priceInEffect[token] = p0;
+            emit VolaComputed(p0.height, p0.index, uint32(p0.ethAmount), uint128(p0.tokenAmount), 
                 p0.volatility_sigma_sq, p0.volatility_ut_sq);
         }
         return;
     }
 
-    function calcVolatility(address token) public {
-        PriceInfo memory p0 = _price_info[token];
-        PriceSheet[] memory pL = _price_list[token];
+    function calcVolatility(address token) public 
+    {
+        Price memory p0 = _priceInEffect[token];
+        PriceSheet[] memory pL = _priceSheetList[token];
         if (pL.length < 2) {
             emit VolaComputed(0,0,0,0,int128(0),int128(0));
             return;
         }
-        (PriceInfo memory p1) = _moveVolatility(p0, _price_list[token]);
-        if (p1.position > p0.position) {
-            _price_info[token] = p1;
-            emit VolaComputed(p1.atHeight, p1.position, uint32(p1.ethAmount), uint128(p1.tokenAmount), 
+        (Price memory p1) = _moveVolatility(p0, _priceSheetList[token]);
+        if (p1.index > p0.index) {
+            _priceInEffect[token] = p1;
+            emit VolaComputed(p1.height, p1.index, uint32(p1.ethAmount), uint128(p1.tokenAmount), 
                 p1.volatility_sigma_sq, p1.volatility_ut_sq);
         } 
         return;
     }
 
-    function volatility(address token) public view returns (PriceInfo memory p) {
+    function volatility(address token) public view returns (Price memory p) 
+    {
         // TODO: no contract allowed
-        return _price_info[token];
+        return _priceInEffect[token];
     }
 
     /* ========== POST/CLOSE Price Sheets ========== */
 
-
-    function postPriceSheet(uint256 ethAmount, uint256 tokenAmount, address token) public payable noContract
+    /// @dev post a single price sheet for any token
+    function _post(address _token, uint256 _tokenPrice, uint256 _ethNum, uint256 _chunkSize, uint256 _state) internal 
     {
-        // check parameters 
-        uint gas = gasleft();
-        require(ethAmount % c_mining_eth_unit == 0, "ethAmount should be aligned");
-        require(ethAmount > c_mining_eth_unit, "ethAmount should > 0");
-        require(tokenAmount > 0, "tokenAmount should > 0");
-        require(tokenAmount % (ethAmount.div(c_mining_eth_unit)) == 0, "tokenAmount should be aligned"); // it's really weird
-        require(token != address(0x0)); 
-        
-        emit LogUint("gas remain 10", gas-gasleft());
-        gas = gasleft();
-
-        PriceSheet[] storage priceList = _price_list[token];
-
-        // calculate eth fee
-        uint256 ethFee = ethAmount.mul(c_mining_fee_thousandth).div(1000);
-        require(ethFee / 1e12 < 2**32 && ethFee / 1e12 > 0, "ethFee is too small/large"); 
-        ethFee = (ethFee / 1e12) * 1e12;
-        emit LogUint("gas remain 20", gas-gasleft()); gas = gasleft();
-
-        emit LogUint("postPriceSheet> msg.value", msg.value);
-        emit LogUint("postPriceSheet> ethFee", ethFee);
-        emit LogUint("postPriceSheet> ethFee 32b", uint256(uint32(ethFee/1e12)));
-        emit LogUint("postPriceSheet> this.balance", address(this).balance);
-
-        { // settle ethers and tokens
-            address nestNToken = address(_C_NestToken);
-            INestPool C_NestPool = _C_NestPool;
-            IBonusPool C_BonusPool = _C_BonusPool;
-            uint256 deposit = msg.value.sub(ethFee);
-            // save the changes into miner's virtual account
-            C_NestPool.depositEthMiner(address(msg.sender), deposit);
-            emit LogUint("gas remain 30", gas-gasleft()); gas = gasleft();        
-
-            TransferHelper.safeTransferETH(address(C_NestPool), deposit);
-            C_BonusPool.pumpinEth{value:ethFee}(nestNToken, ethFee);       
-
-            // freeze eths and tokens in the nest pool
-            C_NestPool.freezeEthAndToken(msg.sender, ethAmount, token, tokenAmount);
-            emit LogUint("gas remain 60", gas-gasleft()); gas = gasleft();
+        PriceSheet[] storage _sheets = _priceSheetList[_token];
+        uint256 _ethChunks = _ethNum.div(_chunkSize);
+        uint256 _newState = 2;
+        if (_state > 2 && _state <= 6) {
+            _newState = _newState + 1;
         }
 
         // append a new price sheet
-        priceList.push(PriceSheet(
-            uint160(uint256(msg.sender) >> 96),  // miner 
-            uint64(block.number),                // atHeight
-            uint32(ethFee/1e12),                 // ethFee in Twei
-            uint128(ethAmount), uint128(tokenAmount), 
-            uint128(ethAmount), uint128(tokenAmount)));
-        emit LogUint("gas remain 70", gas-gasleft()); gas = gasleft();
-
-        { // mining
-            uint256 nestEthAtHeight = _mined_nest_to_eth_at_height[block.number];
-            uint256 nestAtHeight = uint256(nestEthAtHeight >> 128);
-            uint256 ethAtHeight = uint256(nestEthAtHeight % (1 << 128));
-            emit LogUint("gas remain 75", gas-gasleft());
-            gas = gasleft();
-            if (nestAtHeight == 0) {
-                emit LogUint("gas remain 76", gas-gasleft());
-                gas = gasleft();
-                uint256 nestAmount = mineNest();  
-                emit LogUint("gas remain 77", gas-gasleft());
-                gas = gasleft();
-                emit LogUint("postPriceSheet> minedNest", nestAmount);
-                nestAtHeight = nestAmount.mul(c_nest_reward_percentage).div(100); 
-            }
-            ethAtHeight = ethAtHeight.add(ethFee);
-            require(nestAtHeight < (1 << 128) && ethAtHeight < (1 << 128), "nestAtHeight/ethAtHeight error");
-            _mined_nest_to_eth_at_height[block.number] = (nestAtHeight * (1<< 128) + ethAtHeight);
-            emit LogUint("gas remain 80", gas-gasleft());
-            gas = gasleft();
-        }
-
-        //　NOTE: leave nest token of dev in the nest pool such that any client can get prizes from the pool
-        // _C_NestPool.distributeRewards(_NN_address);
-        // }
-        // TODO: 160 token-address + 96bit index?
-        uint256 index = priceList.length - 1;
-        // uint256 priceIndex = (uint256(token) >> 96) << 96 + uint256(index);
-
-        emit PricePosted(msg.sender, token, index, ethAmount, tokenAmount); 
-        emit LogUint("gas remain 90", gas-gasleft());
-        gas = gasleft();
-        return; 
-
+        _sheets.push(PriceSheet(
+            uint160(msg.sender),            // miner 
+            uint32(block.number),           // height
+            uint8(_ethChunks),   // chunkNum
+            uint8(_chunkSize),          // chunkSize 
+            uint8(_ethChunks),   // remainChunk
+            uint8(_ethChunks),   // ethChunk
+            uint8(0),                      // tokenChunk     
+            uint8(_newState),                    // state
+            uint16(0),                       // _reserved
+            uint128(_tokenPrice),            // tokenPrice 
+            uint128(0)            
+        ));
+        emit PricePosted(msg.sender, _token, (_sheets.length - 1), _ethNum.mul(1 ether), _tokenPrice.mul(_ethNum)); 
     }
 
-    function closePriceSheet(address token, uint256 index) public noContract 
+    function _mine(uint256 ethNum) internal
     {
-        PriceSheet storage price = _price_list[token][index];
-        require(price.atHeight + c_price_duration_block < block.number, "Price sheet isn't in effect");  // safe_math: untainted values
-        require(uint256(price.miner) == uint256(msg.sender) >> 96, "Miner mismatch");
-        uint256 ethAmount = uint256(price.ethAmount);
-        uint256 tokenAmount = uint256(price.tokenAmount);
-        uint256 fee = uint256(price.ethFeeTwei) * 1e12;
-        // emit LogUint("closePriceSheet> ethAmount", ethAmount);
-        // emit LogUint("closePriceSheet> tokenAmount", tokenAmount);
-        // emit LogUint("closePriceSheet> fee", fee);
-        price.ethAmount = 0;
-        price.tokenAmount = 0;
-
-        _C_NestPool.unfreezeEthAndToken(address(msg.sender), ethAmount, token, tokenAmount);
-
-        if (fee > 0) {
-            uint256 h = price.atHeight;
-            emit LogUint("closePriceSheet> atHeight", h);
-            uint256 nestAtHeight = uint256(_mined_nest_to_eth_at_height[h] / (1 << 128));
-            uint256 ethAtHeight = uint256(_mined_nest_to_eth_at_height[h] % (1 << 128));
-            uint256 reward = fee.mul(nestAtHeight).div(ethAtHeight);
-            emit LogUint("closePriceSheet> nestAtHeight", nestAtHeight);
-            emit LogUint("closePriceSheet> ethAtHeight", ethAtHeight);
-            emit LogUint("closePriceSheet> reward", reward);
-            _C_NestPool.increaseNestReward(address(msg.sender), reward);
+        uint256 nestEthAtHeight = _nest_at_height[block.number];
+        uint256 _nestAtHeight = uint256(nestEthAtHeight >> 128);
+        uint256 _ethAtHeight = uint256(nestEthAtHeight % (1 << 128));
+        if (_nestAtHeight == 0) {
+            uint256 nestAmount = mineNest();  
+            _nestAtHeight = nestAmount.mul(c_nest_reward_percentage).div(100);
+            _C_NestPool.addNest(_developer_address, nestAmount.mul(c_dev_reward_percentage).div(100));
+            _C_NestPool.addNest(address(_C_NNRewardPool), nestAmount.mul(c_dev_reward_percentage).div(100));
+            _C_NNRewardPool.addNNReward(nestAmount.mul(c_dev_reward_percentage).div(100));
         }
+        _ethAtHeight = _ethAtHeight.add(ethNum);
+        require(_nestAtHeight < (1 << 128) && _ethAtHeight < (1 << 128), "Nest:Mine:OVERFL(mined)");
+        _nest_at_height[block.number] = (_nestAtHeight * (1<< 128) + _ethAtHeight);
+    }
+
+    function post(address token1, uint256 token1Price, uint256 token2Price, uint256 ethNum) public payable noContract
+    {
+        // check parameters 
+        uint gas = gasleft();
+        require(token1 != address(0x0), "Nest:Mine:(token)=0"); 
+        require(ethNum % ethNumPerChunk == 0, "Nest:Mine:mod(ethAmount)!=0");
+        require(ethNum >= ethNumPerChunk, "Nest:Mine:(ethAmount)<unit");
+        require(token1Price > 0, "Nest:Mine:(price)=0");
+        require(token2Price > 0, "Nest:Mine:(price)=0");
+
+        emit LogUint("10: gas remain", gas-gasleft()); gas = gasleft();
+
+        // calculate eth fee
+        uint256 _ethFee = ethNum.mul(1e18).mul(c_mining_fee_thousandth).div(1000);
+
+        emit LogUint("20: gas remain", gas-gasleft()); gas = gasleft();
+
+
+        { // settle ethers and tokens
+            _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
+            emit LogUint("30: gas remain", gas-gasleft()); gas = gasleft();        
+
+            // transfer ethFee as rewards to the staking contract
+            _C_NestStaking.addETHReward{value:_ethFee}(address(_C_NestToken));       
+
+            // freeze ethers in the nest pool
+            _C_NestPool.freezeEth(msg.sender, ethNum.mul(1 ether));
+            _C_NestPool.freezeNest(msg.sender, ethNum.div(ethNumPerChunk).mul(nestPerChunk).mul(1e18));
+            emit LogUint("gas remain 60", gas-gasleft()); gas = gasleft();
+        }
+
+        // append two new price sheets
+        _post(token1, token1Price, ethNum, ethNumPerChunk, 0x2);
+        emit LogUint("70: gas remain", gas-gasleft()); gas = gasleft();
+        _post(address(_C_NestToken), token2Price, ethNum, ethNumPerChunk, 0x2);
+        emit LogUint("80: gas remain", gas-gasleft()); gas = gasleft();
+        _mine(ethNum);
+        emit LogUint("90: gas remain", gas-gasleft()); gas = gasleft();
+
+        return; 
+    }
+
+    function close(address token, uint256 index) public noContract 
+    {
+        PriceSheet storage _sheet = _priceSheetList[token][index];
+        require(_sheet.height + c_price_duration_block <= block.number, "Nest:Mine:!EFF(sheet)");  // safe_math: untainted values
+        require(address(_sheet.miner) == msg.sender, "Nest:Mine:!(miner)");
+        require(_sheet.state == 1, "Nest:Mine:!CLEAR(sheet)");
+
+        uint256 ethAmount = uint256(_sheet.ethChunk).mul(uint256(_sheet.chunkSize)).mul(1 ether);
+        uint256 nestAmount = uint256(_sheet.chunkNum).mul(nestPerChunk).mul(1e18);
+
+        uint256 h = uint256(_sheet.height);
+        uint256 _nestAtHeight = uint256(_nest_at_height[h] / (1 << 128));
+        uint256 _ethAtHeight = uint256(_nest_at_height[h] % (1 << 128));
+        uint256 reward = uint256(_sheet.chunkNum).mul(uint256(_sheet.chunkSize)).mul(_nestAtHeight).div(_ethAtHeight);
+
+        _sheet.state = 0;
+
+        _C_NestPool.addNest(address(msg.sender), reward);
+        _C_NestPool.unfreezeNest(address(msg.sender), nestAmount);
+        _C_NestPool.unfreezeEth(address(msg.sender), ethAmount);
         emit PriceClosed(address(msg.sender), token, index);
     }
 
+    function buyToken(address token, uint256 index, uint256 takeChunkNum, uint256 newTokenPrice)
+        public payable noContract
+    {
+        // check parameters 
+        require(token != address(0x0), "Nest:Mine:(token)=0"); 
+        require(newTokenPrice > 0, "Nest:Mine:(price)=0");
+        require(takeChunkNum > 0, "Nest:Mine:(take)=0");
+
+        address nToken = _C_NestPool.getNTokenFromToken(token);
+        require (nToken != address(0x0), "Nest:Mine:!(ntoken)");
+
+        PriceSheet memory _sheet = _priceSheetList[token][index]; 
+        uint256 _chunkSize = uint256(_sheet.chunkSize);
+        uint256 _state = uint256(_sheet.state);
+
+        // post a new price sheet
+        { 
+            // check bitting conditions
+            require(block.number.sub(_sheet.height) < c_price_duration_block, "Nest:Mine:!EFF(sheet)");
+            require(_sheet.remainChunk >= takeChunkNum, "Nest:Mine:!(remain)");
+            // require(ethChunkNum >= takeChunkNum.mul(c_take_amount_factor), "Nest:Mine:!(take)>2^n");
+
+            uint256 _ethChunkNum;
+            {
+                uint256 _nestDeposited = uint256(nestPerChunk).mul(takeChunkNum);
+                uint256 _newState;
+
+                require(_state >= 2 && _state <= 16,  "Nest:Mine:!(state)>=2");
+                if (_state == 0x80) {
+                    _ethChunkNum = takeChunkNum;
+                    _newState = _state;
+                    _nestDeposited = _nestDeposited.mul(2 ** 128);
+                } else if (_state > 6 && _state < 128) {
+                    _nestDeposited = _nestDeposited.mul(2 ** (_state - 6));
+                    _ethChunkNum = takeChunkNum;
+                    _newState = _state + 1; 
+                } else {
+                    _ethChunkNum = takeChunkNum.mul(c_take_amount_factor);
+                    _nestDeposited = uint256(nestPerChunk).mul(takeChunkNum);
+                    _newState = _state + 1;
+                }
+            
+                _post(token, newTokenPrice, _ethChunkNum, uint256(_sheet.chunkSize), _newState);
+                _C_NestPool.freezeNest(address(msg.sender), _nestDeposited.mul(1e18));
+            }
+            _C_NestPool.freezeEth(address(msg.sender), _ethChunkNum.add(takeChunkNum).mul(_chunkSize).mul(1 ether));
+        }
+
+        // add msg.sender as a taker
+        {
+            uint256 _ethNum = takeChunkNum.mul(_chunkSize);
+
+            // update price sheet
+            _sheet.state = uint8(_state + 16);
+            _sheet.ethChunk = uint8(uint256(_sheet.ethChunk).add(takeChunkNum));
+            _sheet.remainChunk = uint8(uint256(_sheet.remainChunk).sub(takeChunkNum));
+            _priceSheetList[token][index] = _sheet;
+    
+            _takers[token][index].push(Taker(uint160(msg.sender), uint8(0), uint8(takeChunkNum), uint80(0)));            
+            // generate an event 
+            emit TokenBought(address(msg.sender), address(token), index, _ethNum.mul(1 ether), _ethNum.mul(_sheet.tokenPrice));
+        }
+
+        {
+            uint256 _ethNum = takeChunkNum.mul(_chunkSize);
+            uint256 _ethFee = _ethNum.mul(1 ether).mul(c_take_fee_thousandth).div(1000);
+
+            // save the changes into miner's virtual account
+            if (msg.value > _ethFee) {
+                _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
+            }
+            _C_NestStaking.addETHReward{value:_ethFee}(nToken);
+
+        }
+        return; 
+    }
+
+    function sellToken(address token, uint256 index, uint256 takeChunkNum, uint256 newTokenPrice)
+        public payable noContract 
+    {
+        // check parameters 
+        require(token != address(0x0), "Nest:Mine:(token)=0"); 
+        require(newTokenPrice > 0, "Nest:Mine:(price)=0");
+        require(takeChunkNum > 0, "Nest:Mine:(take)=0");
+
+        address nToken = _C_NestPool.getNTokenFromToken(token);
+        require (nToken != address(0x0), "Nest:Mine:!(ntoken)");
+
+        PriceSheet memory _sheet = _priceSheetList[token][index]; 
+        uint256 _chunkSize = uint256(_sheet.chunkSize);
+        uint256 _ethNum = takeChunkNum.mul(_chunkSize);
+        uint256 _state = uint256(_sheet.state);
+
+        // post a new price sheet
+        {
+            // check bitting conditions
+            require(block.number.sub(_sheet.height) < c_price_duration_block, "Nest:Mine:!EFF(sheet)");
+            require(_sheet.remainChunk >= takeChunkNum, "Nest:Mine:!(remain)");
+
+            uint256 _nestDeposited;
+            uint256 _ethChunkNum;
+            uint256 _newState = _state + 1;
+            require(_newState > 2 && _newState < 16,  "Nest:Mine:!(state)>2");
+            if (_newState > 6) {
+                for(uint i=_newState; i<5; i=i*2) {
+                    _nestDeposited = _nestDeposited.mul(2);
+                }
+                _ethChunkNum = takeChunkNum;
+            } else {
+                _ethChunkNum = takeChunkNum.mul(c_take_amount_factor);
+                _nestDeposited = takeChunkNum.mul(uint256(nestPerChunk));
+            }
+            _post(token, newTokenPrice, _ethChunkNum, uint256(_sheet.chunkSize), _newState);
+            _C_NestPool.freezeNest(address(msg.sender), _nestDeposited.mul(1 ether));
+            _C_NestPool.freezeEth(address(msg.sender), _ethChunkNum.mul(_chunkSize).mul(1 ether));
+            _C_NestPool.freezeToken(address(msg.sender), token, _ethNum.mul(uint256(_sheet.tokenPrice)));
+        }
+
+        {
+            // update price sheet
+            _sheet.state = uint8(_state + 16);
+            _sheet.tokenChunk = uint8(uint256(_sheet.tokenChunk).add(takeChunkNum));
+            _sheet.remainChunk = uint8(uint256(_sheet.remainChunk).sub(takeChunkNum));
+            _priceSheetList[token][index] = _sheet;
+            
+            _takers[token][index].push(Taker(uint160(msg.sender), uint8(takeChunkNum), uint8(0), uint80(0)));
+            emit TokenSold(address(msg.sender), address(token), index, _ethNum.mul(1 ether), _ethNum.mul(_sheet.tokenPrice));
+
+        }
+        {
+            uint256 _ethFee = _ethNum.mul(1 ether).mul(c_take_fee_thousandth).div(1000);
+
+            if (msg.value > _ethFee) {
+                _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
+            }
+            _C_NestStaking.addETHReward{value:_ethFee}(nToken);
+        }
+
+        return; 
+    }
+
+    function _clear(address _token, uint256 _index, uint256 _chunkSize, uint256 _tokenChunkSize, Taker memory _t) internal  
+    {
+        if (_t.ethChunk > 0) {
+            _C_NestPool.freezeEth(address(msg.sender), _chunkSize.mul(_t.ethChunk));
+            _C_NestPool.unfreezeEth(address(_t.takerAddress), _chunkSize.mul(_t.ethChunk));
+        } else if (_t.tokenChunk > 0) {
+            _C_NestPool.freezeToken(address(msg.sender), _token, _tokenChunkSize.mul(_t.tokenChunk));
+            _C_NestPool.unfreezeToken(address(_t.takerAddress), _token, _tokenChunkSize.mul(_t.tokenChunk));
+        }
+    }
+
+    function clear(address token, uint256 index, uint256 num) public payable 
+    {
+        // check parameters 
+        require(token != address(0x0), "Nest:Mine:(token)=0"); 
+        PriceSheet memory _sheet = _priceSheetList[token][index]; 
+
+        if (_sheet.state >= 2 && _sheet.state < 16) { // non-bitten price sheet
+            require(_takers[token][index].length == 0, "Nest:Mine:!(takers)");
+            _sheet.state = uint8(1);
+            _priceSheetList[token][index] = _sheet;
+            _C_NestPool.depositEth{value:msg.value}(address(msg.sender));
+            return;
+        }
+
+        require(_sheet.state > 16, "Nest:Mine:!BITTEN(sheet)");
+
+        require(_sheet.height + c_price_duration_block < block.number, "Nest:Mine:!EFF(sheet)");  // safe_math: untainted values
+        require(_sheet.height + c_sheet_duration_block > block.number, "Nest:Mine:!EFF(sheet)");  // safe_math: untainted values
+        require(uint256(_sheet.miner) == uint256(msg.sender), "Nest:Mine:!(miner)");
+        
+        uint256 _ethChunkAmount = uint256(_sheet.chunkSize).mul(1 ether);
+        uint256 _tokenChunkAmount = uint256(_sheet.tokenPrice).mul(_ethChunkAmount);
+
+        _C_NestPool.depositEth{value:msg.value}(address(msg.sender));
+
+        Taker[] storage _ts = _takers[token][index];
+        uint256 _len = _ts.length;
+        for (uint i = 0; i < num; i++) {
+            Taker memory _t = _ts[_len - i];
+            _clear(token, i, _ethChunkAmount, _tokenChunkAmount, _t);
+            _ts.pop();
+        }
+
+        if (_ts.length == 0) { 
+            _sheet.state = uint8(1);
+            _priceSheetList[token][index] = _sheet;
+        }
+    }
+
+    function clearAll(address token, uint256 index) public payable 
+    {
+        // check parameters 
+        require(token != address(0x0), "Nest:Mine:(token)=0"); 
+        PriceSheet memory _sheet = _priceSheetList[token][index]; 
+        require(_sheet.state > 16, "Nest:Mine:!CLEAR(sheet)");
+
+        if (_sheet.state >= 2 && _sheet.state < 16) { // non-bitten price sheet
+            require(_takers[token][index].length == 0, "Nest:Mine:!(takers)");
+            _sheet.state = uint8(1);
+            _priceSheetList[token][index] = _sheet;
+            _C_NestPool.depositEth{value:msg.value}(address(msg.sender));
+            return;
+        }
+
+        require(_sheet.height + c_price_duration_block < block.number, "Nest:Mine:!EFF(sheet)");  // safe_math: untainted values
+        require(_sheet.height + c_sheet_duration_block > block.number, "Nest:Mine:!VALID(sheet)");  // safe_math: untainted values
+        require(uint256(_sheet.miner) == uint256(msg.sender), "Nest:Mine:!(miner)");
+        
+        uint256 _ethChunkAmount = uint256(_sheet.chunkSize).mul(1 ether);
+        uint256 _tokenChunkAmount = uint256(_sheet.tokenPrice).mul(_ethChunkAmount);
+
+        _C_NestPool.depositEth{value:msg.value}(address(msg.sender));
+
+        Taker[] storage _ts = _takers[token][index];
+        uint256 _len = _ts.length;
+        for (uint i = 0; i < _len; i++) {
+            Taker memory _t = _ts[_len - i];
+            _clear(token, i, _ethChunkAmount, _tokenChunkAmount, _t);
+            _ts.pop();
+        }
+
+        _sheet.state = uint8(1);
+        _priceSheetList[token][index] = _sheet;
+    }
+
+    function refute(address token, uint256 index, uint256 takeIndex) public  
+    {
+        PriceSheet storage _sheet = _priceSheetList[token][index]; 
+        Taker memory _taker = _takers[token][index][takeIndex];
+        require(_taker.takerAddress == uint160(msg.sender), "Nest:Mine:!(taker)");
+        require(_sheet.height + c_sheet_duration_block < block.number, "Nest:Mine:VALID(sheet)");  // safe_math: untainted values
+        
+        uint256 _chunkSize = _sheet.chunkSize;
+        if (_taker.ethChunk > 0) {  // sellToken
+            uint256 _chunkNum = _taker.ethChunk;
+            uint256 _tokenAmount = uint256(_sheet.tokenPrice).mul(_chunkNum).mul(_chunkSize);
+            _C_NestPool.unfreezeToken(address(msg.sender), token, _tokenAmount);
+            _C_NestPool.unfreezeEth(address(msg.sender), _chunkNum.mul(_chunkSize).mul(1 ether));
+            _taker.ethChunk = 0;
+        } else if (_taker.tokenChunk > 0) { // buyToken
+            uint256 _chunkNum = _taker.ethChunk;
+            uint256 _ethAmount = _chunkNum.add(_chunkNum).mul(_chunkSize).mul(1 ether);
+            _C_NestPool.unfreezeEth(address(msg.sender), _ethAmount);
+            _taker.tokenChunk = 0;
+        }
+        _taker.takerAddress = 0;
+        _takers[token][index][takeIndex] = _taker;
+        _sheet.state = uint8(0xFF);
+    }
+
+/*
     function closePriceSheetList(address token, uint64[] memory indices) public 
     {
         uint256 ethAmount;
@@ -453,6 +731,7 @@ contract NestMining {
             _C_NestPool.increaseNestReward(address(msg.sender), reward);
         }
     }
+*/
 /*
     function postNTokenPriceSheet(uint256 ethAmount, uint256 tokenAmount, address token) 
         public payable // noContract
@@ -579,6 +858,7 @@ contract NestMining {
         emit PriceClosed(address(msg.sender), token, index);
     }
 */
+/*
     // buyTokenFromPriceSheet
     function biteTokens(uint256 ethAmount, uint256 tokenAmount, uint256 biteEthAmount, uint256 biteTokenAmount, address token, uint256 index)
         public payable//noContract
@@ -651,7 +931,9 @@ contract NestMining {
 
         return; 
     }
+*/
 
+/*
     function biteEths(uint256 ethAmount, uint256 tokenAmount, uint256 biteEthAmount, uint256 biteTokenAmount, address token, uint256 index)
         public payable //noContract 
     {
@@ -726,12 +1008,15 @@ contract NestMining {
         return; 
     }
 
+*/
+
     /* ========== PRICE QUERIES ========== */
 
+/*
     // Get the latest effective price for a token
     function latestPriceOfToken(address token) public view returns(uint256 ethAmount, uint256 tokenAmount, uint256 bn) 
     {
-        PriceSheet[] storage tp = _price_list[token];
+        PriceSheet[] storage tp = _priceSheetList[token];
         uint256 len = tp.length;
         PriceSheet memory p;
         if (len == 0) {
@@ -759,8 +1044,8 @@ contract NestMining {
     {
         // TODO: no contract allowed
         require(_C_NestPool.getNTokenFromToken(token) != address(0), "Nest::Mine: !token");
-        PriceInfo memory pi = _price_info[token];
-        return (pi.ethAmount, pi.tokenAmount, pi.atHeight);
+        Price memory pi = _price_info[token];
+        return (pi.ethAmount, pi.tokenAmount, pi.height);
     }
 
     function priceAndSigmaOfToken(address token) public view returns (
@@ -768,7 +1053,7 @@ contract NestMining {
     {
         // TODO: no contract allowed
         require(_C_NestPool.getNTokenFromToken(token) != address(0), "Nest::Mine: !token");
-        PriceInfo memory pi = _price_info[token];
+        Price memory pi = _price_info[token];
         // int128 v = 0;
         int128 v = ABDKMath64x64.sqrt(ABDKMath64x64.abs(pi.volatility_sigma_sq));
         return (uint256(pi.ethAmount), uint256(pi.tokenAmount), uint256(pi.atHeight), v);
@@ -846,7 +1131,7 @@ contract NestMining {
         } 
         require (data.length == uint256(num * 3), "Incorrect price list length");
     }
-
+*/
     /* ========== MINING ========== */
     
     function mineNest() private returns (uint256) {
@@ -898,46 +1183,74 @@ contract NestMining {
     /* ========== MINING ========== */
 
 
+    function withdrawEth(uint256 ethAmount) public noContract
+    {
+        _C_NestPool.withdrawEth(address(msg.sender), ethAmount); 
+    }
+
+    function withdrawToken(address token, uint256 tokenAmount) public noContract
+    {
+        _C_NestPool.withdrawToken(address(msg.sender), token, tokenAmount); 
+    }
+
+    function claimAllNest() public noContract
+    {
+        uint256 nestAmount = _C_NestPool.balanceOfNestInPool(address(msg.sender));
+        _C_NestPool.withdrawNest(address(msg.sender), nestAmount);
+    }
+
     function withdrawEthAndToken(uint256 ethAmount, address token, uint256 tokenAmount) public noContract
     {
         _C_NestPool.withdrawEthAndToken(address(msg.sender), ethAmount, token, tokenAmount); 
     }
 
-    function claimAllNToken(address ntoken) public noContract {
+    function claimNToken(address ntoken, uint256 amount) public noContract {
         if (ntoken == address(0x0) || ntoken == address(_C_NestToken)){
-            _C_NestPool.distributeRewards(address(msg.sender)); 
+            _C_NestPool.withdrawNest(address(msg.sender), amount); 
         } else {
-            uint256 amount = _C_NestPool.withdrawNToken(address(msg.sender), ntoken);
+            _C_NestPool.withdrawNToken(address(msg.sender), ntoken, amount);
         }
     }
 
-    /* ========== MINING ========== */
+    // function claimAllNToken(address ntoken) public noContract {
+    //     if (ntoken == address(0x0) || ntoken == address(_C_NestToken)){
+    //         _C_NestPool.distributeRewards(address(msg.sender)); 
+    //     } else {
+    //         uint256 amount = _C_NestPool.balanceOfNTokenInPool(address(msg.sender));
+    //         _C_NestPool.withdrawNToken(address(msg.sender), ntoken, amount);
+    //     }
+    // }
+
+    /* ========== HELPERS ========== */
+
+    function lengthOfTakers(address token, uint256 index) view public returns (uint256) 
+    {
+        return _takers[token][index].length;
+    }
+
+    function takerOf(address token, uint256 index, uint256 k) view public returns (Taker memory) 
+    {
+        return _takers[token][index][k];
+    }
 
     function lengthOfPriceSheets(address token) view public 
         returns (uint)
     {
-        return _price_list[token].length;
+        return _priceSheetList[token].length;
     }
 
     function contentOfPriceSheet(address token, uint256 index) view public 
-        returns (uint160 miner, uint64 atHeight, uint128 ethAmount,uint128 tokenAmount, 
-        uint128 dealEthAmount, uint128 dealTokenAmount, 
-        uint128 ethFee) 
+        returns (PriceSheet memory ps) 
     {
-        uint256 len = _price_list[token].length;
-        require (index < len, "index out of bound");
-        PriceSheet memory price = _price_list[token][index];
-        uint256 ethFee2 = uint256(price.ethFeeTwei) * 1e12;
-        return (price.miner, price.atHeight, 
-            price.ethAmount, price.tokenAmount, price.dealEthAmount, price.dealTokenAmount, 
-            uint128(ethFee2));
-
+        uint256 len = _priceSheetList[token].length;
+        require (index < len, "Nest:Mine:>(len)");
+        return _priceSheetList[token][index];
     }
 
     function atHeightOfPriceSheet(address token, uint256 index) view public returns (uint64)
     {
-        PriceSheet storage p = _price_list[token][index];
-        return p.atHeight;
+        PriceSheet storage p = _priceSheetList[token][index];
+        return p.height;
     }
 
     /* ========== ENCODING/DECODING ========== */
@@ -967,5 +1280,8 @@ contract NestMining {
         }
     }
 
-
+    function debugMinedNest(uint256 h) public view returns (uint256, uint256) 
+    {
+        return (uint128(_nest_at_height[h] / (1 << 128)), uint128(_nest_at_height[h] % (1 << 128)));
+    }
 }

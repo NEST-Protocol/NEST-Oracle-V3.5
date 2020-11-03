@@ -11,6 +11,10 @@ import './lib/TransferHelper.sol';
 // import "./NestMining.sol";
 import "./iface/INNRewardPool.sol";
 
+/// @notice The NNRewardPool contract distributes the mining rewards,
+///     15% share of the amount of nest-token produced by miners
+/// @dev The nest-tokens are put in NestPool. This contract only traces 
+///     the sum-amount of all of the rewards (nest-token)
 contract NNRewardPool is INNRewardPool {
     using SafeMath for uint256;
 
@@ -24,6 +28,7 @@ contract NNRewardPool is INNRewardPool {
 
     address public governance;
 
+    /// @dev From nest-node address to checkpoints of reward-sum
     mapping(address => uint256) private _NN_reward_sum_checkpoint;
 
     /* ========== EVENTS ============== */
@@ -55,24 +60,30 @@ contract NNRewardPool is INNRewardPool {
     modifier onlyBy(address _account)
     {
         require(msg.sender == _account,
-            "Nest:NNPl:!Auth");
+            "Nest:NN:!Auth");
         _;
     }
 
     modifier noContract() 
     {
-        require(address(msg.sender) == address(tx.origin), "Nest::NNPl> BAN(contract)");
+        require(address(msg.sender) == address(tx.origin), "Nest::NN:BAN(contract)");
         _;
     }
 
 
     /* ========== GOVERNANCE ========== */
 
+    modifier onlyGovernance() 
+    {
+        require(msg.sender == governance, "Nest:NN:!governance");
+        _;
+    }
+
     modifier onlyGovernanceOrBy(address _account)
     {
         if (msg.sender != governance) { 
             require(msg.sender == _account,
-                "Nest:NNPl:!Auth");
+                "Nest:NN:!Auth");
         }
         _;
     }
@@ -89,9 +100,10 @@ contract NNRewardPool is INNRewardPool {
 
     /// @notice Add rewards for Nest-Nodes, only governance or NestMining (contract) are allowed
     /// @dev The rewards need to pull from NestPool
-    function addNNReward() override external onlyGovernanceOrBy(_C_NestMining)
+    /// @param _amount The amount of Nest token as the rewards to each nest-node
+    function addNNReward(uint256 _amount) override external onlyGovernanceOrBy(_C_NestMining)
     {
-        uint256 _amount = _C_NestPool.distributeRewards(address(this));
+        // uint256 _amount = _C_NestPool.balanceOfNestInPool(address(this));
         if (_amount > 0) {
             uint256 _newSum = uint256(_NN_reward_sum).add(_amount);
             _NN_reward_sum = uint128(_newSum);
@@ -100,19 +112,34 @@ contract NNRewardPool is INNRewardPool {
         return;
     }
 
+    function setNNRewardSum(uint256 sum) external onlyGovernance
+    {
+        _NN_reward_sum = uint128(sum);
+    }
+
+    function setNNRewardSumCheckpoint(address node, uint256 sum) external onlyGovernance 
+    {
+        if (sum > 0) {
+            _NN_reward_sum_checkpoint[node] = sum;
+        }
+    }
+
+    /* ========== claim/settle ========== */
+
+
     /// @notice Claim rewards by Nest-Nodes
     /// @dev The rewards need to pull from NestPool
     function claimNNReward() override external noContract
     {
         uint256 blnc =  _C_NNToken.balanceOf(address(msg.sender));
-        require(blnc > 0, "Insufficient NNToken");
+        require(blnc > 0, "Nest:NN:!(NNToken)");
         uint256 total = _NN_total_supply;
         uint256 sum = _NN_reward_sum;
         uint256 reward = sum.sub(_NN_reward_sum_checkpoint[address(msg.sender)]);
         uint256 share = reward.mul(blnc).div(total);
 
-        require(_C_NestToken.balanceOf(address(this)) >= uint256(share), "Insufficient NestTokens"); 
-        _C_NestToken.transfer(address(msg.sender), share);
+        require(_C_NestPool.balanceOfNestInPool(address(this)) >= uint256(share), "Nest:NN:!(share)"); 
+        _C_NestToken.transferFrom(address(_C_NestPool), address(msg.sender), share);
         _NN_reward_sum_checkpoint[address(msg.sender)] = sum;
 
         emit NNRewardClaimed(address(msg.sender), share);
@@ -123,16 +150,19 @@ contract NNRewardPool is INNRewardPool {
     function settleNNReward(address from, address to) internal 
     {
         uint256 fromBlnc = _C_NNToken.balanceOf(address(from));
-        require (fromBlnc > 0, "No NNToken to transfer");
+        require (fromBlnc > 0, "Nest:NN:!(fromBlnc)");
         uint256 sum = _NN_reward_sum;
         uint256 total = _NN_total_supply;
         uint256 fromReward = sum.sub(_NN_reward_sum_checkpoint[from]).mul(fromBlnc).div(total);
-        _C_NestToken.transfer(from, fromReward);
+        _C_NestToken.transferFrom(address(_C_NestPool), from, fromReward);
         _NN_reward_sum_checkpoint[from] = _NN_reward_sum_checkpoint[from].add(sum);
 
         uint256 toBlnc = _C_NNToken.balanceOf(address(to));
         uint256 toReward = sum.sub(_NN_reward_sum_checkpoint[to]).mul(toBlnc).div(total);
-        _C_NestToken.transfer(to, toReward);
+
+        if (toReward > 0) { 
+            _C_NestToken.transferFrom(address(_C_NestPool), to, toReward);
+        }
         _NN_reward_sum_checkpoint[to] = _NN_reward_sum_checkpoint[to].add(sum);
 
         emit NNRewardClaimed(from, uint128(fromReward));

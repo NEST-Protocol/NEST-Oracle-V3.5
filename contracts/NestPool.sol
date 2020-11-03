@@ -86,6 +86,77 @@ contract NestPool is INestPool {
         _eth_ledger[miner] =  _eth_ledger[miner].add(amount);
     }
 
+    function depositEth(address miner) 
+        override payable public onlyMiningContract 
+    {
+        require(msg.value > 0, "deposit amount should >0");
+        _eth_ledger[miner] =  _eth_ledger[miner].add(msg.value);
+    }
+
+    function freezeEth(address miner, uint256 ethAmount) 
+        override public onlyMiningContract 
+    {
+        // emit LogAddress("freezeEthAndToken> miner", miner);
+        // emit LogAddress("freezeEthAndToken> token", token);
+        uint256 blncs = _eth_ledger[miner];
+        // emit LogUint("freezeEthAndToken> Pool.eth_blncs", blncs);
+        require(blncs >= ethAmount, "Nest:Pool:BAL(eth)<0");
+        _eth_ledger[miner] = blncs - ethAmount;  //safe_math: checked before
+        _eth_ledger[address(this)] =  _eth_ledger[address(this)].add(ethAmount);
+    }
+
+    function unfreezeEth(address miner, uint256 ethAmount) override public onlyMiningContract 
+    {
+        if (ethAmount > 0) {
+            // LogUint("unfreezeEthAndToken> _eth_ledger[address(0x0)]", _eth_ledger[address(0x0)]);
+            // LogUint("unfreezeEthAndToken> _eth_ledger[miner]", _eth_ledger[miner]);
+            // LogUint("unfreezeEthAndToken> ethAmount", ethAmount);
+            _eth_ledger[address(this)] =  _eth_ledger[address(this)].sub(ethAmount);
+            _eth_ledger[miner] = _eth_ledger[miner].add(ethAmount);
+        } 
+    }
+
+    function freezeNest(address miner, uint256 nestAmount) override public onlyMiningContract 
+    {
+        uint256 blncs = _nest_ledger[miner];
+        if (blncs < nestAmount) {
+            _C_NestToken.transferFrom(miner,  address(this), nestAmount - blncs); //safe math
+            _nest_ledger[miner] = 0; 
+        } else {
+            _nest_ledger[miner] = blncs - nestAmount;  //safe math
+        }
+        _nest_ledger[address(this)] =  _nest_ledger[address(this)].add(nestAmount);
+    }
+
+    function unfreezeNest(address miner, uint256 nestAmount) override public onlyMiningContract 
+    {
+        if (nestAmount > 0) {
+            _nest_ledger[address(this)] =  _nest_ledger[address(this)].sub(nestAmount);
+            _nest_ledger[miner] = _nest_ledger[miner].add(nestAmount); 
+        }
+    }
+
+    function freezeToken(address miner, address token, uint256 tokenAmount) override public onlyMiningContract 
+    {
+        uint256 blncs = _token_ledger[token][miner];
+        if (blncs < tokenAmount) {
+            ERC20(token).safeTransferFrom(address(miner),  address(this), tokenAmount - blncs); //safe math
+            _token_ledger[token][miner] = 0; 
+        } else {
+            _token_ledger[token][miner] = blncs - tokenAmount;  //safe math
+        }
+        _token_ledger[token][address(this)] =  _token_ledger[token][address(this)].add(tokenAmount);
+
+    }
+
+    function unfreezeToken(address miner, address token, uint256 tokenAmount) override public onlyMiningContract 
+    {
+        if (tokenAmount > 0) {
+            _token_ledger[token][address(this)] =  _token_ledger[token][address(this)].sub(tokenAmount);
+            _token_ledger[token][miner] = _token_ledger[token][miner].add(tokenAmount); 
+        }
+    }
+
     function freezeEthAndToken(address miner, uint256 ethAmount, address token, uint256 tokenAmount) 
         override public onlyMiningContract 
     {
@@ -95,7 +166,7 @@ contract NestPool is INestPool {
         // emit LogUint("freezeEthAndToken> Pool.eth_blncs", blncs);
         require(blncs >= ethAmount, "Insufficient ethers in the pool");
         _eth_ledger[miner] = blncs - ethAmount;  //safe_math: checked before
-        _eth_ledger[address(0x0)] =  _eth_ledger[address(0x0)].add(ethAmount);
+        _eth_ledger[address(this)] =  _eth_ledger[address(this)].add(ethAmount);
 
         blncs = _token_ledger[token][miner];
         if (blncs < tokenAmount) {
@@ -106,7 +177,7 @@ contract NestPool is INestPool {
         } else {
             _token_ledger[token][miner] = blncs - tokenAmount;  //safe math
         }
-        _token_ledger[token][address(0x0)] =  _token_ledger[token][address(0x0)].add(tokenAmount);
+        _token_ledger[token][address(this)] =  _token_ledger[token][address(this)].add(tokenAmount);
 
     }
 
@@ -117,7 +188,7 @@ contract NestPool is INestPool {
             // LogUint("unfreezeEthAndToken> _eth_ledger[address(0x0)]", _eth_ledger[address(0x0)]);
             // LogUint("unfreezeEthAndToken> _eth_ledger[miner]", _eth_ledger[miner]);
             // LogUint("unfreezeEthAndToken> ethAmount", ethAmount);
-            _eth_ledger[address(0x0)] =  _eth_ledger[address(0x0)].sub(ethAmount);
+            _eth_ledger[address(this)] =  _eth_ledger[address(this)].sub(ethAmount);
             _eth_ledger[miner] = _eth_ledger[miner].add(ethAmount);
         } 
 
@@ -125,7 +196,7 @@ contract NestPool is INestPool {
             // LogUint("unfreezeEthAndToken> _token_ledger[token][address(0x0)]", _token_ledger[token][address(0x0)]);
             // LogUint("unfreezeEthAndToken> _token_ledger[token][miner]", _token_ledger[token][miner]);
             // LogUint("unfreezeEthAndToken> tokenAmount", tokenAmount);
-            _token_ledger[token][address(0x0)] =  _token_ledger[token][address(0x0)].sub(tokenAmount);
+            _token_ledger[token][address(this)] =  _token_ledger[token][address(this)].sub(tokenAmount);
             _token_ledger[token][miner] = _token_ledger[token][miner].add(tokenAmount); 
         }
     }
@@ -213,10 +284,10 @@ contract NestPool is INestPool {
         _nest_ledger[to] = _nest_ledger[to].add(amount);
     }
 
-    function increaseNestReward(address miner, uint256 amount) 
+    function addNest(address miner, uint256 amount) 
         override public // onlyMiningContract 
     {
-        require (amount > 0, "Reward amount should be greater than zero");
+        require (amount > 0, "Nest:Pool:(amount)=0");
         _nest_ledger[miner] = _nest_ledger[miner].add(amount);
     }
 
@@ -237,6 +308,39 @@ contract NestPool is INestPool {
             return amount;
         }
         return 0;
+    }
+
+    // function distributeNNRewards(address contributor) override public // onlyNNRewardPoolAndNestMining
+    //     returns (uint256)
+    // {
+    //     uint256 amount = _nest_ledger[contributor];
+    //     if (amount > 0) {
+    //         _C_NestToken.transfer(contributor, amount);
+    //         _nest_ledger[contributor]=0;
+    //         return amount;
+    //     }
+    //     return 0;
+    // }
+
+
+    function withdrawEth(address miner, uint256 ethAmount) 
+        override public onlyMiningContract
+    {
+        require(ethAmount > 0, "Nest:Pool:=0(ethAmount)");
+        uint256 blncs = _eth_ledger[miner];
+        require(ethAmount <= blncs, "Nest:Pool:(ethAmount)<BAL");
+        _eth_ledger[miner] = blncs - ethAmount; // safe math
+        TransferHelper.safeTransferETH(miner, ethAmount);
+    }
+
+    function withdrawToken(address miner, address token, uint256 tokenAmount) 
+        override public onlyMiningContract
+    {
+        require(tokenAmount > 0, "Nest:Pool:=0(tokenAmount)");
+        uint256 blncs = _eth_ledger[miner];
+        require(tokenAmount <= blncs, "Nest:Pool:(tokenAmount)<BAL");
+        _token_ledger[token][miner] = blncs - tokenAmount; // safe math
+        ERC20(token).safeTransfer(miner, tokenAmount);
     }
 
     function withdrawEthAndToken(address miner, uint256 ethAmount, address token, uint256 tokenAmount) 
@@ -260,18 +364,24 @@ contract NestPool is INestPool {
         }
     }
 
-    // TODO: 下面的函数不正确，需要修改！
-    function withdrawNToken(address miner, address ntoken) 
-        override public returns (uint256)
+    function withdrawNToken(address miner, address ntoken, uint256 amount) 
+        override public onlyMiningContract
     {
-        uint256 amount = _token_ledger[ntoken][miner];
-        emit LogAddress("withdrawNToken> miner", miner);
-        emit LogUint("withdrawNToken> amount", amount);
-        if (amount > 0) {
-            ERC20(_C_NestToken).transfer(miner, amount);
-            _token_ledger[ntoken][miner]=0;
-        }
-        return amount;
+        require(amount > 0, "Nest:Pool:=0(ntokenAmount)");
+        uint256 blncs = _token_ledger[ntoken][miner];
+        require(amount <= blncs, "Nest:Pool:(ntokenAmount)<BAL");
+        ERC20(ntoken).transfer(miner, amount);
+        _token_ledger[ntoken][miner]=0;
+    }
+
+    function withdrawNest(address miner, uint256 amount) 
+        override public onlyMiningContract
+    {
+        require(amount > 0, "Nest:Pool:=0(nestAmount)");
+        uint256 blncs = _nest_ledger[miner];
+        require(amount <= blncs, "Nest:Pool:(nestAmount)<BAL");
+        _nest_ledger[miner] = blncs - amount;  // safe math
+        _C_NestToken.transfer(miner, amount);
     }
 
     // function clearNest(address miner) public //onlyMiningOrNNRewardContract 
@@ -296,7 +406,7 @@ contract NestPool is INestPool {
         return blncs;
     }
 
-    function addressOfBurnNest() override public view returns (address) {
+    function addressOfBurnedNest() override public view returns (address) {
         return _x_nest_burning_address;
     }
     //event OreDrawingLog(uint256 nowBlock, uint256 blockAmount);
