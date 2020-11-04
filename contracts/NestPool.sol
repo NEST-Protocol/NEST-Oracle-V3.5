@@ -8,6 +8,8 @@ import "./lib/SafeERC20.sol";
 import './lib/TransferHelper.sol';
 import "./iface/INestPool.sol";
 
+import "hardhat/console.sol";
+
 
 // TransferHelper.safeTransferETH(msg.sender, msg.value - amountETH)
 /**
@@ -99,7 +101,6 @@ contract NestPool is INestPool {
         // emit LogAddress("freezeEthAndToken> miner", miner);
         // emit LogAddress("freezeEthAndToken> token", token);
         uint256 blncs = _eth_ledger[miner];
-        // emit LogUint("freezeEthAndToken> Pool.eth_blncs", blncs);
         require(blncs >= ethAmount, "Nest:Pool:BAL(eth)<0");
         _eth_ledger[miner] = blncs - ethAmount;  //safe_math: checked before
         _eth_ledger[address(this)] =  _eth_ledger[address(this)].add(ethAmount);
