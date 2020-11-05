@@ -204,42 +204,41 @@ describe("NestToken contract", function () {
             expect(eth_pool_post.sub(eth_pool_pre)).to.equal(ethNum.mul(2).mul(ethdec));
         });
 
-        it("should be able to clear a price sheet correctly", async () => {
+        // it("should be able to clear a price sheet correctly", async () => {
 
-            const ethNum = BN(10);
-            const chunkNum = BN(1);
-            const chunkSize = BN(10);
+        //     const ethNum = BN(10);
+        //     const chunkNum = BN(1);
+        //     const chunkSize = BN(10);
 
-            console.log(`provider=`, provider);
-            const h = await provider.getBlockNumber();
-            console.log(`height=${h}`);
+        //     console.log(`provider=`, provider);
+        //     const h = await provider.getBlockNumber();
+        //     console.log(`height=${h}`);
 
-            await goBlocks(provider, 25);
-            const usdtPrice = usdt(350);
+        //     await goBlocks(provider, 25);
+        //     const usdtPrice = usdt(350);
 
-            const nest_userA_pre = await NestPool.getMinerNest(userA.address);
-            const eth_nestpool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
-            const ethPool_userA_pre = await NestPool.balanceOfEthInPool(userA.address);
-            const usdtPool_userA_pre = await NestPool.balanceOfTokenInPool(userA.address, _C_USDT);
+        //     const nest_userA_pre = await NestPool.getMinerNest(userA.address);
+        //     const eth_nestpool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
+        //     const ethPool_userA_pre = await NestPool.balanceOfEthInPool(userA.address);
+        //     const usdtPool_userA_pre = await NestPool.balanceOfTokenInPool(userA.address, _C_USDT);
 
-            const tx = await NestMining.connect(userA).clear(_C_USDT, 0, 1);
+        //     const tx = await NestMining.connect(userA).clear(_C_USDT, 0, 1);
 
-            // G1:
-            const sheet = await NestMining.contentOfPriceSheet(_C_USDT, 0);
-            expect(sheet.state).to.equal(1);
-        });
+        //     // G1:
+        //     const sheet = await NestMining.contentOfPriceSheet(_C_USDT, 0);
+        //     expect(sheet.state).to.equal(1);
+        // });
 
         it("should be able to close a price sheet correctly", async () => {
 
             const ethNum = BN(10);
             const chunkNum = BN(1);
             const chunkSize = BN(10);
-
-            console.log(`provider=`, provider);
+            const nestPerChunk = BN(10000);
             const h = await provider.getBlockNumber();
-            console.log(`height=${h}`);
 
             await goBlocks(provider, 25);
+
             const usdtPrice = usdt(350);
 
             const nest_userA_pre = await NestPool.getMinerNest(userA.address);
@@ -257,24 +256,24 @@ describe("NestToken contract", function () {
             const sheet = await NestMining.contentOfPriceSheet(_C_USDT, 0);
             expect(sheet.state).to.equal(0);
 
-/*
             // T1: add nest tokens to the miner
-            const mined = await NestMiningContract.debugMinedNest(h);
+            const mined = await NestMining.debugMinedNest(h);
             console.log(`mined=`, mined);
-            const nestA_post = await NestPoolContract.getMinerNest(userA);
-            const reward = new BN(nestA_post).sub(new BN(nestA_pre));
-            expect(reward).to.bignumber.equal(chunkNum.mul(chunkSize).mul(new BN(mined['0'])).div(new BN(mined['1'])));
+            const nest_userA_post = await NestPool.getMinerNest(userA.address);
+            const deposit = nest(chunkNum.mul(nestPerChunk));
+            const reward = nest_userA_post.sub(nest_userA_pre).sub(deposit);
+            expect(reward).to.equal(chunkNum.mul(chunkSize).mul(mined['0']).div(mined['1']));
             
-            // T2: eth unfreezing
-            const ethPool_post = await NestPoolContract.balanceOfEthInPool(_C_NestPool);
-            expect(new BN(ethPool_pre).sub(new BN(ethPool_post))).to.bignumber.equal(ethNum.mul(ethdec));
-            const ethPool_userA_post = await NestPoolContract.balanceOfEthInPool(userA);
-            expect(new BN(ethPool_userA_post).sub(new BN(ethPool_userA_pre))).to.bignumber.equal(ethNum.mul(ethdec));
+            // // T2: eth unfreezing
+            // const ethPool_post = await NestPoolContract.balanceOfEthInPool(_C_NestPool);
+            // expect(new BN(ethPool_pre).sub(new BN(ethPool_post))).to.bignumber.equal(ethNum.mul(ethdec));
+            // const ethPool_userA_post = await NestPoolContract.balanceOfEthInPool(userA);
+            // expect(new BN(ethPool_userA_post).sub(new BN(ethPool_userA_pre))).to.bignumber.equal(ethNum.mul(ethdec));
 
-            // T3: token unfreezing
-            const tokenPool_userA_post = await NestPoolContract.balanceOfTokenInPool(userA, _C_USDT);
-            expect(tokenPool_userA_post).to.bignumber.equal(tokenPool_userA_pre);
-*/
+            // // T3: token unfreezing
+            // const tokenPool_userA_post = await NestPoolContract.balanceOfTokenInPool(userA, _C_USDT);
+            // expect(tokenPool_userA_post).to.bignumber.equal(tokenPool_userA_pre);
+
         });
     });
 
