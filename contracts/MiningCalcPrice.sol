@@ -15,7 +15,7 @@ library MiningCalcPrice {
 
     using SafeMath for uint256;
 
-    event VolaComputed(
+    event PriceComputed(
         uint32 h, 
         uint32 pos, 
         uint32 ethA, 
@@ -103,7 +103,7 @@ library MiningCalcPrice {
         } //loop: sheets[i].height = h
         i = i - 1;
         (int128 new_sigma_sq, int128 new_ut_sq) = _calcEWMA(
-            p0.ethAmount, p0.tokenAmount, 
+            p0.ethNum, p0.tokenAmount, 
             ethA1, tokenA1, 
             p0.volatility_sigma_sq, p0.volatility_ut_sq, 
             i - p0.index);
@@ -112,13 +112,13 @@ library MiningCalcPrice {
             new_sigma_sq, new_ut_sq, _newAvg, uint32(0)));
     }
 
-    function calcMultiVolatilities(MiningData.State storage state, address token) external 
+    function _stat(MiningData.State storage state, address token) external 
     {
         MiningData.Price memory p0 = state._priceInEffect[token];
-        MiningData.PriceSheet[] storage pL = state._priceSheetList[token];
+        MiningData.PriceSheet[] storage pL = state.priceSheetList[token];
         MiningData.Price memory p1;
         if (pL.length < 2) {
-            emit VolaComputed(0,0,0,0,int128(0),int128(0));
+            emit PriceComputed(0,0,0,0,int128(0),int128(0));
             return;
         }
         while (uint256(p0.index) < pL.length && uint256(p0.height) + MiningData.c_price_duration_block < block.number){
@@ -131,24 +131,24 @@ library MiningCalcPrice {
 
         if (p0.index > state._priceInEffect[token].index) {
             state._priceInEffect[token] = p0;
-            emit VolaComputed(p0.height, p0.index, uint32(p0.ethAmount), uint128(p0.tokenAmount), 
+            emit PriceComputed(p0.height, p0.index, uint32(p0.ethNum), uint128(p0.tokenAmount), 
                 p0.volatility_sigma_sq, p0.volatility_ut_sq);
         }
         return;
     }
 
-    function calcVolatility(MiningData.State storage state, address token) external 
+    function _statOneBlock(MiningData.State storage state, address token) external 
     {
         MiningData.Price memory p0 = state._priceInEffect[token];
-        MiningData.PriceSheet[] storage pL = state._priceSheetList[token];
+        MiningData.PriceSheet[] storage pL = state.priceSheetList[token];
         if (pL.length < 2) {
-            emit VolaComputed(0,0,0,0,int128(0),int128(0));
+            emit PriceComputed(0,0,0,0,int128(0),int128(0));
             return;
         }
-        (MiningData.Price memory p1) = _moveAndCalc(p0, state._priceSheetList[token]);
+        (MiningData.Price memory p1) = _moveAndCalc(p0, state.priceSheetList[token]);
         if (p1.index > p0.index) {
             state._priceInEffect[token] = p1;
-            emit VolaComputed(p1.height, p1.index, uint32(p1.ethAmount), uint128(p1.tokenAmount), 
+            emit PriceComputed(p1.height, p1.index, uint32(p1.ethNum), uint128(p1.tokenAmount), 
                 p1.volatility_sigma_sq, p1.volatility_ut_sq);
         }
         return;

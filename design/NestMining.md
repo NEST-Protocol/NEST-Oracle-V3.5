@@ -12,7 +12,7 @@ NestMining is the main contract where miners can post price sheets and get NEST 
 
 ### ethNumPerChunk
 
-### _priceSheetList
+### priceSheetList
 
 ### _priceInEffect
 
@@ -90,7 +90,7 @@ Assumes:
 
 Guarantees: 
 
-1. _priceSheetList.push()
+1. priceSheetList.push()
 2. _takers[token][index].push()
 3.
 

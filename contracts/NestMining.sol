@@ -3,8 +3,9 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "./MiningCalcPrice.sol";
 import "./MiningData.sol";
+import "./MiningCalcPrice.sol";
+import "./MiningLookupPrice.sol";
 
 import "./lib/SafeMath.sol";
 import "./lib/SafeERC20.sol";
@@ -22,11 +23,13 @@ contract NestMining {
     using SafeMath for uint256;
 
     using MiningCalcPrice for MiningData.State;
+    using MiningLookupPrice for MiningData.State;
 
     INestPool       _C_NestPool;
     ERC20           _C_NestToken;
     INestStaking    _C_NestStaking;
     INNRewardPool   _C_NNRewardPool;
+    address         _C_NestQuery;
 
 
     address _developer_address;
@@ -127,6 +130,12 @@ contract NestMining {
         _;
     }
 
+    modifier onlyByGovOr(address _contract) 
+    {
+        require(msg.sender == state.governance || msg.sender == _contract, "Nest:Mine:!sender");
+        _;
+    }
+
     modifier noContract() 
     {
         require(address(msg.sender) == address(tx.origin), "Nest:Mine:BAN(contract)");
@@ -143,7 +152,13 @@ contract NestMining {
         }
     }
 
-    function setContracts(address NestToken, address NestPool, address NestStaking, address NNRewardPool) public onlyGovernance 
+    function setContracts(
+            address NestToken, 
+            address NestPool, 
+            address NestStaking, 
+            address NNRewardPool,
+            address NestQuery
+        ) public onlyGovernance 
     {
         if (uint256(NestToken) != 0) {
             _C_NestToken = ERC20(NestToken);
@@ -156,6 +171,9 @@ contract NestMining {
         }
         if (uint256(NNRewardPool) != 0) {
             _C_NNRewardPool = INNRewardPool(NNRewardPool);
+        }
+        if (uint256(NestQuery) != 0) {
+            _C_NestQuery = address(NestQuery);
         }
     }
 
@@ -173,7 +191,7 @@ contract NestMining {
     /// @dev post a single price sheet for any token
     function _post(address _token, uint256 _tokenPrice, uint256 _ethNum, uint256 _chunkSize, uint256 _state, uint256 _level) internal 
     {
-        MiningData.PriceSheet[] storage _sheets = state._priceSheetList[_token];
+        MiningData.PriceSheet[] storage _sheets = state.priceSheetList[_token];
         uint256 _ethChunks = _ethNum.div(_chunkSize);
 
         // append a new price sheet
@@ -298,7 +316,7 @@ contract NestMining {
 
     function close(address token, uint256 index) public noContract 
     {
-        MiningData.PriceSheet memory _sheet = state._priceSheetList[token][index];
+        MiningData.PriceSheet memory _sheet = state.priceSheetList[token][index];
         require(address(_sheet.miner) == msg.sender, "Nest:Mine:!(miner)");
         uint256 _state = _sheet.state;
         if (_state == 0x1 || _state == 0x2) {
@@ -311,7 +329,7 @@ contract NestMining {
         }
 
         _sheet.state = 0x0;
-        state._priceSheetList[token][index] = _sheet;
+        state.priceSheetList[token][index] = _sheet;
         emit PriceClosed(address(msg.sender), token, index);
     }
 
@@ -343,7 +361,7 @@ contract NestMining {
         address nToken = _C_NestPool.getNTokenFromToken(token);
         require (nToken != address(0x0), "Nest:Mine:!(ntoken)");
 
-        MiningData.PriceSheet memory _sheet = state._priceSheetList[token][index]; 
+        MiningData.PriceSheet memory _sheet = state.priceSheetList[token][index]; 
         require(block.number.sub(_sheet.height) < c_price_duration_block, "Nest:Mine:!EFF(sheet)");
 
         uint256 _chunkSize = uint256(_sheet.chunkSize);
@@ -386,7 +404,7 @@ contract NestMining {
             _sheet.state = 0x3;
             _sheet.ethChunk = uint8(uint256(_sheet.ethChunk).add(takeChunkNum));
             _sheet.remainChunk = uint8(uint256(_sheet.remainChunk).sub(takeChunkNum));
-            state._priceSheetList[token][index] = _sheet;
+            state.priceSheetList[token][index] = _sheet;
     
             state._takers[token][index].push(MiningData.Taker(uint160(msg.sender), uint8(0), uint8(takeChunkNum), uint80(0)));            
             // generate an event 
@@ -418,7 +436,7 @@ contract NestMining {
         address nToken = _C_NestPool.getNTokenFromToken(token);
         require (nToken != address(0x0), "Nest:Mine:!(ntoken)");
 
-        MiningData.PriceSheet memory _sheet = state._priceSheetList[token][index]; 
+        MiningData.PriceSheet memory _sheet = state.priceSheetList[token][index]; 
         require(block.number.sub(_sheet.height) < c_price_duration_block, "Nest:Mine:!EFF(sheet)");
 
         uint256 _chunkSize = uint256(_sheet.chunkSize);
@@ -462,7 +480,7 @@ contract NestMining {
             _sheet.state = 0x3;
             _sheet.tokenChunk = uint8(uint256(_sheet.tokenChunk).add(takeChunkNum));
             _sheet.remainChunk = uint8(uint256(_sheet.remainChunk).sub(takeChunkNum));
-            state._priceSheetList[token][index] = _sheet;
+            state.priceSheetList[token][index] = _sheet;
             
             state._takers[token][index].push(MiningData.Taker(uint160(msg.sender), uint8(takeChunkNum), uint8(0), uint80(0)));
             emit TokenSold(address(msg.sender), address(token), index, _ethNum.mul(1 ether), _ethNum.mul(_sheet.tokenPrice));
@@ -495,7 +513,7 @@ contract NestMining {
     {
         // check parameters 
         require(token != address(0x0), "Nest:Mine:(token)=0"); 
-        MiningData.PriceSheet memory _sheet = state._priceSheetList[token][index]; 
+        MiningData.PriceSheet memory _sheet = state.priceSheetList[token][index]; 
         require(uint256(_sheet.miner) == uint256(msg.sender), "Nest:Mine:!(miner)");
         require(_sheet.height + c_price_duration_block < block.number, "Nest:Mine:!EFF(sheet)");  // safe_math
         require(_sheet.height + c_sheet_duration_block > block.number, "Nest:Mine:!EFF(sheet)");  // safe_math
@@ -504,7 +522,7 @@ contract NestMining {
         if (_state == 0x2) { // non-bitten price sheet
             require(state._takers[token][index].length == 0, "Nest:Mine:!(takers)");
             _sheet.state = uint8(1);
-            state._priceSheetList[token][index] = _sheet;
+            state.priceSheetList[token][index] = _sheet;
             if (msg.value > 0) {
                 _C_NestPool.depositEth{value:msg.value}(address(msg.sender));
             }
@@ -529,7 +547,7 @@ contract NestMining {
 
         if (_ts.length == 0) { 
             _sheet.state = uint8(1);
-            state._priceSheetList[token][index] = _sheet;
+            state.priceSheetList[token][index] = _sheet;
         }
     }
 
@@ -537,7 +555,7 @@ contract NestMining {
     {
         // check parameters 
         require(token != address(0x0), "Nest:Mine:(token)=0"); 
-        MiningData.PriceSheet memory _sheet = state._priceSheetList[token][index]; 
+        MiningData.PriceSheet memory _sheet = state.priceSheetList[token][index]; 
         require(_sheet.height + c_price_duration_block < block.number, "Nest:Mine:!EFF(sheet)");  // safe_math: untainted values
         require(_sheet.height + c_sheet_duration_block > block.number, "Nest:Mine:!VALID(sheet)");  // safe_math: untainted values
         require(uint256(_sheet.miner) == uint256(msg.sender), "Nest:Mine:!(miner)");
@@ -546,7 +564,7 @@ contract NestMining {
         if (_state == 0x2) { // non-bitten price sheet
             require(state._takers[token][index].length == 0, "Nest:Mine:!(takers)");
             _sheet.state = uint8(1);
-            state._priceSheetList[token][index] = _sheet;
+            state.priceSheetList[token][index] = _sheet;
             _C_NestPool.depositEth{value:msg.value}(address(msg.sender));
             return;
         }
@@ -566,12 +584,12 @@ contract NestMining {
         }
 
         _sheet.state = uint8(1);
-        state._priceSheetList[token][index] = _sheet;
+        state.priceSheetList[token][index] = _sheet;
     }
 
     function refute(address token, uint256 index, uint256 takeIndex) public  
     {
-        MiningData.PriceSheet storage _sheet = state._priceSheetList[token][index]; 
+        MiningData.PriceSheet storage _sheet = state.priceSheetList[token][index]; 
         require(_sheet.state == 0x3,  "Nest:Mine:!(state)");
 
         MiningData.Taker memory _taker = state._takers[token][index][takeIndex];
@@ -635,126 +653,27 @@ contract NestMining {
 
     /* ========== PRICE QUERIES ========== */
 
-/*
-    // Get the latest effective price for a token
-    function latestPriceOfToken(address token) public view returns(uint256 ethAmount, uint256 tokenAmount, uint256 bn) 
+    function priceOf(address token) 
+        external view onlyByGovOr(_C_NestQuery)
+        returns (uint256 ethNum, uint256 tokenAmount, uint256 atHeight) 
     {
-        PriceSheet[] storage tp = _priceSheetList[token];
-        uint256 len = tp.length;
-        PriceSheet memory p;
-        if (len == 0) {
-            return (0, 0, 0);
-        }
-
-        uint256 first = 0;
-        for (uint i = 1; i <= len; i++) {
-            p = tp[len-i];
-            if (first == 0 && p.atHeight + c_price_duration_block < block.number) {
-                first = uint256(p.atHeight);
-                ethAmount = uint256(p.dealEthAmount);
-                tokenAmount = uint256(p.dealTokenAmount);
-                bn = first;
-            } else if (first == uint256(p.atHeight)) {
-                ethAmount = ethAmount.add(p.dealEthAmount);
-                tokenAmount = tokenAmount.add(p.dealTokenAmount);
-            } else if (first > uint256(p.atHeight)) {
-                break;
-            }
-        }
+        require(_C_NestPool.getNTokenFromToken(token) != address(0), "Nest:Mine:!token");
+        MiningData.Price memory _pi = state._priceInEffect[token];
+        return (uint256(_pi.ethNum), uint256(_pi.tokenAmount), uint256(_pi.height));
     }
 
-    function priceOfToken(address token) public view returns(uint256 ethAmount, uint256 tokenAmount, uint256 bn) 
+    function priceAvgAndSigmaOf(address token) 
+        external view onlyByGovOr(_C_NestQuery)
+        returns (uint256, uint256, uint256, int128, int128) 
     {
-        // TODO: no contract allowed
-        require(_C_NestPool.getNTokenFromToken(token) != address(0), "Nest::Mine: !token");
-        Price memory pi = _price_info[token];
-        return (pi.ethAmount, pi.tokenAmount, pi.height);
+        require(_C_NestPool.getNTokenFromToken(token) != address(0), "Nest:Mine:!token");
+        MiningData.Price memory _pi = state._priceInEffect[token];
+        int128 _sigma = ABDKMath64x64.sqrt(ABDKMath64x64.abs(_pi.volatility_sigma_sq));
+        int128 _avg = _pi.tokenAvgPrice;
+        return (uint256(_pi.ethNum), uint256(_pi.tokenAmount), uint256(_pi.height), _avg, _sigma);
     }
 
-    function priceAndSigmaOfToken(address token) public view returns (
-        uint256, uint256, uint256, int128) 
-    {
-        // TODO: no contract allowed
-        require(_C_NestPool.getNTokenFromToken(token) != address(0), "Nest::Mine: !token");
-        Price memory pi = _price_info[token];
-        // int128 v = 0;
-        int128 v = ABDKMath64x64.sqrt(ABDKMath64x64.abs(pi.volatility_sigma_sq));
-        return (uint256(pi.ethAmount), uint256(pi.tokenAmount), uint256(pi.atHeight), v);
-    }
 
-    function priceOfTokenAtHeight(address token, uint64 atHeight) public view returns(uint256 ethAmount, uint256 tokenAmount, uint64 bn) 
-    {
-        // TODO: no contract allowed
-
-        PriceSheet[] storage tp = _price_list[token];
-        uint256 len = _price_list[token].length;
-        PriceSheet memory p;
-        
-        if (len == 0) {
-            return (0, 0, 0);
-        }
-
-        uint256 first = 0;
-        uint256 prev = 0;
-        for (uint i = 1; i <= len; i++) {
-            p = tp[len-i];
-            first = uint256(p.atHeight);
-            if (prev == 0) {
-                if (first <= uint256(atHeight) && first + c_price_duration_block < block.number) {
-                    ethAmount = uint256(p.dealEthAmount);
-                    tokenAmount = uint256(p.dealTokenAmount);
-                    bn = uint64(first);
-                    prev = first;
-                }
-            } else if (first == prev) {
-                ethAmount = ethAmount.add(p.dealEthAmount);
-                tokenAmount = tokenAmount.add(p.dealTokenAmount);
-            } else if (prev > first) {
-                break;
-            }
-        }
-    }
-
-    function priceListOfToken(address token, uint8 num) public view returns(uint128[] memory data, uint256 atHeight) 
-    {
-        PriceSheet[] storage tp = _price_list[token];
-        uint256 len = tp.length;
-        uint256 index = 0;
-        data = new uint128[](num * 3);
-        PriceSheet memory p;
-
-        // loop
-        uint256 curr = 0;
-        uint256 prev = 0;
-        for (uint i = 1; i <= len; i++) {
-            p = tp[len-i];
-            curr = uint256(p.atHeight);
-            if (prev == 0) {
-                if (curr + c_price_duration_block < block.number) {
-                    data[index] = uint128(curr);
-                    data[index+1] = p.dealEthAmount;
-                    data[index+2] = p.dealTokenAmount;
-                    atHeight = curr;
-                    prev = curr;
-                }
-            } else if (prev == curr) {
-                // TODO: here we should use safeMath  x.add128(y)
-                data[index+1] = data[index+1] + (p.dealEthAmount);
-                data[index+2] = data[index+2] + (p.dealTokenAmount);
-            } else if (prev > curr) {
-                index = index + 3;
-                if (index >= uint256(num * 3)) {
-                    break;
-                }
-                data[index] = uint128(curr);
-                data[index+1] = p.dealEthAmount;
-                data[index+2] = p.dealTokenAmount;
-                prev = curr;
-            }
-        } 
-        require (data.length == uint256(num * 3), "Incorrect price list length");
-    }
-*/
     /* ========== MINING ========== */
     
     function mineNest() private returns (uint256) {
@@ -859,20 +778,20 @@ contract NestMining {
     function lengthOfPriceSheets(address token) view public 
         returns (uint)
     {
-        return state._priceSheetList[token].length;
+        return state.priceSheetList[token].length;
     }
 
     function contentOfPriceSheet(address token, uint256 index) view public 
         returns (MiningData.PriceSheet memory ps) 
     {
-        uint256 len = state._priceSheetList[token].length;
+        uint256 len = state.priceSheetList[token].length;
         require (index < len, "Nest:Mine:>(len)");
-        return state._priceSheetList[token][index];
+        return state.priceSheetList[token][index];
     }
 
     function atHeightOfPriceSheet(address token, uint256 index) view public returns (uint64)
     {
-        MiningData.PriceSheet storage p = state._priceSheetList[token][index];
+        MiningData.PriceSheet storage p = state.priceSheetList[token][index];
         return p.height;
     }
 

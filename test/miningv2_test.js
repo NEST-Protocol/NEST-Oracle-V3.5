@@ -4,15 +4,19 @@ const { time, balance, constants, expectEvent, expectRevert } = require('@openze
 
 const usdtdec = BigNumber.from(10).pow(6);
 const ethdec = ethers.constants.WeiPerEther;
+
 const eth = function (amount) {
     return BigNumber.from(amount).mul(ethdec);
 };
+
 const usdt = function (amount) {
     return BigNumber.from(amount).mul(usdtdec);
 };
+
 const nest = function (amount) {
     return BigNumber.from(amount).mul(ethdec);
 };
+
 const BN = function (n) {
     return BigNumber.from(n);
 };
@@ -33,7 +37,6 @@ const goBlocks = async function (provider, num) {
     const h = await provider.getBlockNumber();
     console.log(`>> [INFO] block mined +${num}, height=${h}`);
 };
-
 
 describe("NestToken contract", function () {
     // Mocha has four functions that let you hook into the the test runner's
@@ -89,7 +92,7 @@ describe("NestToken contract", function () {
         
         NestMining = await NestMiningContract.deploy();
 
-        await NestMining.init(NestToken.address, NestPool.address, NestStaking.address);
+        await NestMining.init(NestToken.address, NestPool.address, NestStaking.address, );
 
         NNTokenContract = await ethers.getContractFactory("NNToken");
         NNToken = await NNTokenContract.deploy(1500, "NNT");
@@ -107,7 +110,8 @@ describe("NestToken contract", function () {
         _C_NNToken = NNToken.address;
 
         await NestPool.setContracts(_C_NestMining, _C_NestToken);
-        await NestMining.setContracts(_C_NestToken, _C_NestPool, _C_NestStaking, _C_NNRewardPool);
+        await NestPool.setNTokenToToken(_C_USDT, _C_NestToken);
+        await NestMining.setContracts(_C_NestToken, _C_NestPool, _C_NestStaking, _C_NNRewardPool, _C_NNRewardPool);
         await NNRewardPool.loadContracts(_C_NestToken, _C_NNToken, _C_NestPool, _C_NestMining);
 
     });
@@ -163,7 +167,7 @@ describe("NestToken contract", function () {
             const rs = await NestToken.connect(userB).approve(_C_NestStaking, amount);
             const approved = await NestToken.allowance(userB.address, _C_NestStaking);
             expect(approved).to.equal(amount);
-        })
+        });
 
         it("should approve correctly, ETH(10,000,000,000) [userA -> _C_NestPool]", async () => {
             const amount = eth("10000000000");
@@ -177,22 +181,19 @@ describe("NestToken contract", function () {
             const rs = await NestToken.connect(userB).approve(_C_NestPool, amount);
             const approved = await NestToken.allowance(userB.address, _C_NestPool);
             expect(approved).to.equal(amount);
-        })
+        });
         
     });
 
     describe('NestMining', function () {
         it("test mine two tx into same block", async () => {
             const h = await provider.getBlockNumber();
-            console.log(`height=${h}`);
 
             await NestMining.debug(100);
             await NestMining.debug(100);
             advanceBlock(provider);
             const h2 = await provider.getBlockNumber();
-            console.log(`height=${h2}`);
             const x = await NestMining.acc(h);
-            console.log(`acc[${h}]=${x}`);
         });
 
         it("should be able to post a price sheet correctly", async () => {
@@ -210,8 +211,6 @@ describe("NestToken contract", function () {
             // const token = function () { if (ev !== undefined) { return ev.args['token'] } }();
             
             const sheet = await NestMining.contentOfPriceSheet(_C_USDT, 0);
-            console.log(`sheet=`, sheet);    
-            // console.log(`sheet.miner = ${sheet.miner.toString(10)}`);
             expect(sheet.miner).to.equal(userA.address);
             expect(sheet.height).to.equal(receipt.blockNumber);
             expect(sheet.chunkNum).to.equal(1);
@@ -276,17 +275,13 @@ describe("NestToken contract", function () {
                 .to.emit(NestMining, 'PriceClosed')
                 .withArgs(userA.address, token, index);
 
-            // const ev = tx.logs.find(v => v.event == 'PriceClosed');
-            // const index = ev.args['index'];
-            // const token = ev.args['token'];
-
             // G1: reset priceSheet[token][index]
             const sheet = await NestMining.contentOfPriceSheet(_C_USDT, 0);
             expect(sheet.state).to.equal(0);
 
             // T1: add nest tokens to the miner
             const mined = await NestMining.debugMinedNest(h);
-            console.log(`mined=`, mined);
+            // console.log(`mined=`, mined);
             const nest_userA_post = await NestPool.getMinerNest(userA.address);
             const deposit = nest(chunkNum.mul(nestPerChunk));
             const reward = nest_userA_post.sub(nest_userA_pre).sub(deposit);
@@ -300,7 +295,7 @@ describe("NestToken contract", function () {
 
             // T3: token unfreezing
             // const tokenPool_userA_post = await NestPoolContract.balanceOfTokenInPool(userA, _C_USDT);
-            // expect(tokenPool_userA_post).to.bignumber.equal(tokenPool_userA_pre);
+            // expect(tokenPool_userA_post).to.equal(tokenPool_userA_pre);
 
         });
     });

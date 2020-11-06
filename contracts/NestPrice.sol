@@ -222,7 +222,7 @@ contract NestPrice is INestPrice{
         emit PriceQueried(address(msg.sender), token, ethAmount, tokenAmount, bn);
         return (ethAmount, tokenAmount, uint64(bn));
     }
-
+/*
     function queryPriceList(address token, uint8 num, address payback) override public payable 
         returns (uint128[] memory) 
     {
@@ -257,7 +257,7 @@ contract NestPrice is INestPrice{
         
         return data;
     }
-
+*/
     // function AmountOfNestClient() external returns (uint256) {
     //     return _C_NestPool.balanceOfNestInPool(address(msg.sender));
     // }

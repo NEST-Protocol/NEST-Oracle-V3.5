@@ -24,6 +24,6 @@ interface INestPrice {
 
     function queryForMonthlyClient(address token) external returns (uint256, uint256, uint64);
 
-    function queryPriceList(address token, uint8 num, address payback) external payable returns (uint128[] memory);
+    // function queryPriceList(address token, uint8 num, address payback) external payable returns (uint128[] memory);
 
 }

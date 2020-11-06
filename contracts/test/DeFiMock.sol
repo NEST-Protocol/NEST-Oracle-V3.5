@@ -26,12 +26,12 @@ contract DeFiMock {
         return;
     }
 
-    function queryOracle(address token) payable public {
-        uint128[] memory data = _NestOracle.queryPriceList{value:msg.value}(token, uint8(4), msg.sender);
-        for (uint256 i=0; i<data.length; i=i+3) {
-            _prices.push(PriceInfo(token, data[i], data[i+1], data[i+2]));
-        }
-    }
+    // function queryOracle(address token) payable public {
+    //     uint128[] memory data = _NestOracle.queryPriceList{value:msg.value}(token, uint8(4), msg.sender);
+    //     for (uint256 i=0; i<data.length; i=i+3) {
+    //         _prices.push(PriceInfo(token, data[i], data[i+1], data[i+2]));
+    //     }
+    // }
 
     function lengthOfPrices() public view returns (uint256) {
         return _prices.length;

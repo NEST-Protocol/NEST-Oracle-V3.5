@@ -78,12 +78,12 @@ library MiningData {
     struct Price {
         uint32  index;
         uint32  height;
-        uint32  ethAmount;   //  the balance of eth
+        uint32  ethNum;   //  the balance of eth
         uint128 tokenAmount; //  the balance of token 
         int128  volatility_sigma_sq;
         int128  volatility_ut_sq;
-        int128 tokenAvgPrice;
-        uint32  _reserved;
+        int128  tokenAvgPrice;
+        uint96  _reserved;
     }
 
     struct Taker {
@@ -110,16 +110,16 @@ library MiningData {
         uint32 ethNumPerChunk;      // 10 ether
         uint32 nestPerChunk;        // 10_000 NEST
 
-        ///@dev  A mapping (from token(address) to an array of PriceSheet)
-        mapping(address => PriceSheet[]) _priceSheetList;
+        // A mapping (from token(address) to an array of PriceSheet)
+        mapping(address => PriceSheet[]) priceSheetList;
 
-        /// @dev from token(address) to Price
+        // from token(address) to Price
         mapping(address => Price) _priceInEffect;
 
-        /// @dev from token(address), index to array of Taker
+        // from token(address), index to array of Taker
         mapping(address => mapping(uint256 => Taker[])) _takers;
 
-        // _nest_at_height: block height => nest amount
+        // _nest_at_height: block height => (nest amount, ethers amount)
         mapping(uint256 => uint256) _nest_at_height;
     }
 
