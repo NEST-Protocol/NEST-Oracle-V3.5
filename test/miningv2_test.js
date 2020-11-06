@@ -77,8 +77,19 @@ describe("NestToken contract", function () {
         NestStakingContract = await ethers.getContractFactory("NestStaking");
         NestStaking = await NestStakingContract.deploy(NestToken.address);
 
-        NestMiningContract = await ethers.getContractFactory("NestMining");
-        NestMining = await NestMiningContract.deploy(NestToken.address, NestPool.address, NestStaking.address);
+        MiningCalcPriceContract = await ethers.getContractFactory("MiningCalcPrice");
+        MiningCalcPrice = await MiningCalcPriceContract.deploy();
+        NestMiningContract = await ethers.getContractFactory("NestMining",
+            {
+                libraries: {
+                    MiningCalcPrice: MiningCalcPrice.address
+                }
+            }
+        );        
+        
+        NestMining = await NestMiningContract.deploy();
+
+        await NestMining.init(NestToken.address, NestPool.address, NestStaking.address);
 
         NNTokenContract = await ethers.getContractFactory("NNToken");
         NNToken = await NNTokenContract.deploy(1500, "NNT");
@@ -171,6 +182,19 @@ describe("NestToken contract", function () {
     });
 
     describe('NestMining', function () {
+        it("test mine two tx into same block", async () => {
+            const h = await provider.getBlockNumber();
+            console.log(`height=${h}`);
+
+            await NestMining.debug(100);
+            await NestMining.debug(100);
+            advanceBlock(provider);
+            const h2 = await provider.getBlockNumber();
+            console.log(`height=${h2}`);
+            const x = await NestMining.acc(h);
+            console.log(`acc[${h}]=${x}`);
+        });
+
         it("should be able to post a price sheet correctly", async () => {
             const nestPrice = nest(1000);
             const usdtPrice = usdt(350);
@@ -231,6 +255,8 @@ describe("NestToken contract", function () {
 
         it("should be able to close a price sheet correctly", async () => {
 
+            const token = _C_USDT;
+            const index = 0;
             const ethNum = BN(10);
             const chunkNum = BN(1);
             const chunkSize = BN(10);
@@ -246,7 +272,9 @@ describe("NestToken contract", function () {
             const ethPool_userA_pre = await NestPool.balanceOfEthInPool(userA.address);
             const usdtPool_userA_pre = await NestPool.balanceOfTokenInPool(userA.address, _C_USDT);
 
-            const tx = await NestMining.connect(userA).close(_C_USDT, 0);
+            await expect(NestMining.connect(userA).close(token, index))
+                .to.emit(NestMining, 'PriceClosed')
+                .withArgs(userA.address, token, index);
 
             // const ev = tx.logs.find(v => v.event == 'PriceClosed');
             // const index = ev.args['index'];
@@ -264,13 +292,13 @@ describe("NestToken contract", function () {
             const reward = nest_userA_post.sub(nest_userA_pre).sub(deposit);
             expect(reward).to.equal(chunkNum.mul(chunkSize).mul(mined['0']).div(mined['1']));
             
-            // // T2: eth unfreezing
-            // const ethPool_post = await NestPoolContract.balanceOfEthInPool(_C_NestPool);
-            // expect(new BN(ethPool_pre).sub(new BN(ethPool_post))).to.bignumber.equal(ethNum.mul(ethdec));
-            // const ethPool_userA_post = await NestPoolContract.balanceOfEthInPool(userA);
-            // expect(new BN(ethPool_userA_post).sub(new BN(ethPool_userA_pre))).to.bignumber.equal(ethNum.mul(ethdec));
+            // T2: eth unfreezing
+            const eth_nestpool_post = await NestPool.balanceOfEthInPool(_C_NestPool);
+            expect(eth_nestpool_pre.sub(eth_nestpool_post)).to.equal(eth(ethNum));
+            const ethPool_userA_post = await NestPool.balanceOfEthInPool(userA.address);
+            expect(ethPool_userA_post.sub(ethPool_userA_pre)).to.equal(eth(ethNum));
 
-            // // T3: token unfreezing
+            // T3: token unfreezing
             // const tokenPool_userA_post = await NestPoolContract.balanceOfTokenInPool(userA, _C_USDT);
             // expect(tokenPool_userA_post).to.bignumber.equal(tokenPool_userA_pre);
 
