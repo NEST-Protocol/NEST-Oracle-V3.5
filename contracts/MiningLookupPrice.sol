@@ -18,17 +18,17 @@ import "hardhat/console.sol";
 
 /// @title MiningPrice module of NestMining
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
-/// @author  Wang  - <-@nestprotocol.org>
+/// @author 0x00  - <0x00@nestprotocol.org>
 library MiningLookupPrice {
 
     using SafeMath for uint256;
 
-    function priceAtHeight(
+    function _calcPriceAtHeight(
             MiningData.State storage state, 
             address _token,
             uint256 _height
         )
-        public 
+        external
         view 
         returns(uint256 ethNum, uint256 tokenAmount, uint256 atHeight) 
     {
@@ -67,16 +67,16 @@ library MiningLookupPrice {
     }
 
     /// @dev Calculate and return the newest price of the token from the list of price sheets
-    function latestEffectivePrice(
-            MiningData.State storage state, 
-            address token
-        )
-        external 
-        view 
-        returns(uint256 ethNum, uint256 tokenAmount, uint256 atHeight) 
-    {
-        return priceAtHeight(state, token, block.number);
-    }
+    // function latestEffectivePrice(
+    //         MiningData.State storage state, 
+    //         address token
+    //     )
+    //     external 
+    //     view 
+    //     returns(uint256 ethNum, uint256 tokenAmount, uint256 atHeight) 
+    // {
+    //     return priceAtHeight(state, token, block.number);
+    // }
 
 /*
     /// @dev Calculate and return the newest price of the token from the list of price sheets

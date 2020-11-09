@@ -6,6 +6,7 @@ pragma experimental ABIEncoderV2;
 import "./MiningData.sol";
 import "./MiningCalcPrice.sol";
 import "./MiningLookupPrice.sol";
+import "./MiningOp.sol";
 
 import "./lib/SafeMath.sol";
 import "./lib/SafeERC20.sol";
@@ -24,13 +25,13 @@ contract NestMining {
 
     using MiningCalcPrice for MiningData.State;
     using MiningLookupPrice for MiningData.State;
+    using MiningOp for MiningData.State;
 
     INestPool       _C_NestPool;
     ERC20           _C_NestToken;
     INestStaking    _C_NestStaking;
     INNRewardPool   _C_NNRewardPool;
     address         _C_NestQuery;
-
 
     address _developer_address;
     address _NN_address;
@@ -79,7 +80,14 @@ contract NestMining {
     event Withdrawn(address miner, address token, uint256 amount);
     event TokenBought(address miner, address token, uint256 index, uint256 biteEthAmount, uint256 biteTokenAmount);
     event TokenSold(address miner, address token, uint256 index, uint256 biteEthAmount, uint256 biteTokenAmount);
-
+    event PriceComputed(
+        uint32 h, 
+        uint32 pos, 
+        uint32 ethA, 
+        uint128 tokenA, 
+        int128 sigma_sq, 
+        int128 ut_sq
+    );
 
 
     /* ========== CONSTRUCTOR ========== */
@@ -130,8 +138,9 @@ contract NestMining {
         _;
     }
 
-    modifier onlyByGovOr(address _contract) 
+    modifier onlyGovOrBy(address _contract) 
     {
+        console.log("msg.sender=%s, _contract=%s", msg.sender, _contract);
         require(msg.sender == state.governance || msg.sender == _contract, "Nest:Mine:!sender");
         _;
     }
@@ -161,29 +170,34 @@ contract NestMining {
         ) public onlyGovernance 
     {
         if (uint256(NestToken) != 0) {
-            _C_NestToken = ERC20(NestToken);
+            state._C_NestToken = NestToken;
         }
         if (uint256(NestPool) != 0) {
-            _C_NestPool = INestPool(NestPool);
+            state._C_NestPool = NestPool;
         }
         if (uint256(NestStaking) != 0) {
-            _C_NestStaking = INestStaking(NestStaking);
+            state._C_NestStaking = NestStaking;
         }
         if (uint256(NNRewardPool) != 0) {
-            _C_NNRewardPool = INNRewardPool(NNRewardPool);
+            state._C_NNRewardPool = NNRewardPool;
         }
         if (uint256(NestQuery) != 0) {
-            _C_NestQuery = address(NestQuery);
+            state._C_NestQuery = NestQuery;
         }
     }
 
-    /* ========== HELPERS ========== */
+    /* ========== STAT ========== */
 
     function volatility(address token) 
         external view returns (MiningData.Price memory p) 
     {
         // TODO: no contract allowed
         return state.volatility(token);
+    }
+
+    function stat(address token) external
+    {
+        state._stat(token);
     }
 
     /* ========== POST/CLOSE Price Sheets ========== */
@@ -214,6 +228,9 @@ contract NestMining {
 
     function _mine(uint256 ethNum) internal
     {
+        INestPool _C_NestPool = INestPool(state._C_NestPool);
+        INNRewardPool _C_NNRewardPool = INNRewardPool(state._C_NNRewardPool);
+
         uint256 nestEthAtHeight = state._nest_at_height[block.number];
         uint256 _nestAtHeight = uint256(nestEthAtHeight >> 128);
         uint256 _ethAtHeight = uint256(nestEthAtHeight % (1 << 128));
@@ -498,120 +515,124 @@ contract NestMining {
         return; 
     }
 
-    function _clear(address _token, uint256 _chunkSize, uint256 _tokenChunkSize, MiningData.Taker memory _t) internal  
+    // function _clear(address _token, uint256 _chunkSize, uint256 _tokenChunkSize, MiningData.Taker memory _t) internal  
+    // {
+    //     return state._clear(_token, _chunkSize, _tokenChunkSize);
+    //     // if (_t.ethChunk > 0) {
+    //     //     _C_NestPool.freezeEth(address(msg.sender), _chunkSize.mul(_t.ethChunk));
+    //     //     _C_NestPool.unfreezeEth(address(_t.takerAddress), _chunkSize.mul(_t.ethChunk));
+    //     // } else if (_t.tokenChunk > 0) {
+    //     //     _C_NestPool.freezeToken(address(msg.sender), _token, _tokenChunkSize.mul(_t.tokenChunk));
+    //     //     _C_NestPool.unfreezeToken(address(_t.takerAddress), _token, _tokenChunkSize.mul(_t.tokenChunk));
+    //     // }
+    // }
+
+    function clear(address token, uint256 index, uint256 num) external payable 
     {
-        if (_t.ethChunk > 0) {
-            _C_NestPool.freezeEth(address(msg.sender), _chunkSize.mul(_t.ethChunk));
-            _C_NestPool.unfreezeEth(address(_t.takerAddress), _chunkSize.mul(_t.ethChunk));
-        } else if (_t.tokenChunk > 0) {
-            _C_NestPool.freezeToken(address(msg.sender), _token, _tokenChunkSize.mul(_t.tokenChunk));
-            _C_NestPool.unfreezeToken(address(_t.takerAddress), _token, _tokenChunkSize.mul(_t.tokenChunk));
-        }
+        return state.clear(token, index, num);
+        // // check parameters 
+        // require(token != address(0x0), "Nest:Mine:(token)=0"); 
+        // MiningData.PriceSheet memory _sheet = state.priceSheetList[token][index]; 
+        // require(uint256(_sheet.miner) == uint256(msg.sender), "Nest:Mine:!(miner)");
+        // require(_sheet.height + c_price_duration_block < block.number, "Nest:Mine:!EFF(sheet)");  // safe_math
+        // require(_sheet.height + c_sheet_duration_block > block.number, "Nest:Mine:!EFF(sheet)");  // safe_math
+        
+        // uint256 _state = uint256(_sheet.state);
+        // if (_state == 0x2) { // non-bitten price sheet
+        //     require(state._takers[token][index].length == 0, "Nest:Mine:!(takers)");
+        //     _sheet.state = uint8(1);
+        //     state.priceSheetList[token][index] = _sheet;
+        //     if (msg.value > 0) {
+        //         _C_NestPool.depositEth{value:msg.value}(address(msg.sender));
+        //     }
+        //     return;
+        // }
+        // require(_state == 0x3, "Nest:Mine:!BITTEN(sheet)");
+        
+        // uint256 _ethChunkAmount = uint256(_sheet.chunkSize).mul(1 ether);
+        // uint256 _tokenChunkAmount = uint256(_sheet.tokenPrice).mul(_ethChunkAmount);
+
+        // if (msg.value > 0) { 
+        //     _C_NestPool.depositEth{value:msg.value}(address(msg.sender));
+        // }
+
+        // MiningData.Taker[] storage _ts = state._takers[token][index];
+        // uint256 _len = _ts.length;
+        // for (uint i = 0; i < num; i++) {
+        //     MiningData.Taker memory _t = _ts[_len - i];
+        //     _clear(token, _ethChunkAmount, _tokenChunkAmount, _t);
+        //     _ts.pop();
+        // }
+
+        // if (_ts.length == 0) { 
+        //     _sheet.state = uint8(1);
+        //     state.priceSheetList[token][index] = _sheet;
+        // }
     }
 
-    function clear(address token, uint256 index, uint256 num) public payable 
+    function clearAll(address token, uint256 index) external payable 
     {
-        // check parameters 
-        require(token != address(0x0), "Nest:Mine:(token)=0"); 
-        MiningData.PriceSheet memory _sheet = state.priceSheetList[token][index]; 
-        require(uint256(_sheet.miner) == uint256(msg.sender), "Nest:Mine:!(miner)");
-        require(_sheet.height + c_price_duration_block < block.number, "Nest:Mine:!EFF(sheet)");  // safe_math
-        require(_sheet.height + c_sheet_duration_block > block.number, "Nest:Mine:!EFF(sheet)");  // safe_math
+        return state.clearAll(token, index);
+        // // check parameters 
+        // require(token != address(0x0), "Nest:Mine:(token)=0"); 
+        // MiningData.PriceSheet memory _sheet = state.priceSheetList[token][index]; 
+        // require(_sheet.height + c_price_duration_block < block.number, "Nest:Mine:!EFF(sheet)");  // safe_math: untainted values
+        // require(_sheet.height + c_sheet_duration_block > block.number, "Nest:Mine:!VALID(sheet)");  // safe_math: untainted values
+        // require(uint256(_sheet.miner) == uint256(msg.sender), "Nest:Mine:!(miner)");
         
-        uint256 _state = uint256(_sheet.state);
-        if (_state == 0x2) { // non-bitten price sheet
-            require(state._takers[token][index].length == 0, "Nest:Mine:!(takers)");
-            _sheet.state = uint8(1);
-            state.priceSheetList[token][index] = _sheet;
-            if (msg.value > 0) {
-                _C_NestPool.depositEth{value:msg.value}(address(msg.sender));
-            }
-            return;
-        }
-        require(_state == 0x3, "Nest:Mine:!BITTEN(sheet)");
-        
-        uint256 _ethChunkAmount = uint256(_sheet.chunkSize).mul(1 ether);
-        uint256 _tokenChunkAmount = uint256(_sheet.tokenPrice).mul(_ethChunkAmount);
+        // uint256 _state = uint256(_sheet.state);
+        // if (_state == 0x2) { // non-bitten price sheet
+        //     require(state._takers[token][index].length == 0, "Nest:Mine:!(takers)");
+        //     _sheet.state = uint8(1);
+        //     state.priceSheetList[token][index] = _sheet;
+        //     _C_NestPool.depositEth{value:msg.value}(address(msg.sender));
+        //     return;
+        // }
+        // require(_state == 0x3, "Nest:Mine:!BITTEN(sheet)");
 
-        if (msg.value > 0) { 
-            _C_NestPool.depositEth{value:msg.value}(address(msg.sender));
-        }
+        // uint256 _ethChunkAmount = uint256(_sheet.chunkSize).mul(1 ether);
+        // uint256 _tokenChunkAmount = uint256(_sheet.tokenPrice).mul(_ethChunkAmount);
 
-        MiningData.Taker[] storage _ts = state._takers[token][index];
-        uint256 _len = _ts.length;
-        for (uint i = 0; i < num; i++) {
-            MiningData.Taker memory _t = _ts[_len - i];
-            _clear(token, _ethChunkAmount, _tokenChunkAmount, _t);
-            _ts.pop();
-        }
+        // _C_NestPool.depositEth{value:msg.value}(address(msg.sender));
 
-        if (_ts.length == 0) { 
-            _sheet.state = uint8(1);
-            state.priceSheetList[token][index] = _sheet;
-        }
+        // MiningData.Taker[] storage _ts = state._takers[token][index];
+        // uint256 _len = _ts.length;
+        // for (uint i = 0; i < _len; i++) {
+        //     MiningData.Taker memory _t = _ts[_len - i];
+        //     _clear(token, _ethChunkAmount, _tokenChunkAmount, _t);
+        //     _ts.pop();
+        // }
+
+        // _sheet.state = uint8(1);
+        // state.priceSheetList[token][index] = _sheet;
     }
 
-    function clearAll(address token, uint256 index) public payable 
+    function refute(address token, uint256 index, uint256 takeIndex) external  
     {
-        // check parameters 
-        require(token != address(0x0), "Nest:Mine:(token)=0"); 
-        MiningData.PriceSheet memory _sheet = state.priceSheetList[token][index]; 
-        require(_sheet.height + c_price_duration_block < block.number, "Nest:Mine:!EFF(sheet)");  // safe_math: untainted values
-        require(_sheet.height + c_sheet_duration_block > block.number, "Nest:Mine:!VALID(sheet)");  // safe_math: untainted values
-        require(uint256(_sheet.miner) == uint256(msg.sender), "Nest:Mine:!(miner)");
+        return state.refute(token, index, takeIndex);
+        // MiningData.PriceSheet storage _sheet = state.priceSheetList[token][index]; 
+        // require(_sheet.state == 0x3,  "Nest:Mine:!(state)");
+
+        // MiningData.Taker memory _taker = state._takers[token][index][takeIndex];
+        // require(_taker.takerAddress == uint160(msg.sender), "Nest:Mine:!(taker)");
+        // require(_sheet.height + c_sheet_duration_block < block.number, "Nest:Mine:VALID(sheet)");  // safe_math: untainted values
         
-        uint256 _state = uint256(_sheet.state);
-        if (_state == 0x2) { // non-bitten price sheet
-            require(state._takers[token][index].length == 0, "Nest:Mine:!(takers)");
-            _sheet.state = uint8(1);
-            state.priceSheetList[token][index] = _sheet;
-            _C_NestPool.depositEth{value:msg.value}(address(msg.sender));
-            return;
-        }
-        require(_state == 0x3, "Nest:Mine:!BITTEN(sheet)");
-
-        uint256 _ethChunkAmount = uint256(_sheet.chunkSize).mul(1 ether);
-        uint256 _tokenChunkAmount = uint256(_sheet.tokenPrice).mul(_ethChunkAmount);
-
-        _C_NestPool.depositEth{value:msg.value}(address(msg.sender));
-
-        MiningData.Taker[] storage _ts = state._takers[token][index];
-        uint256 _len = _ts.length;
-        for (uint i = 0; i < _len; i++) {
-            MiningData.Taker memory _t = _ts[_len - i];
-            _clear(token, _ethChunkAmount, _tokenChunkAmount, _t);
-            _ts.pop();
-        }
-
-        _sheet.state = uint8(1);
-        state.priceSheetList[token][index] = _sheet;
-    }
-
-    function refute(address token, uint256 index, uint256 takeIndex) public  
-    {
-        MiningData.PriceSheet storage _sheet = state.priceSheetList[token][index]; 
-        require(_sheet.state == 0x3,  "Nest:Mine:!(state)");
-
-        MiningData.Taker memory _taker = state._takers[token][index][takeIndex];
-        require(_taker.takerAddress == uint160(msg.sender), "Nest:Mine:!(taker)");
-        require(_sheet.height + c_sheet_duration_block < block.number, "Nest:Mine:VALID(sheet)");  // safe_math: untainted values
-        
-        uint256 _chunkSize = _sheet.chunkSize;
-        if (_taker.ethChunk > 0) {  // sellToken
-            uint256 _chunkNum = _taker.ethChunk;
-            uint256 _tokenAmount = uint256(_sheet.tokenPrice).mul(_chunkNum).mul(_chunkSize);
-            _C_NestPool.unfreezeToken(address(msg.sender), token, _tokenAmount);
-            _C_NestPool.unfreezeEth(address(msg.sender), _chunkNum.mul(_chunkSize).mul(1 ether));
-            _taker.ethChunk = 0;
-        } else if (_taker.tokenChunk > 0) { // buyToken
-            uint256 _chunkNum = _taker.ethChunk;
-            uint256 _ethAmount = _chunkNum.add(_chunkNum).mul(_chunkSize).mul(1 ether);
-            _C_NestPool.unfreezeEth(address(msg.sender), _ethAmount);
-            _taker.tokenChunk = 0;
-        }
-        _taker.takerAddress = 0;
-        state._takers[token][index][takeIndex] = _taker;
-        _sheet.state = uint8(0x4);
+        // uint256 _chunkSize = _sheet.chunkSize;
+        // if (_taker.ethChunk > 0) {  // sellToken
+        //     uint256 _chunkNum = _taker.ethChunk;
+        //     uint256 _tokenAmount = uint256(_sheet.tokenPrice).mul(_chunkNum).mul(_chunkSize);
+        //     _C_NestPool.unfreezeToken(address(msg.sender), token, _tokenAmount);
+        //     _C_NestPool.unfreezeEth(address(msg.sender), _chunkNum.mul(_chunkSize).mul(1 ether));
+        //     _taker.ethChunk = 0;
+        // } else if (_taker.tokenChunk > 0) { // buyToken
+        //     uint256 _chunkNum = _taker.ethChunk;
+        //     uint256 _ethAmount = _chunkNum.add(_chunkNum).mul(_chunkSize).mul(1 ether);
+        //     _C_NestPool.unfreezeEth(address(msg.sender), _ethAmount);
+        //     _taker.tokenChunk = 0;
+        // }
+        // _taker.takerAddress = 0;
+        // state._takers[token][index][takeIndex] = _taker;
+        // _sheet.state = uint8(0x4);
     }
 
 /*
@@ -653,8 +674,16 @@ contract NestMining {
 
     /* ========== PRICE QUERIES ========== */
 
+    function latestPrice(address token) 
+        external view onlyGovOrBy(state._C_NestQuery)
+        returns (uint256 ethNum, uint256 tokenAmount, uint256 atHeight) 
+    {
+        require(_C_NestPool.getNTokenFromToken(token) != address(0), "Nest:Mine:!token");
+        return state._calcPriceAtHeight(token, block.number);
+    }
+
     function priceOf(address token) 
-        external view onlyByGovOr(_C_NestQuery)
+        external view onlyGovOrBy(state._C_NestQuery)
         returns (uint256 ethNum, uint256 tokenAmount, uint256 atHeight) 
     {
         require(_C_NestPool.getNTokenFromToken(token) != address(0), "Nest:Mine:!token");
@@ -663,13 +692,13 @@ contract NestMining {
     }
 
     function priceAvgAndSigmaOf(address token) 
-        external view onlyByGovOr(_C_NestQuery)
+        external view onlyGovOrBy(state._C_NestQuery)
         returns (uint256, uint256, uint256, int128, int128) 
     {
         require(_C_NestPool.getNTokenFromToken(token) != address(0), "Nest:Mine:!token");
         MiningData.Price memory _pi = state._priceInEffect[token];
         int128 _sigma = ABDKMath64x64.sqrt(ABDKMath64x64.abs(_pi.volatility_sigma_sq));
-        int128 _avg = _pi.tokenAvgPrice;
+        int128 _avg = _pi.avgTokenAmount;
         return (uint256(_pi.ethNum), uint256(_pi.tokenAmount), uint256(_pi.height), _avg, _sigma);
     }
 

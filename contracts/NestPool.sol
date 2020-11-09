@@ -11,11 +11,10 @@ import "./iface/INestPool.sol";
 import "hardhat/console.sol";
 
 
-// TransferHelper.safeTransferETH(msg.sender, msg.value - amountETH)
-/**
- * @title Nest pool 
- * @dev 
- */
+/// @title NNRewardPool
+/// @author Inf Loop - <inf-loop@nestprotocol.org>
+/// @author Paradox  - <paradox@nestprotocol.org>
+
 contract NestPool is INestPool {
     
     using address_make_payable for address;

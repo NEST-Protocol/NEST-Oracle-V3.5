@@ -78,13 +78,13 @@ module.exports = {
   plugins: ['solidity-coverage'],
 
   // Set default mocha options here, use special reporters etc.
-  mocha: {
-    reporter: 'eth-gas-reporter',
-    reporterOptions: {
-      currency: 'USD',
-      excludeContracts: ['Migrations'],
-    },
-  },
+  // mocha: {
+  //   reporter: 'eth-gas-reporter',
+  //   reporterOptions: {
+  //     currency: 'USD',
+  //     excludeContracts: ['Migrations'],
+  //   },
+  // },
 
   // Configure your compilers
   compilers: {

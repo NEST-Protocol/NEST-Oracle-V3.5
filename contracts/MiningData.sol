@@ -61,6 +61,8 @@ library MiningData {
         uint160 miner;          //  miner who posted the price (most significant bits, or left-most)
         uint32  height;         // the height of block where the sheet was posted
         uint8  chunkNum;        // the amount of chunks deposited
+
+        // TODO: chunkSize ==> ethPerChunk
         uint8  chunkSize;       // ethers per chunk
         uint8  remainChunk;     // the remain chunks of deposits, which decrease if some chunks are biten
         uint8  ethChunk;        // the number of eth chunks
@@ -68,8 +70,11 @@ library MiningData {
         // uint8  token2Chunk;     // the number of token2 chunk 
         uint8  state;           // =0: closed | =1: cleared | =2: posted | =3: bitten | =4: refuted
         uint8  level;           // the level of bitting, 1-4: eth-doubling | 5 - 127: nest-doubling
+        
+        // TODO: ==> nestPerChunk10k
         uint8  _reserved;       // for padding 
 
+        // TODO: tokenPrice ==> tokenPerChunk
         uint128 tokenPrice;     // the amount of (token1 : 1 ether)
         uint128 _reserved2;     // the amount of (token2 : 1 ether)
     }
@@ -82,7 +87,7 @@ library MiningData {
         uint128 tokenAmount; //  the balance of token 
         int128  volatility_sigma_sq;
         int128  volatility_ut_sq;
-        int128  tokenAvgPrice;
+        int128  avgTokenAmount;
         uint96  _reserved;
     }
 
@@ -121,6 +126,12 @@ library MiningData {
 
         // _nest_at_height: block height => (nest amount, ethers amount)
         mapping(uint256 => uint256) _nest_at_height;
+
+        address     _C_NestPool;
+        address     _C_NestToken;
+        address     _C_NestStaking;
+        address     _C_NNRewardPool;
+        address     _C_NestQuery;
     }
 
 }

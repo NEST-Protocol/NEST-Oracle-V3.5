@@ -4,26 +4,31 @@ pragma solidity ^0.6.12;
 
 pragma experimental ABIEncoderV2;
 
-import "../iface/INestPrice.sol";
+import "../iface/INestQuery.sol";
 
 contract DeFiMock {
 
-    INestPrice _NestOracle;
+    INestQuery _NestQuery;
 
     struct PriceInfo {
         address token;
-        uint128 atHeight;
-        uint128 ethAmount;
-        uint128 tokenAmount;
+        uint256 atHeight;
+        uint256 ethAmount;
+        uint256 tokenAmount;
     }
-    PriceInfo[] _prices;
+    PriceInfo[] public prices;
 
     constructor(address Oracle) public {
-        _NestOracle = INestPrice(Oracle);
+        _NestQuery = INestQuery(Oracle);
     }
 
     function simu() public {
         return;
+    }
+
+    function query(address token) payable public {
+        (uint256 ethAmount, uint256 tokenAmount, uint64 bn) = _NestQuery.query{value:msg.value}(token, msg.sender);
+        prices.push(PriceInfo(token, bn, ethAmount, tokenAmount));
     }
 
     // function queryOracle(address token) payable public {
@@ -34,11 +39,11 @@ contract DeFiMock {
     // }
 
     function lengthOfPrices() public view returns (uint256) {
-        return _prices.length;
+        return prices.length;
     }
 
     function priceByIndex(uint256 index) public view returns (PriceInfo memory) {
-        return _prices[index];
+        return prices[index];
     }
     
 }

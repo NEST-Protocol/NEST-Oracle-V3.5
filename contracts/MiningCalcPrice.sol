@@ -10,6 +10,7 @@ import "./lib/SafeMath.sol";
 import "./lib/SafeERC20.sol";
 import './lib/TransferHelper.sol';
 import "./lib/ABDKMath64x64.sol";
+import "hardhat/console.sol";
 
 library MiningCalcPrice {
 
@@ -37,12 +38,13 @@ library MiningCalcPrice {
         pure 
         returns (int128, int128)
     {
-        int128 _ut2 = ABDKMath64x64.div(_sigma_sq, 
-            ABDKMath64x64.fromUInt(_interval * MiningData.c_ethereum_block_interval));
+        int128 _ut_sq_2 = ABDKMath64x64.div(_ut_sq, 
+            ABDKMath64x64.fromUInt(_interval));
+            // ABDKMath64x64.fromUInt(_interval * MiningData.c_ethereum_block_interval));
 
         int128 _new_sigma_sq = ABDKMath64x64.add(
             ABDKMath64x64.mul(ABDKMath64x64.divu(95, 100), _sigma_sq), 
-            ABDKMath64x64.mul(ABDKMath64x64.divu(5,100), _ut_sq));
+            ABDKMath64x64.mul(ABDKMath64x64.divu(5,100), _ut_sq_2));
 
         int128 _new_ut_sq;
         if (ethA0 == 0 || tokenA0 == 0) {
@@ -57,15 +59,37 @@ library MiningCalcPrice {
         return (_new_sigma_sq, _new_ut_sq);
     }
 
-    function _calcAvg(uint256 ethA, uint256 tokenA, int128 _avg) private pure returns(int128)
+    function _calcAvg(uint256 ethA, uint256 tokenA, int128 _avg) 
+        private 
+        // pure
+        returns(int128)
     {
         int128 _newP = ABDKMath64x64.div(ABDKMath64x64.fromUInt(tokenA), 
                                         ABDKMath64x64.fromUInt(ethA));
+        // {
+        //     uint i = uint(_avg>>64);
+        //     uint j = uint(_avg<<64>>64);
+        //     console.log("_avg=%s.%s", i, j);
+        // }
+        // {
+        //     uint i = uint(_newP>>64);
+        //     uint j = uint(_newP<<64>>64);
+        //     console.log("_newP=%s.%s", i, j);
+        // }
+        int128 _newAvg;
 
-        int128 _newAvg = ABDKMath64x64.add(
-            ABDKMath64x64.mul(ABDKMath64x64.divu(95, 100), _avg), 
-            ABDKMath64x64.mul(ABDKMath64x64.divu(5,100), _newP));
-
+        if (_avg == 0) {
+            _newAvg = _newP;
+        } else {
+            _newAvg = ABDKMath64x64.add(
+                ABDKMath64x64.mul(ABDKMath64x64.divu(95, 100), _avg), 
+                ABDKMath64x64.mul(ABDKMath64x64.divu(5,100), _newP));
+        }
+        // {
+        //     uint i = uint(_newAvg>>64);
+        //     uint j = uint(_newAvg<<64>>64);
+        //     console.log("_newAvg=%s.%s", i, j);
+        // }
         return _newAvg;
 
     }
@@ -75,7 +99,7 @@ library MiningCalcPrice {
         MiningData.PriceSheet[] storage pL
         ) 
         private 
-        view 
+        // view 
         returns (MiningData.Price memory p1)
     {   
         uint256 i = p0.index + 1;
@@ -94,7 +118,7 @@ library MiningCalcPrice {
         uint256 ethA1 = 0;
         uint256 tokenA1 = 0;
         while (i < pL.length && pL[i].height == h)
-                            // TODO: redundant condition
+                            // QUES: redundant condition ?
                             // && pL[i].height + MiningData.c_price_duration_block < block.number) 
         {
             ethA1 = ethA1 + uint256(pL[i].remainChunk).mul(pL[i].chunkSize);
@@ -102,12 +126,14 @@ library MiningCalcPrice {
             i = i + 1;
         } //loop: sheets[i].height = h
         i = i - 1;
+        // (int128 new_sigma_sq, int128 new_ut_sq) = (1, 1);
         (int128 new_sigma_sq, int128 new_ut_sq) = _calcEWMA(
             p0.ethNum, p0.tokenAmount, 
             ethA1, tokenA1, 
             p0.volatility_sigma_sq, p0.volatility_ut_sq, 
             i - p0.index);
-        int128 _newAvg = _calcAvg(ethA1, tokenA1, p0.tokenAvgPrice); 
+        // int128 _newAvg = 415; 
+        int128 _newAvg = _calcAvg(ethA1, tokenA1, p0.avgTokenAmount); 
         return(MiningData.Price(uint32(i), uint32(h), uint32(ethA1), uint128(tokenA1), 
             new_sigma_sq, new_ut_sq, _newAvg, uint32(0)));
     }
@@ -131,6 +157,7 @@ library MiningCalcPrice {
 
         if (p0.index > state._priceInEffect[token].index) {
             state._priceInEffect[token] = p0;
+            // console.log("new index = %s", p0.index);
             emit PriceComputed(p0.height, p0.index, uint32(p0.ethNum), uint128(p0.tokenAmount), 
                 p0.volatility_sigma_sq, p0.volatility_ut_sq);
         }
@@ -154,6 +181,8 @@ library MiningCalcPrice {
         return;
     }
 
+
+    //TODO: REMOVE it!
     function volatility(MiningData.State storage state, address token) 
         external view returns (MiningData.Price memory p) 
     {

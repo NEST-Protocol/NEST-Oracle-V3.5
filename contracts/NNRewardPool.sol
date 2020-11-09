@@ -11,6 +11,10 @@ import './lib/TransferHelper.sol';
 // import "./NestMining.sol";
 import "./iface/INNRewardPool.sol";
 
+/// @title NNRewardPool
+/// @author Inf Loop - <inf-loop@nestprotocol.org>
+/// @author Paradox  - <paradox@nestprotocol.org>
+
 /// @notice The NNRewardPool contract distributes the mining rewards,
 ///     15% share of the amount of nest-token produced by miners
 /// @dev The nest-tokens are put in NestPool. This contract only traces 
@@ -79,7 +83,7 @@ contract NNRewardPool is INNRewardPool {
         _;
     }
 
-    modifier onlyGovernanceOrBy(address _account)
+    modifier onlyGovOrBy(address _account)
     {
         if (msg.sender != governance) { 
             require(msg.sender == _account,
@@ -101,7 +105,7 @@ contract NNRewardPool is INNRewardPool {
     /// @notice Add rewards for Nest-Nodes, only governance or NestMining (contract) are allowed
     /// @dev The rewards need to pull from NestPool
     /// @param _amount The amount of Nest token as the rewards to each nest-node
-    function addNNReward(uint256 _amount) override external onlyGovernanceOrBy(_C_NestMining)
+    function addNNReward(uint256 _amount) override external onlyGovOrBy(_C_NestMining)
     {
         // uint256 _amount = _C_NestPool.balanceOfNestInPool(address(this));
         if (_amount > 0) {

@@ -10,6 +10,9 @@ import "./iface/INestStaking.sol";
 import "./lib/ReentrancyGuard.sol";
 import './lib/TransferHelper.sol';
 
+/// @title NNRewardPool
+/// @author Inf Loop - <inf-loop@nestprotocol.org>
+/// @author Paradox  - <paradox@nestprotocol.org>
 
 contract NestStaking is INestStaking, ReentrancyGuard {
 
