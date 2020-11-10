@@ -452,7 +452,7 @@ contract NestMining {
                     _newLevel = _level + 1;
                 }
             
-                _post(token, newTokenPrice, _ethChunkNum, uint256(_sheet.chunkSize), 0x2, _newLevel, _sheet.typ);
+                _post(token, newTokenPrice, _ethChunkNum.mul(_chunkSize), uint256(_chunkSize), 0x2, _newLevel, _sheet.typ);
                 _C_NestPool.freezeNest(address(msg.sender), _nestDeposited.mul(1e18));
             }
             _C_NestPool.freezeEth(address(msg.sender), _ethChunkNum.add(takeChunkNum).mul(_chunkSize).mul(1 ether));
@@ -530,7 +530,7 @@ contract NestMining {
                     _nestDeposited = takeChunkNum.mul(uint256(state.nestPerChunk));
                     _newLevel = _level + 1;
                 }
-                _post(token, newTokenPrice, _ethChunkNum, uint256(_sheet.chunkSize), 0x2, _newLevel, _sheet.typ);
+                _post(token, newTokenPrice, _ethChunkNum.mul(_chunkSize), uint256(_chunkSize), 0x2, _newLevel, _sheet.typ);
                 _C_NestPool.freezeNest(address(msg.sender), _nestDeposited.mul(1e18));
             }
             _C_NestPool.freezeEth(address(msg.sender), _ethChunkNum.mul(_chunkSize).mul(1 ether));
