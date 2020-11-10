@@ -82,13 +82,19 @@ describe("NestToken contract", function () {
 
         MiningCalcPriceContract = await ethers.getContractFactory("MiningCalcPrice");
         MiningCalcPrice = await MiningCalcPriceContract.deploy();
+        MiningLookupPriceContract = await ethers.getContractFactory("MiningLookupPrice");
+        MiningLookupPrice = await MiningLookupPriceContract.deploy();
+        MiningOpContract = await ethers.getContractFactory("MiningOp");
+        MiningOp = await MiningOpContract.deploy();
         NestMiningContract = await ethers.getContractFactory("NestMining",
             {
                 libraries: {
-                    MiningCalcPrice: MiningCalcPrice.address
+                    MiningCalcPrice: MiningCalcPrice.address,
+                    MiningLookupPrice: MiningLookupPrice.address,
+                    MiningOp: MiningOp.address
                 }
             }
-        );        
+        );           
         
         NestMining = await NestMiningContract.deploy();
 
@@ -186,15 +192,13 @@ describe("NestToken contract", function () {
     });
 
     describe('NestMining', function () {
-        it("test mine two tx into same block", async () => {
-            const h = await provider.getBlockNumber();
+        // it("test mine two tx into same block", async () => {
+        //     const h = await provider.getBlockNumber();
 
-            await NestMining.debug(100);
-            await NestMining.debug(100);
-            advanceBlock(provider);
-            const h2 = await provider.getBlockNumber();
-            const x = await NestMining.acc(h);
-        });
+        //     advanceBlock(provider);
+        //     const h2 = await provider.getBlockNumber();
+        //     const x = await NestMining.acc(h);
+        // });
 
         it("should be able to post a price sheet correctly", async () => {
             const nestPrice = nest(1000);
@@ -280,7 +284,7 @@ describe("NestToken contract", function () {
             expect(sheet.state).to.equal(0);
 
             // T1: add nest tokens to the miner
-            const mined = await NestMining.debugMinedNest(h);
+            const mined = await NestMining.debugMinedNest(_C_USDT, h);
             // console.log(`mined=`, mined);
             const nest_userA_post = await NestPool.getMinerNest(userA.address);
             const deposit = nest(chunkNum.mul(nestPerChunk));

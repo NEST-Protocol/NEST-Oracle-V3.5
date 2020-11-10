@@ -313,7 +313,7 @@ contract NestMining {
     {
         INestPool _C_NestPool = INestPool(state._C_NestPool);
 
-        if (_sheet.typ == 0x1 && _sheet.typ == 0x3) {
+        if (_sheet.typ == 0x1 || _sheet.typ == 0x3) {
             address _ntoken = _C_NestPool.getNTokenFromToken(_token);
             uint256 _eth_nest_at_height = state._ntoken_at_height[_ntoken][uint256(_sheet.height)];
             uint256 _nestAtHeight = uint256(_eth_nest_at_height / (1 << 128));
@@ -895,10 +895,12 @@ contract NestMining {
         }
     }
 
-    // function debugMinedNest(uint256 h) public view returns (uint256, uint256) 
-    // {
-    //     return (uint128(state._nest_at_height[h] / (1 << 128)), uint128(state._nest_at_height[h] % (1 << 128)));
-    // }
+    function debugMinedNest(address token, uint256 h) public view returns (uint256, uint256) 
+    {
+        address ntoken = INestPool(state._C_NestPool).getNTokenFromToken(address(token));
+        return (uint128(state._ntoken_at_height[ntoken][h] / (1 << 128)), 
+                uint128(state._ntoken_at_height[ntoken][h] % (1 << 128)));
+    }
     // mapping(uint256 => uint256) public acc;
     // function debug(uint256 v) public 
     // {

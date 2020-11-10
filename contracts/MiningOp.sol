@@ -64,7 +64,7 @@ library MiningOp {
         }
         require(_state == 0x3, "Nest:Mine:!BITTEN(sheet)");
         
-        uint256 _ethChunkAmount = uint256(_sheet.chunkSize)
+        uint256 _ethChunkAmount = uint256(_sheet.chunkSize);
         uint256 _tokenChunkAmount = uint256(_sheet.tokenPrice).mul(_ethChunkAmount);
 
         if (msg.value > 0) { 
@@ -106,7 +106,7 @@ library MiningOp {
         }
         require(_state == 0x3, "Nest:Mine:!BITTEN(sheet)");
 
-        uint256 _ethChunkAmount = uint256(_sheet.chunkSize)
+        uint256 _ethChunkAmount = uint256(_sheet.chunkSize);
         uint256 _tokenChunkAmount = uint256(_sheet.tokenPrice).mul(_ethChunkAmount);
 
         _C_NestPool.depositEth{value:msg.value}(address(msg.sender));

@@ -69,6 +69,13 @@ contract NestPool is INestPool {
         _token_ntoken_mapping[token] = ntoken;
     }
 
+    function getMinerNToken(address miner, address token) public view returns (uint256 tokenAmount) 
+    {
+        if (token != address(0x0)) {
+            tokenAmount = _token_ledger[token][miner];
+        }
+    } 
+        
     function getMinerEthAndToken(address miner, address token) public view returns (uint256 ethAmount, uint256 tokenAmount) {
         ethAmount = _eth_ledger[miner];
         if (token != address(0x0)) {
