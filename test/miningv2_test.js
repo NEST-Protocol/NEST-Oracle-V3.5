@@ -140,6 +140,25 @@ describe("NestToken contract", function () {
         });
     });
 
+    describe('send usdt Token',function () {
+        it("should transfer correctly, usdt(2,000,000,000) [Owner => userA]",async () => {
+            const amount = BigNumber.from("2000000000").mul(usdtdec);
+            await USDT.connect(owner).transfer(userA.address, amount);
+            const userA_balance = await USDT.balanceOf(userA.address);
+            console.log('userA_balance = ',userA_balance);
+            expect(userA_balance).to.equal(amount);
+        });
+
+        it("should transfer correctly, usdt(2,000,000,000) [Owner => userB]",async () => {
+            const amount = BigNumber.from("2000000000").mul(usdtdec);
+            await USDT.connect(owner).transfer(userB.address, amount);
+            const userB_balance = await USDT.balanceOf(userB.address);
+            console.log('userB_balance = ',userB_balance);
+            expect(userB_balance).to.equal(amount);
+        });
+    });
+
+
     describe('NEST Token', function () {
         it("should have correct totalSupply, ETH(10,000,000,000)", async () => {
             const expectedTotalSupply = eth('10000000000');
@@ -153,6 +172,14 @@ describe("NestToken contract", function () {
             const userA_balance = await NestToken.balanceOf(userA.address);
             expect(userA_balance).to.equal(amount);
         });
+
+        it("should transfer correctly, Nest(2,000,000,000) [Owner => userB]", async () => {
+            const amount = BigNumber.from("2000000000").mul(ethdec);
+            await NestToken.connect(owner).transfer(userB.address, amount);
+            const userB_balance = await NestToken.balanceOf(userB.address);
+            expect(userB_balance).to.equal(amount);
+        });
+
 
         it("should transfer fail", async () => {
             let amount = eth("10000000001");
@@ -302,6 +329,49 @@ describe("NestToken contract", function () {
             // expect(tokenPool_userA_post).to.equal(tokenPool_userA_pre);
 
         });
+
+        it("should be buy token correctly !", async ()=> {
+            const nestPrice = nest(1000);
+            const usdtPrice = usdt(350);
+            const chunkSize = 10;
+            const ethNum = BigNumber.from(40);
+            const nestPerChunk = BN(10000);
+            const oneEther = ethers.utils.parseEther("1");
+            const msgValue = ethers.utils.parseEther("200.0");
+
+            const takeChunkNum = BigNumber.from(1);
+            const newTokenPrice = usdt(300);
+ 
+            //前代码已经提交一个报价单，_C_USDT已经入栈一个，此时post index = 1
+            const tx = await NestMining.connect(userA).post(_C_USDT, usdtPrice, nestPrice, ethNum, { value: msgValue });
+            
+            const receipt = await tx.wait();
+            const sheet = await NestMining.contentOfPriceSheet(_C_USDT, 1);//_C_USDT的第二张表单，第一张已经关闭
+            //console.log("sheet = ",sheet);
+
+            // record recent funds
+            const nest_pool_pre = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
+
+            const eth_reward_pre = await provider.getBalance(_C_NestStaking);
+            //console.log('eth_reward_pre = ',eth_reward_pre);
+            
+            // give some funds to userB
+            const money = await NestToken.balanceOf(userB.address);
+
+            console.log('money = ',money);
+            
+            const buytoken = await NestMining.connect(userB).buyToken(_C_USDT,1,takeChunkNum,newTokenPrice,{ value: msgValue });
+            const re = await buytoken.wait();
+            const sheet1 = await NestMining.contentOfPriceSheet(_C_USDT,2);
+            
+            //console.log("sheet1",sheet1);
+
+            //check new sheet
+              expect(sheet1.miner).to.equal(userB.address);
+
+        });
+    
     });
 
 });
