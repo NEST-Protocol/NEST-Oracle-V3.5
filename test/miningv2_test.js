@@ -342,12 +342,12 @@ describe("NestToken contract", function () {
             const takeChunkNum = BigNumber.from(1);
             const newTokenPrice = usdt(300);
  
-            //前代码已经提交一个报价单，_C_USDT已经入栈一个，此时post index = 1
+            //The previous code has already submitted a quotation, _C_USDT has already stacked one, and post index = 1.
             const tx = await NestMining.connect(userA).post(_C_USDT, usdtPrice, nestPrice, ethNum, { value: msgValue });
             
             const receipt = await tx.wait();
-            const sheet = await NestMining.contentOfPriceSheet(_C_USDT, 1);//_C_USDT的第二张表单，第一张已经关闭
-            //console.log("sheet = ",sheet);
+            const sheet = await NestMining.contentOfPriceSheet(_C_USDT, 1);
+            console.log("sheet = ",sheet);
 
             // record recent funds
             const nest_pool_pre = await NestPool.balanceOfNestInPool(_C_NestPool);
@@ -365,12 +365,95 @@ describe("NestToken contract", function () {
             const re = await buytoken.wait();
             const sheet1 = await NestMining.contentOfPriceSheet(_C_USDT,2);
             
-            //console.log("sheet1",sheet1);
+            console.log("sheet1",sheet1);
 
             //check new sheet
               expect(sheet1.miner).to.equal(userB.address);
 
         });
+
+        it("should sell token correctly !", async ()=> {
+            const token = _C_USDT;
+            await USDT.connect(userB).approve(_C_NestPool,usdt(100000000)); 
+            const nestPrice = nest(1000);
+            const usdtPrice = usdt(350);
+            const chunkSize = 10;
+            const ethNum = BigNumber.from(40);
+            const nestPerChunk = BN(10000);
+            const oneEther = ethers.utils.parseEther("1");
+            const msgValue = ethers.utils.parseEther("200.0");
+
+            const takeChunkNum = BigNumber.from(1);
+            const newTokenPrice = usdt(300);
+
+            const tx = await NestMining.connect(userA).post(token, usdtPrice, nestPrice, ethNum, { value: msgValue });
+            
+            const receipt = await tx.wait();
+            const sheet = await NestMining.contentOfPriceSheet(token, 3);
+
+            // record recent funds
+            const nest_pool_pre = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
+            const token_pool_pre = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            //console.log('token_pool_pre = ',token_pool_pre);
+            const eth_reward_pre = await provider.getBalance(_C_NestStaking);
+
+            const sellToken = await NestMining.connect(userB).sellToken(token,3,takeChunkNum,newTokenPrice,{ value: msgValue });
+
+            const Re = await sellToken.wait();
+            
+            const sellTokenSheet = await NestMining.contentOfPriceSheet(token,4);
+
+            console.log("sellTokenSheet =",sellTokenSheet);
+
+            // check new sheet
+            expect(sellTokenSheet.miner).to.equal(userB.address);
+            expect(sellTokenSheet.height).to.equal(Re.blockNumber);
+            expect(sellTokenSheet.chunkNum).to.equal(takeChunkNum.mul(2));
+            expect(sellTokenSheet.chunkSize).to.equal(chunkSize);
+            expect(sellTokenSheet.tokenPrice).to.equal(newTokenPrice);
+            expect(sellTokenSheet.remainChunk).to.equal(takeChunkNum.mul(2));
+            expect(sellTokenSheet.ethChunk).to.equal(takeChunkNum.mul(2));
+            expect(sellTokenSheet.tokenChunk).to.equal(0);
+            expect(sellTokenSheet.state).to.equal(2);
+            expect(sellTokenSheet.level).to.equal(1);
+
+            // check updated sheet
+            const remainChunk = sheet.remainChunk;
+            const updatedSheet = await NestMining.contentOfPriceSheet(token, 3);
+            //console.log("updated sheet = ",updatedSheet);
+            const remainChunk2 = updatedSheet.remainChunk;
+            
+            expect(updatedSheet.miner).to.equal(sheet.miner);
+            expect(updatedSheet.height).to.equal(receipt.blockNumber);
+            expect(BigNumber.from(remainChunk).sub(BigNumber.from(remainChunk2))).to.equal(takeChunkNum);
+            expect(BigNumber.from(updatedSheet.tokenChunk)).to.equal(BigNumber.from(sheet.tokenChunk).add(takeChunkNum));
+            expect(updatedSheet.state).to.equal(3);
+
+            //check taker sheet 
+            const takerSheet = await NestMining.takerOf(token,3,0);
+            //console.log("takerSheet =",takerSheet);
+            expect(takerSheet.takerAddress).to.equal(userB.address);
+            expect(takerSheet.ethChunk).to.equal(takeChunkNum);
+
+            // check nestpool
+            const nest_pool_now = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const eth_pool_now = await NestPool.balanceOfEthInPool(_C_NestPool);
+            const token_pool_now = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            console.log('token_pool_now = ',token_pool_now);
+            //console.log('nest_pool_now = ',nest_pool_now);
+            //console.log('nest_pool_pre = ',nest_pool_pre);
+            expect(nest_pool_now.sub(nest_pool_pre)).to.equal(nestPerChunk.mul(takeChunkNum).mul(oneEther));
+            expect(eth_pool_now.sub(eth_pool_pre)).to.equal(takeChunkNum.mul(2).mul(chunkSize).mul(oneEther));
+            expect(token_pool_now.sub(token_pool_pre)).to.equal(takeChunkNum.mul(chunkSize).mul(sheet.tokenPrice));
+
+            //check ethFee
+            const eth_reward_now = await provider.getBalance(_C_NestStaking);
+            expect(eth_reward_now.sub(eth_reward_pre)).to.equal(takeChunkNum.mul(chunkSize).mul(oneEther).div(1000));
+        });
+
+
+
     
     });
 
