@@ -496,6 +496,49 @@ describe("NestToken contract", function () {
             console.log('userB_balance_in_nestpool_now = ',userB_balance_in_nestpool_now);
             expect(userB_balance_in_nestpool_now.sub(userB_balance_in_nestpool_pre)).to.equal(freezeToken);
         });
+
+         // clear all takers lists (there is only one taker, it need to extend.)
+         it("should clearAll correctly !", async ()=> {
+            const token = _C_USDT;
+            await USDT.connect(userA).approve(_C_NestPool,usdt(2000000000)); 
+            const msgValue = ethers.utils.parseEther("200.0");
+
+            const takerSheetLength_pre = await NestMining.lengthOfTakers(token,3);
+            //const token_pool_pre = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            
+            // userA's funds 
+            const userA_balance_in_nestpool_pre = await NestPool.balanceOfTokenInPool(userA.address,token);
+            const userA_balance_in_exAddress_pre = await USDT.balanceOf(userA.address);
+
+            //userB's funds in nestpool
+            const userB_balance_in_nestpool_pre = await NestPool.balanceOfTokenInPool(userB.address,token);
+
+            const takerSheet = await NestMining.takerOf(token,3,0);
+
+            const tx = await NestMining.connect(userA).clearAll(token,3,{ value: msgValue });
+
+            //check taker's length at present
+            const takerSheetLength_now = await NestMining.lengthOfTakers(token,3);
+
+            expect(takerSheetLength_now).to.equal(0);
+
+            //check sheet state
+            const sheet = await NestMining.contentOfPriceSheet(token, 3);
+            expect(sheet.state).to.equal(1);
+
+            //check  userA's funds
+            //const token_pool_now = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            const freezeToken = await (sheet.tokenPrice).mul(sheet.chunkSize).mul(takerSheet.tokenChunk);
+            const userA_balance_in_nestpool_now = await NestPool.balanceOfTokenInPool(userA.address,token);
+            const userA_balance_in_exAddress_now = await USDT.balanceOf(userA.address);
+            expect(userA_balance_in_exAddress_pre.sub(userA_balance_in_exAddress_now)).to.equal(freezeToken);
+
+            //userB's funds in nestpool
+            const userB_balance_in_nestpool_now = await NestPool.balanceOfTokenInPool(userB.address,token);
+            //console.log('userB_balance_in_nestpool_now = ',userB_balance_in_nestpool_now);
+            expect(userB_balance_in_nestpool_now.sub(userB_balance_in_nestpool_pre)).to.equal(freezeToken);
+           
+        });
     
     });
 
