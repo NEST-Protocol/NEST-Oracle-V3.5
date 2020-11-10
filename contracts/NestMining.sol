@@ -27,11 +27,11 @@ contract NestMining {
     using MiningLookupPrice for MiningData.State;
     using MiningOp for MiningData.State;
 
-    INestPool       _C_NestPool;
-    ERC20           _C_NestToken;
-    INestStaking    _C_NestStaking;
-    INNRewardPool   _C_NNRewardPool;
-    address         _C_NestQuery;
+    // INestPool       _C_NestPool;
+    // ERC20           _C_NestToken;
+    // INestStaking    _C_NestStaking;
+    // INNRewardPool   _C_NNRewardPool;
+    // address         _C_NestQuery;
 
     address _developer_address;
     address _NN_address;
@@ -68,9 +68,6 @@ contract NestMining {
 
     uint256 constant c_ethereum_block_interval = 14; // 14 seconds per block on average
 
-    
-    // _ntoken_at_height: ntoken => block height => (ntoken amount, eth amount)
-    // mapping(address => mapping(uint256 => uint256)) _ntoken_at_height;
 
     /* ========== EVENTS ========== */
 
@@ -99,9 +96,9 @@ contract NestMining {
         external
         onlyWhenUninitialized 
     {
-        _C_NestToken = ERC20(NestToken);
-        _C_NestPool = INestPool(NestPool);
-        _C_NestStaking = INestStaking(NestStaking);
+        state._C_NestToken = NestToken;
+        state._C_NestPool = (NestPool);
+        state._C_NestStaking = (NestStaking);
         state._latest_mining_height = block.number;
         uint256 amount = MiningData.c_mining_nest_yield_per_block_base;
         for (uint i =0; i < 10; i++) {
@@ -203,7 +200,7 @@ contract NestMining {
     /* ========== POST/CLOSE Price Sheets ========== */
 
     /// @dev post a single price sheet for any token
-    function _post(address _token, uint256 _tokenPrice, uint256 _ethNum, uint256 _chunkSize, uint256 _state, uint256 _level) internal 
+    function _post(address _token, uint256 _tokenPrice, uint256 _ethNum, uint256 _chunkSize, uint256 _state, uint256 _level, uint256 _typ) internal 
     {
         MiningData.PriceSheet[] storage _sheets = state.priceSheetList[_token];
         uint256 _ethChunks = _ethNum.div(_chunkSize);
@@ -221,17 +218,18 @@ contract NestMining {
             uint8(_level),                    // level
             uint8(0),                       // _reserved
             uint128(_tokenPrice),            // tokenPrice 
-            uint128(0)            
+            uint8(_typ),                    // typ            
+            uint120(0)            
         ));
         emit PricePosted(msg.sender, _token, (_sheets.length - 1), _ethNum.mul(1 ether), _tokenPrice.mul(_ethNum)); 
     }
 
-    function _mine(uint256 ethNum) internal
+    function _mine(address _ntoken, uint256 ethNum) internal
     {
         INestPool _C_NestPool = INestPool(state._C_NestPool);
         INNRewardPool _C_NNRewardPool = INNRewardPool(state._C_NNRewardPool);
 
-        uint256 nestEthAtHeight = state._nest_at_height[block.number];
+        uint256 nestEthAtHeight = state._ntoken_at_height[_ntoken][block.number];
         uint256 _nestAtHeight = uint256(nestEthAtHeight >> 128);
         uint256 _ethAtHeight = uint256(nestEthAtHeight % (1 << 128));
         if (_nestAtHeight == 0) {
@@ -243,33 +241,50 @@ contract NestMining {
         }
         _ethAtHeight = _ethAtHeight.add(ethNum);
         require(_nestAtHeight < (1 << 128) && _ethAtHeight < (1 << 128), "Nest:Mine:OVERFL(mined)");
-        state._nest_at_height[block.number] = (_nestAtHeight * (1<< 128) + _ethAtHeight);
+        state._ntoken_at_height[_ntoken][block.number] = (_nestAtHeight * (1<< 128) + _ethAtHeight);
     }
 
-    function post(address token1, uint256 token1Price, uint256 token2Price, uint256 ethNum) public payable noContract
+    function _mineN(address _ntoken, uint256 _ethNum) internal
+    {
+        INestPool _C_NestPool = INestPool(state._C_NestPool);
+        INNRewardPool _C_NNRewardPool = INNRewardPool(state._C_NNRewardPool);
+
+        uint256 ntokenEthAtHeight = state._ntoken_at_height[_ntoken][block.number];
+        uint256 _ntokenAtHeight = uint256(ntokenEthAtHeight >> 128);
+        uint256 _ethAtHeight = uint256(ntokenEthAtHeight % (1 << 128));
+        if (_ntokenAtHeight == 0) {
+            uint256 ntokenAmount = mineNToken(_ntoken);  
+            _ntokenAtHeight = ntokenAmount;
+            INToken(_ntoken).increaseTotal2(ntokenAmount, address(_C_NestPool));
+        }
+        _ethAtHeight = _ethAtHeight.add(_ethNum);
+        require(_ntokenAtHeight < (1 << 128) && _ethAtHeight < (1 << 128), "Nest:Mine:OVERFL(mined)");
+        state._ntoken_at_height[_ntoken][block.number] = (_ntokenAtHeight * (1<< 128) + _ethAtHeight);
+    }
+
+    function post(address token, uint256 tokenPrice, uint256 ntokenPrice, uint256 ethNum) public payable noContract
     {
         // check parameters 
         uint gas = gasleft();
-        require(token1 != address(0x0), "Nest:Mine:(token)=0"); 
-        require(ethNum % state.ethNumPerChunk == 0, "Nest:Mine:mod(ethAmount)!=0");
-        require(ethNum >= state.ethNumPerChunk, "Nest:Mine:(ethAmount)<unit");
-        require(token1Price > 0, "Nest:Mine:(price)=0");
-        require(token2Price > 0, "Nest:Mine:(price)=0");
-
-        // emit LogUint("10: gas remain", gas-gasleft()); gas = gasleft();
+        require(token != address(0x0), "Nest:Mine:!(token)"); 
+        require(ethNum % state.ethNumPerChunk == 0 && ethNum >= state.ethNumPerChunk, "Nest:Mine:!(ethNum)");
+        require(tokenPrice > 0, "Nest:Mine:!(price)");
+        require(ntokenPrice > 0, "Nest:Mine:!(nprice)");
 
         // calculate eth fee
         uint256 _ethFee = ethNum.mul(2).mul(1e18).mul(c_mining_fee_thousandth).div(1000);
 
         // emit LogUint("20: gas remain", gas-gasleft()); gas = gasleft();
-
+        INestPool _C_NestPool = INestPool(state._C_NestPool);
+        address _ntoken = _C_NestPool.getNTokenFromToken(token);
+        require(_ntoken != address(0), "Nest:Mine:!(ntoken)");
 
         { // settle ethers and tokens
             _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
             // emit LogUint("30: gas remain", gas-gasleft()); gas = gasleft();        
-
+            
             // transfer ethFee as rewards to the staking contract
-            _C_NestStaking.addETHReward{value:_ethFee}(address(_C_NestToken));       
+            INestStaking(state._C_NestStaking).addETHReward{value:_ethFee}(_ntoken);       
 
             // freeze ethers in the nest pool
             _C_NestPool.freezeEth(msg.sender, ethNum.mul(2).mul(1 ether));
@@ -277,25 +292,39 @@ contract NestMining {
             // emit LogUint("gas remain 60", gas-gasleft()); gas = gasleft();
         }
 
-        // append two new price sheets
-        _post(token1, token1Price, ethNum, state.ethNumPerChunk, 0x2, 0x0);
-        // emit LogUint("70: gas remain", gas-gasleft()); gas = gasleft();
-        _post(address(_C_NestToken), token2Price, ethNum, state.ethNumPerChunk, 0x2, 0x0);
-        // emit LogUint("80: gas remain", gas-gasleft()); gas = gasleft();
-        _mine(ethNum.mul(2));
-        // emit LogUint("90: gas remain", gas-gasleft()); gas = gasleft();
+        // if (token, ntoken) == (USDT, NEST), then start to mine NEST, otherwise NToken(token) 
+        if (_ntoken == state._C_NestToken) {
+            // append two new price sheets
+            _post(token, tokenPrice, ethNum, state.ethNumPerChunk, 0x2, 0x0, 0x1);
+            _post(_ntoken, ntokenPrice, ethNum, state.ethNumPerChunk, 0x2, 0x0, 0x2);
+            
+            _mine(_ntoken, ethNum);
+        } else {
+            // append two new price sheets
+            _post(token, tokenPrice, ethNum, state.ethNumPerChunk, 0x2, 0x0, 0x3);
+            _post(_ntoken, ntokenPrice, ethNum, state.ethNumPerChunk, 0x2, 0x0, 0x4);
+            _mineN(_ntoken, ethNum);
+        }
 
         return; 
     }
 
     function _close(address _token, MiningData.PriceSheet memory _sheet) private 
     {
-        uint256 h = uint256(_sheet.height);
-        uint256 _nestAtHeight = uint256(state._nest_at_height[h] / (1 << 128));
-        uint256 _ethAtHeight = uint256(state._nest_at_height[h] % (1 << 128));
-        uint256 reward = uint256(_sheet.remainChunk).mul(uint256(_sheet.chunkSize)).mul(_nestAtHeight).div(_ethAtHeight);
+        INestPool _C_NestPool = INestPool(state._C_NestPool);
 
-        _C_NestPool.addNest(address(msg.sender), reward);
+        if (_sheet.typ == 0x1 && _sheet.typ == 0x3) {
+            address _ntoken = _C_NestPool.getNTokenFromToken(_token);
+            uint256 _eth_nest_at_height = state._ntoken_at_height[_ntoken][uint256(_sheet.height)];
+            uint256 _nestAtHeight = uint256(_eth_nest_at_height / (1 << 128));
+            uint256 _ethAtHeight = uint256(_eth_nest_at_height % (1 << 128));
+            uint256 reward = uint256(_sheet.remainChunk).mul(uint256(_sheet.chunkSize)).mul(_nestAtHeight).div(_ethAtHeight);
+            if (_sheet.typ == 0x1) { // _sheet is a USDT sheet
+                _C_NestPool.addNest(address(msg.sender), reward);
+            } else {                 // _sheet is a token sheet
+                _C_NestPool.addNToken(address(msg.sender), _ntoken, reward);
+            }
+        }
 
         uint256 _ethAmount = uint256(_sheet.ethChunk).mul(uint256(_sheet.chunkSize)).mul(1 ether);
         uint256 _tokenAmount = uint256(_sheet.tokenChunk).mul(uint256(_sheet.chunkSize)).mul(_sheet.tokenPrice);
@@ -310,13 +339,14 @@ contract NestMining {
 
     function _recover(address _token, uint256 _index, MiningData.PriceSheet memory _sheet) private 
     {
-        uint256 _ethChunkAmount = uint256(_sheet.chunkSize).mul(1 ether);
+        uint256 _ethChunkAmount = uint256(_sheet.chunkSize);
         uint256 _tokenChunkAmount = uint256(_sheet.tokenPrice).mul(_ethChunkAmount);
+        INestPool _C_NestPool = INestPool(state._C_NestPool);
 
         MiningData.Taker[] storage _ts = state._takers[_token][_index];
         uint256 _len = _ts.length;
         for (uint i = 0; i < _len; i++) {
-            MiningData.Taker memory _t = _ts[_len - i];
+            MiningData.Taker memory _t = _ts[_len - 1 - i];
             if (_t.ethChunk > 0) {
                 _C_NestPool.freezeEth(address(msg.sender), _ethChunkAmount.mul(_t.ethChunk));
                 _C_NestPool.unfreezeEth(address(_t.takerAddress), _ethChunkAmount.mul(2).mul(_t.ethChunk));
@@ -375,16 +405,31 @@ contract NestMining {
         require(newTokenPrice > 0, "Nest:Mine:(price)=0");
         require(takeChunkNum > 0, "Nest:Mine:(take)=0");
 
-        address nToken = _C_NestPool.getNTokenFromToken(token);
-        require (nToken != address(0x0), "Nest:Mine:!(ntoken)");
-
         MiningData.PriceSheet memory _sheet = state.priceSheetList[token][index]; 
         require(block.number.sub(_sheet.height) < c_price_duration_block, "Nest:Mine:!EFF(sheet)");
+
+        INestPool _C_NestPool = INestPool(state._C_NestPool);
 
         uint256 _chunkSize = uint256(_sheet.chunkSize);
         uint256 _state = uint256(_sheet.state);
         uint256 _level = uint256(_sheet.level);
         require(_state == 0x2 || _state == 0x3,  "Nest:Mine:!(state)");
+
+        {
+            address nToken = token;
+            
+            if (_sheet.typ == 0x1 && _sheet.typ == 0x3) {
+                nToken = _C_NestPool.getNTokenFromToken(token);
+                require (nToken != address(0x0), "Nest:Mine:!(ntoken)");
+            }
+
+            uint256 _ethNum = takeChunkNum.mul(_chunkSize);
+            uint256 _ethFee = _ethNum.mul(1 ether).mul(c_take_fee_thousandth).div(1000);
+
+            // save the changes into miner's virtual account
+            _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
+            INestStaking(state._C_NestStaking).addETHReward{value:_ethFee}(nToken);
+        }
 
         // post a new price sheet
         { 
@@ -407,7 +452,7 @@ contract NestMining {
                     _newLevel = _level + 1;
                 }
             
-                _post(token, newTokenPrice, _ethChunkNum, uint256(_sheet.chunkSize), 0x2, _newLevel);
+                _post(token, newTokenPrice, _ethChunkNum, uint256(_sheet.chunkSize), 0x2, _newLevel, _sheet.typ);
                 _C_NestPool.freezeNest(address(msg.sender), _nestDeposited.mul(1e18));
             }
             _C_NestPool.freezeEth(address(msg.sender), _ethChunkNum.add(takeChunkNum).mul(_chunkSize).mul(1 ether));
@@ -428,17 +473,6 @@ contract NestMining {
             emit TokenBought(address(msg.sender), address(token), index, _ethNum.mul(1 ether), _ethNum.mul(_sheet.tokenPrice));
         }
 
-        {
-            uint256 _ethNum = takeChunkNum.mul(_chunkSize);
-            uint256 _ethFee = _ethNum.mul(1 ether).mul(c_take_fee_thousandth).div(1000);
-
-            // save the changes into miner's virtual account
-            if (msg.value > _ethFee) {
-                _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
-            }
-            _C_NestStaking.addETHReward{value:_ethFee}(nToken);
-
-        }
         return; 
     }
 
@@ -450,9 +484,6 @@ contract NestMining {
         require(newTokenPrice > 0, "Nest:Mine:(price)=0");
         require(takeChunkNum > 0, "Nest:Mine:(take)=0");
 
-        address nToken = _C_NestPool.getNTokenFromToken(token);
-        require (nToken != address(0x0), "Nest:Mine:!(ntoken)");
-
         MiningData.PriceSheet memory _sheet = state.priceSheetList[token][index]; 
         require(block.number.sub(_sheet.height) < c_price_duration_block, "Nest:Mine:!EFF(sheet)");
 
@@ -462,8 +493,22 @@ contract NestMining {
         uint256 _level = uint256(_sheet.level);
         require(_state == 0x2 || _state == 0x3,  "Nest:Mine:!(state)");
 
+        INestPool _C_NestPool = INestPool(state._C_NestPool);
+
         // check bitting conditions
         require(_sheet.remainChunk >= takeChunkNum, "Nest:Mine:!(remain)");
+
+        {
+            address nToken = token;
+            if (_sheet.typ == 0x1 && _sheet.typ == 0x3) {
+                nToken = _C_NestPool.getNTokenFromToken(token);
+                require (nToken != address(0x0), "Nest:Mine:!(ntoken)");
+            }
+
+            uint256 _ethFee = _ethNum.mul(1 ether).mul(c_take_fee_thousandth).div(1000);
+            _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
+            INestStaking(state._C_NestStaking).addETHReward{value:_ethFee}(nToken);
+        }
 
         // post a new price sheet
         {
@@ -485,7 +530,7 @@ contract NestMining {
                     _nestDeposited = takeChunkNum.mul(uint256(state.nestPerChunk));
                     _newLevel = _level + 1;
                 }
-                _post(token, newTokenPrice, _ethChunkNum, uint256(_sheet.chunkSize), 0x2, _newLevel);
+                _post(token, newTokenPrice, _ethChunkNum, uint256(_sheet.chunkSize), 0x2, _newLevel, _sheet.typ);
                 _C_NestPool.freezeNest(address(msg.sender), _nestDeposited.mul(1e18));
             }
             _C_NestPool.freezeEth(address(msg.sender), _ethChunkNum.mul(_chunkSize).mul(1 ether));
@@ -503,14 +548,7 @@ contract NestMining {
             emit TokenSold(address(msg.sender), address(token), index, _ethNum.mul(1 ether), _ethNum.mul(_sheet.tokenPrice));
 
         }
-        {
-            uint256 _ethFee = _ethNum.mul(1 ether).mul(c_take_fee_thousandth).div(1000);
 
-            if (msg.value > _ethFee) {
-                _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
-            }
-            _C_NestStaking.addETHReward{value:_ethFee}(nToken);
-        }
 
         return; 
     }
@@ -678,7 +716,7 @@ contract NestMining {
         external view onlyGovOrBy(state._C_NestQuery)
         returns (uint256 ethNum, uint256 tokenAmount, uint256 atHeight) 
     {
-        require(_C_NestPool.getNTokenFromToken(token) != address(0), "Nest:Mine:!token");
+        require(INestPool(state._C_NestPool).getNTokenFromToken(token) != address(0), "Nest:Mine:!token");
         return state._calcPriceAtHeight(token, block.number);
     }
 
@@ -686,7 +724,7 @@ contract NestMining {
         external view onlyGovOrBy(state._C_NestQuery)
         returns (uint256 ethNum, uint256 tokenAmount, uint256 atHeight) 
     {
-        require(_C_NestPool.getNTokenFromToken(token) != address(0), "Nest:Mine:!token");
+        require(INestPool(state._C_NestPool).getNTokenFromToken(token) != address(0), "Nest:Mine:!token");
         MiningData.Price memory _pi = state._priceInEffect[token];
         return (uint256(_pi.ethNum), uint256(_pi.tokenAmount), uint256(_pi.height));
     }
@@ -695,7 +733,7 @@ contract NestMining {
         external view onlyGovOrBy(state._C_NestQuery)
         returns (uint256, uint256, uint256, int128, int128) 
     {
-        require(_C_NestPool.getNTokenFromToken(token) != address(0), "Nest:Mine:!token");
+        require(INestPool(state._C_NestPool).getNTokenFromToken(token) != address(0), "Nest:Mine:!token");
         MiningData.Price memory _pi = state._priceInEffect[token];
         int128 _sigma = ABDKMath64x64.sqrt(ABDKMath64x64.abs(_pi.volatility_sigma_sq));
         int128 _avg = _pi.avgTokenAmount;
@@ -735,51 +773,55 @@ contract NestMining {
        return uint64(state._latest_mining_height);
     }
 
-    // function mineNToken(address ntoken) private returns (uint256) {
-    //     (uint256 genesis, uint256 last) = INToken(ntoken).checkBlockInfo();
+    function mineNToken(address ntoken) private returns (uint256) {
+        (uint256 genesis, uint256 last) = INToken(ntoken).checkBlockInfo();
 
-    //     uint256 period = block.number.sub(genesis).div(c_mining_nest_yield_cutback_period);
-    //     uint256 ntokenPerBlock;
-    //     if (period > 9) {
-    //         ntokenPerBlock = c_mining_ntoken_yield_off_period_amount;
-    //     } else {
-    //         ntokenPerBlock = _mining_ntoken_yield_per_block_amount[period];
-    //     }
-    //     uint256 yieldAmount = ntokenPerBlock.mul(block.number.sub(last));
-    //     INToken(ntoken).increaseTotal(yieldAmount);
-    //     // emit NTokenMining(block.number, yieldAmount, ntoken);
-    //     return yieldAmount;
-    // }
+        uint256 period = block.number.sub(genesis).div(c_mining_nest_yield_cutback_period);
+        uint256 ntokenPerBlock;
+        if (period > 9) {
+            ntokenPerBlock = c_mining_ntoken_yield_off_period_amount;
+        } else {
+            ntokenPerBlock = state._mining_ntoken_yield_per_block_amount[period];
+        }
+        uint256 _interval = block.number.sub(last);
+        if (_interval > 300 ) {
+            _interval = 300;
+        }
+        uint256 yieldAmount = ntokenPerBlock.mul(_interval);
+        INToken(ntoken).increaseTotal(yieldAmount);
+        // emit NTokenMining(block.number, yieldAmount, ntoken);
+        return yieldAmount;
+    }
 
     /* ========== MINING ========== */
 
 
     function withdrawEth(uint256 ethAmount) public noContract
     {
-        _C_NestPool.withdrawEth(address(msg.sender), ethAmount); 
+        INestPool(state._C_NestPool).withdrawEth(address(msg.sender), ethAmount); 
     }
 
     function withdrawToken(address token, uint256 tokenAmount) public noContract
     {
-        _C_NestPool.withdrawToken(address(msg.sender), token, tokenAmount); 
+        INestPool(state._C_NestPool).withdrawToken(address(msg.sender), token, tokenAmount); 
     }
 
     function claimAllNest() public noContract
     {
-        uint256 nestAmount = _C_NestPool.balanceOfNestInPool(address(msg.sender));
-        _C_NestPool.withdrawNest(address(msg.sender), nestAmount);
+        uint256 nestAmount = INestPool(state._C_NestPool).balanceOfNestInPool(address(msg.sender));
+        INestPool(state._C_NestPool).withdrawNest(address(msg.sender), nestAmount);
     }
 
     function withdrawEthAndToken(uint256 ethAmount, address token, uint256 tokenAmount) public noContract
     {
-        _C_NestPool.withdrawEthAndToken(address(msg.sender), ethAmount, token, tokenAmount); 
+        INestPool(state._C_NestPool).withdrawEthAndToken(address(msg.sender), ethAmount, token, tokenAmount); 
     }
 
     function claimNToken(address ntoken, uint256 amount) public noContract {
-        if (ntoken == address(0x0) || ntoken == address(_C_NestToken)){
-            _C_NestPool.withdrawNest(address(msg.sender), amount); 
+        if (ntoken == address(0x0) || ntoken == address(state._C_NestToken)){
+            INestPool(state._C_NestPool).withdrawNest(address(msg.sender), amount); 
         } else {
-            _C_NestPool.withdrawNToken(address(msg.sender), ntoken, amount);
+            INestPool(state._C_NestPool).withdrawNToken(address(msg.sender), ntoken, amount);
         }
     }
 
@@ -853,13 +895,13 @@ contract NestMining {
         }
     }
 
-    function debugMinedNest(uint256 h) public view returns (uint256, uint256) 
-    {
-        return (uint128(state._nest_at_height[h] / (1 << 128)), uint128(state._nest_at_height[h] % (1 << 128)));
-    }
-    mapping(uint256 => uint256) public acc;
-    function debug(uint256 v) public 
-    {
-        acc[block.number] = acc[block.number] + v;
-    }
+    // function debugMinedNest(uint256 h) public view returns (uint256, uint256) 
+    // {
+    //     return (uint128(state._nest_at_height[h] / (1 << 128)), uint128(state._nest_at_height[h] % (1 << 128)));
+    // }
+    // mapping(uint256 => uint256) public acc;
+    // function debug(uint256 v) public 
+    // {
+    //     acc[block.number] = acc[block.number] + v;
+    // }
 }

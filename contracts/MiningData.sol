@@ -76,7 +76,8 @@ library MiningData {
 
         // TODO: tokenPrice ==> tokenPerChunk
         uint128 tokenPrice;     // the amount of (token1 : 1 ether)
-        uint128 _reserved2;     // the amount of (token2 : 1 ether)
+        uint8   typ;            // =1: USD sheet | =2: NEST sheet |=3: token sheet |=4: ntoken sheet
+        uint120 _reserved2;     // the amount of (token2 : 1 ether)
     }
 
         /// @dev size: (3 x 256 bit)
@@ -125,7 +126,10 @@ library MiningData {
         mapping(address => mapping(uint256 => Taker[])) _takers;
 
         // _nest_at_height: block height => (nest amount, ethers amount)
-        mapping(uint256 => uint256) _nest_at_height;
+        // mapping(uint256 => uint256)                     _nest_at_height;
+        // _ntoken_at_height: ntoken => block height => (ntoken amount, eth amount)
+        mapping(address => mapping(uint256 => uint256)) _ntoken_at_height;
+
 
         address     _C_NestPool;
         address     _C_NestToken;

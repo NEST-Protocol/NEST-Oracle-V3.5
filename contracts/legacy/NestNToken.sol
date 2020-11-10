@@ -59,6 +59,15 @@ contract NestNToken is INToken {
         _recentlyUsedBlock = block.number;
     }
 
+    // TODO: only for debugging
+    function increaseTotal2(uint256 value, address offerMain) override public {
+        // address offerMain = address(_voteFactory.checkAddress("nest.nToken.offerMain"));
+        // require(address(msg.sender) == offerMain, "No authority");
+        _balances[offerMain] = _balances[offerMain].add(value);
+        _totalSupply = _totalSupply.add(value);
+        _recentlyUsedBlock = block.number;
+    }
+
     /**
     * @dev 查询token总量
     * @return token总量

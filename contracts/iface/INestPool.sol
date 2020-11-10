@@ -9,7 +9,7 @@ interface INestPool {
 
     function distributeRewards(address contributor) external returns(uint256);
     // function increaseNestReward(address contributor, uint256 amount) external;
-    function increaseNTokenReward(address contributor, address ntoken, uint256 amount) external;
+    function addNToken(address contributor, address ntoken, uint256 amount) external;
     function depositEthMiner(address miner, uint256 value) external;
 
     function depositEth(address miner) external payable;

@@ -151,6 +151,14 @@ contract NTokenController is  ReentrancyGuard {
             "Nest:TO:!TEST(token)");
         tokenERC20.safeTransfer(address(msg.sender), 1);
 
+        // is token not a ntoken?
+        bool isNToken = false;
+        try INToken(token).checkBidder() returns(address bidder) {
+            isNToken = true;
+        } catch {
+            isNToken = false;
+        }
+
         require(ERC20(_C_NestToken).transferFrom(address(msg.sender), address(this), NTOKEN_NEST_STAKED_AMOUNT), 
             "Nest:TO:!DEPO(nest)");
 
@@ -162,7 +170,7 @@ contract NTokenController is  ReentrancyGuard {
         );
 
         //  create ntoken
-        NestNToken nToken = NestNToken(address(this));
+        NestNToken nToken = new NestNToken(strConcat("NToken", getAddressStr(ntokenCounter)), strConcat("N", getAddressStr(ntokenCounter)), address(governance), address(msg.sender));
         // NestNToken nToken = new NestNToken(strConcat("NToken", getAddressStr(_x_ntoken_counter)), strConcat("N", getAddressStr(_x_ntoken_counter)), address(_C_DAO), address(auction.winner));
         //  set the mapping of token => ntoken
         INestPool(_C_NestPool).setNTokenToToken(token, address(nToken));

@@ -291,7 +291,7 @@ contract NestPool is INestPool {
         _nest_ledger[miner] = _nest_ledger[miner].add(amount);
     }
 
-    function increaseNTokenReward(address miner, address ntoken, uint256 amount) 
+    function addNToken(address miner, address ntoken, uint256 amount) 
         override public onlyMiningContract 
     {
         require (amount > 0, "Reward amount should be greater than zero");
