@@ -348,13 +348,13 @@ contract NestMining {
         for (uint i = 0; i < _len; i++) {
             MiningData.Taker memory _t = _ts[_len - 1 - i];
             if (_t.ethChunk > 0) {
-                _C_NestPool.freezeEth(address(msg.sender), _ethChunkAmount.mul(_t.ethChunk));
-                _C_NestPool.unfreezeEth(address(_t.takerAddress), _ethChunkAmount.mul(2).mul(_t.ethChunk));
+                _C_NestPool.freezeEth(address(msg.sender), _ethChunkAmount.mul(_t.ethChunk).mul(1 ether));
+                _C_NestPool.unfreezeEth(address(_t.takerAddress), _ethChunkAmount.mul(2).mul(_t.ethChunk).mul(1 ether));
                 _sheet.tokenChunk = uint8(uint256(_sheet.tokenChunk).sub(uint256(_t.ethChunk)));
             } else if (_t.tokenChunk > 0) {
                 _C_NestPool.freezeToken(address(msg.sender), _token, _tokenChunkAmount.mul(_t.tokenChunk));
                 _C_NestPool.unfreezeToken(address(_t.takerAddress), _token, _tokenChunkAmount.mul(_t.tokenChunk));
-                _C_NestPool.unfreezeEth(address(_t.takerAddress), _ethChunkAmount.mul(_t.tokenChunk));
+                _C_NestPool.unfreezeEth(address(_t.takerAddress), _ethChunkAmount.mul(_t.tokenChunk).mul(1 ether));
                 _sheet.ethChunk = uint8(uint256(_sheet.ethChunk).sub(uint256(_t.tokenChunk)));
             }
             _ts.pop();
