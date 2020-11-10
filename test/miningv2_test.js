@@ -539,6 +539,77 @@ describe("NestToken contract", function () {
             expect(userB_balance_in_nestpool_now.sub(userB_balance_in_nestpool_pre)).to.equal(freezeToken);
            
         });
+
+         // set up a new instance
+         it("should refute correctly !", async ()=> {
+            const token = _C_USDT;
+            await USDT.connect(userB).approve(_C_NestPool,usdt(100000000)); 
+            const nestPrice = nest(1000);
+            const usdtPrice = usdt(350);
+            const sheet_duration_block = BN(1440);
+            const ethNum = BigNumber.from(40);
+            const msgValue = ethers.utils.parseEther("200.0");
+
+            const takeChunkNum = BigNumber.from(1);
+            const newTokenPrice = usdt(300);
+
+            const tx = await NestMining.connect(userA).post(token, usdtPrice, nestPrice, ethNum, { value: msgValue });
+            const receipt = await tx.wait();
+            const sheet = await NestMining.contentOfPriceSheet(token, 5);
+            console.log('receipt.blockNumber = ',receipt.blockNumber);
+            //console.log('sheet = ',sheet);
+
+            const h0 = await provider.getBlockNumber();
+            console.log('h0 = ',h0);
+            
+            const sellToken = await NestMining.connect(userB).sellToken(token,5,takeChunkNum,newTokenPrice,{ value: msgValue });
+
+            const Re = await sellToken.wait();
+            const sellTokenSheet = await NestMining.contentOfPriceSheet(token,6);
+            //console.log('sellTokenSheet',sellTokenSheet);
+
+            await goBlocks(provider, sheet_duration_block.sub(1));
+
+            const takerSheet = await NestMining.takerOf(token,5,0);
+            //console.log("takerSheet =",takerSheet);
+
+            // Data before update
+            const userB_token_balance_in_nestpool_pre = await NestPool.balanceOfTokenInPool(userB.address,token);
+            const nestpool_token_balance_in_token_pre = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            
+            const userB_eth_balance_in_nestpool_pre = await NestPool.balanceOfEthInPool(userB.address);
+            const nestpool_eth_balance_in_token_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
+
+            const tx1 = await NestMining.connect(userB).refute(token,5,0);
+
+            // ======  assume : taker.ethChunk > 0  ======
+            // check unfreezeToken in nestpool
+            const tokenAmount = (sheet.tokenPrice).mul(takerSheet.ethChunk).mul(sheet.chunkSize);
+            //console.log('tokenAmount',tokenAmount);
+            const userB_token_balance_in_nestpool_now = await NestPool.balanceOfTokenInPool(userB.address,token);
+            const nestpool_token_balance_in_token_now = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+
+            expect(userB_token_balance_in_nestpool_now.sub(userB_token_balance_in_nestpool_pre)).to.equal(tokenAmount);
+            expect(nestpool_token_balance_in_token_now.add(tokenAmount)).to.equal(nestpool_token_balance_in_token_pre);
+
+            // check unfreezeEth in nestpool
+            const ethAmount = eth(BN(sheet.chunkSize).mul(takerSheet.ethChunk)); 
+            console.log('ethAmount',ethAmount);
+
+            const userB_eth_balance_in_nestpool_now = await NestPool.balanceOfEthInPool(userB.address);
+            const nestpool_eth_balance_in_token_now = await NestPool.balanceOfEthInPool(_C_NestPool);
+
+            expect(userB_eth_balance_in_nestpool_now.sub(userB_eth_balance_in_nestpool_pre)).to.equal(ethAmount);
+            expect(nestpool_eth_balance_in_token_now.add(ethAmount)).to.equal(nestpool_eth_balance_in_token_pre);
+
+            // check other state
+            const takerSheet1 = await NestMining.takerOf(token,5,0);
+            const sheet1 = await NestMining.contentOfPriceSheet(token, 5);
+            expect(takerSheet1.ethChunk).to.equal(0);
+            expect(takerSheet1.takerAddress).to.equal(0);
+            expect(sheet1.state).to.equal(4);
+            
+        });
     
     });
 
