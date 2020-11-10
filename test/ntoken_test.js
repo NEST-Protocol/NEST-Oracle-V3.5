@@ -21,7 +21,7 @@ const nest = function (amount) {
     return BigNumber.from(amount).mul(ethdec);
 };
 
-const BN = function (n) {
+const BigN = function (n) {
     return BigNumber.from(n);
 };
 
@@ -70,13 +70,19 @@ describe("NestToken contract", function () {
 
         MiningCalcPriceContract = await ethers.getContractFactory("MiningCalcPrice");
         MiningCalcPrice = await MiningCalcPriceContract.deploy();
+        MiningLookupPriceContract = await ethers.getContractFactory("MiningLookupPrice");
+        MiningLookupPrice = await MiningLookupPriceContract.deploy();
+        MiningOpContract = await ethers.getContractFactory("MiningOp");
+        MiningOp = await MiningOpContract.deploy();
         NestMiningContract = await ethers.getContractFactory("NestMining",
             {
                 libraries: {
-                    MiningCalcPrice: MiningCalcPrice.address
+                    MiningCalcPrice: MiningCalcPrice.address,
+                    MiningLookupPrice: MiningLookupPrice.address,
+                    MiningOp: MiningOp.address
                 }
             }
-        );        
+        );
         
         NestMining = await NestMiningContract.deploy();
 
@@ -152,9 +158,9 @@ describe("NestToken contract", function () {
 
         it("should transfer fail", async () => {
             let amount = eth("10000000001");
-            await expectRevert.unspecified(
+            expect(
                 NestToken.connect(owner).transfer(userA.address, amount)
-            );
+            ).to.be.reverted;
         });
 
         it("should approve correctly, ETH(10,000,000,000) [userA -> _C_NestStaking]", async () => {
@@ -189,23 +195,43 @@ describe("NestToken contract", function () {
 
     describe('NTokenController', function () {
 
+        let _C_NWBTC;
+
         it("can open a new NToken correctly", async () => {
             await WBTC.transfer(userB.address, wbtc(5));
             await WBTC.connect(userB).approve(_C_NTokenController, wbtc(1000));
             await NestToken.connect(userB).approve(_C_NTokenController, nest(1_000_000));
             const tx = await NTokenController.connect(userB).open(_C_WBTC);
             const receipt = await tx.wait();
-            console.log("receipt=", receipt);
             const ev = receipt.events.find((ev) => {
                 if (ev.event == "NTokenOpened") {
                     return true;
                 }
             });
-            console.log("ev=", ev);
-            expect(await NestPool.getNTokenFromToken(_C_WBTC)).to.equal(ev.args.ntoken);
-
+            expect(ev.args.token).to.equal(_C_WBTC);
+            expect(ev.args.owner).to.equal(userB.address);
+            _C_NWBTC = await NestPool.getNTokenFromToken(_C_WBTC);
+            expect(_C_NWBTC).to.equal(ev.args.ntoken);
+            expect(await NTokenController.balanceNest()).to.equal(nest(100_000));
         });
 
+        it("cannot open a ntoken for a NToken", async () => {
+            expect(NTokenController.connect(userB).open(_C_NWBTC)).to.be.reverted;
+        });
+
+        it("can withdraw NEST by the governer", async () => {
+            const nest_userA_pre = await NestToken.balanceOf(userA.address);
+            const amount = await NTokenController.balanceNest();
+            await NTokenController.withdrawNest(userA.address, amount);
+            const nest_userA_post = await NestToken.balanceOf(userA.address);
+            expect(nest_userA_post.sub(nest_userA_pre)).to.equal(amount);
+        });
+
+        it("cannot withdraw NEST by anyone other than the governer", async () => {
+            expect(NTokenController.connect(userB).withdrawNest(userA.address, 1)).to.be.reverted;
+        });
+
+        
         // it("should be able to clear a price sheet correctly", async () => {
 
         //     const ethNum = BN(10);

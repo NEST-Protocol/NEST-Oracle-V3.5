@@ -9,6 +9,7 @@ import "./lib/SafeERC20.sol";
 import "./iface/INestStaking.sol";
 import "./lib/ReentrancyGuard.sol";
 import './lib/TransferHelper.sol';
+import "hardhat/console.sol";
 
 /// @title NNRewardPool
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
@@ -27,8 +28,8 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     uint8 private _state; 
     
     /// @dev The percentage of dividends 
-    ///      - 50% to Nest/NToken holders as dividend
-    ///      - 50% to saving for buying back (future)
+    ///      - 80% to Nest/NToken holders as dividend
+    ///      - 20% to saving for buying back (future)
     uint8 private _dividend_share = 80;
 
     address private _C_NestToken;
@@ -127,7 +128,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         return _staked_balances[ntoken][account];
     }
 
-    // CM: <token收益> = <token原收益> + (<新增总收益> * 50% / <token总锁仓量>) 
+    // CM: <token收益> = <token原收益> + (<新增总收益> * 80% / <token总锁仓量>) 
     function rewardPerToken(address ntoken) public view returns (uint256) {
         uint256 _total = _ntoken_staked_total[ntoken];
         if (_total == 0) {
@@ -135,10 +136,10 @@ contract NestStaking is INestStaking, ReentrancyGuard {
             // if not, the new accrued amount will never be distributed to anyone
             return _reward_per_ntoken_stored[ntoken];
         }
-        return
-            _reward_per_ntoken_stored[ntoken].add(
+        uint256 _rewardPerToken = _reward_per_ntoken_stored[ntoken].add(
                 accrued(ntoken).mul(1e18).mul(_dividend_share).div(_total).div(100)
             );
+        return _rewardPerToken;
     }
 
     // CM: <新增总收益> = <rewardToken 余额> - <上次余额>
