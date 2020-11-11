@@ -156,6 +156,14 @@ describe("NestToken contract", function () {
             //console.log('userB_balance = ',userB_balance);
             expect(userB_balance).to.equal(amount);
         });
+
+        it("should transfer correctly, usdt(2,000,000,000) [Owner => userC]",async () => {
+            const amount = BigNumber.from("2000000000").mul(usdtdec);
+            await USDT.connect(owner).transfer(userC.address, amount);
+            const userC_balance = await USDT.balanceOf(userC.address);
+            //console.log('userB_balance = ',userB_balance);
+            expect(userC_balance).to.equal(amount);
+        });
     });
 
 
@@ -177,9 +185,16 @@ describe("NestToken contract", function () {
             const amount = BigNumber.from("2000000000").mul(ethdec);
             await NestToken.connect(owner).transfer(userB.address, amount);
             const userB_balance = await NestToken.balanceOf(userB.address);
+            console.log('userB_balance = ',userB_balance);
             expect(userB_balance).to.equal(amount);
         });
 
+        it("should transfer correctly, Nest(2,000,000,000) [Owner => userC]", async () => {
+            const amount = BigNumber.from("2000000000").mul(ethdec);
+            await NestToken.connect(owner).transfer(userC.address, amount);
+            const userC_balance = await NestToken.balanceOf(userC.address);
+            expect(userC_balance).to.equal(amount);
+        });
 
         it("should transfer fail", async () => {
             let amount = eth("10000000001");
@@ -202,6 +217,13 @@ describe("NestToken contract", function () {
             expect(approved).to.equal(amount);
         });
 
+        it("should approve correctly, ETH(10,000,000,000) [userC -> _C_NestStaking]", async () => {
+            const amount = eth("10000000000");
+            const rs = await NestToken.connect(userC).approve(_C_NestStaking, amount);
+            const approved = await NestToken.allowance(userC.address, _C_NestStaking);
+            expect(approved).to.equal(amount);
+        });
+
         it("should approve correctly, ETH(10,000,000,000) [userA -> _C_NestPool]", async () => {
             const amount = eth("10000000000");
             const rs = await NestToken.connect(userA).approve(_C_NestPool, amount);
@@ -213,6 +235,13 @@ describe("NestToken contract", function () {
             const amount = eth("10000000000");
             const rs = await NestToken.connect(userB).approve(_C_NestPool, amount);
             const approved = await NestToken.allowance(userB.address, _C_NestPool);
+            expect(approved).to.equal(amount);
+        });
+
+        it("should approve correctly, ETH(10,000,000,000) [userC -> _C_NestPool]", async () => {
+            const amount = eth("10000000000");
+            const rs = await NestToken.connect(userC).approve(_C_NestPool, amount);
+            const approved = await NestToken.allowance(userC.address, _C_NestPool);
             expect(approved).to.equal(amount);
         });
         
@@ -368,7 +397,50 @@ describe("NestToken contract", function () {
             //console.log("sheet1",sheet1);
 
             //check new sheet
-              expect(sheet1.miner).to.equal(userB.address);
+            expect(sheet1.miner).to.equal(userB.address);
+            expect(sheet1.height).to.equal(re.blockNumber);
+            expect(sheet1.chunkNum).to.equal(takeChunkNum.mul(2));
+            expect(sheet1.chunkSize).to.equal(chunkSize);
+            expect(sheet1.tokenPrice).to.equal(newTokenPrice);
+            expect(sheet1.remainChunk).to.equal(takeChunkNum.mul(2));
+            expect(sheet1.ethChunk).to.equal(takeChunkNum.mul(2));
+            expect(sheet1.tokenChunk).to.equal(0);
+            expect(sheet1.state).to.equal(2);
+            expect(sheet1.level).to.equal(1);
+
+            //check taker sheet 
+            const takerSheet = await NestMining.takerOf(_C_USDT,1,0);
+            //console.log("takerSheet =",takerSheet);
+            expect(takerSheet.takerAddress).to.equal(userB.address);
+            expect(takerSheet.tokenChunk).to.equal(takeChunkNum);
+
+            //check updated sheet 
+            const remainChunk1 = sheet.remainChunk;
+            
+            const updatedSheet = await NestMining.contentOfPriceSheet(_C_USDT, 1);
+            //console.log("updated sheet = ",updatedSheet);
+            const remainChunk2 = updatedSheet.remainChunk;
+            
+            expect(updatedSheet.miner).to.equal(sheet.miner);
+            expect(updatedSheet.height).to.equal(receipt.blockNumber);
+            expect(BigNumber.from(remainChunk1).sub(BigNumber.from(remainChunk2))).to.equal(takeChunkNum);
+            expect(BigNumber.from(updatedSheet.ethChunk)).to.equal(BigNumber.from(sheet.ethChunk).add(takeChunkNum));
+            expect(updatedSheet.state).to.equal(3);
+
+            // check nestpool
+            const nest_pool_now = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const eth_pool_now = await NestPool.balanceOfEthInPool(_C_NestPool);
+
+            //console.log('nest_pool_now = ',nest_pool_now);
+            //console.log('nest_pool_pre = ',nest_pool_pre);
+
+            expect(nest_pool_now.sub(nest_pool_pre)).to.equal(nestPerChunk.mul(takeChunkNum).mul(2).mul(oneEther));
+            expect(eth_pool_now.sub(eth_pool_pre)).to.equal(takeChunkNum.mul(3).mul(chunkSize).mul(oneEther));
+
+            //check ethFee
+            const eth_reward_now = await provider.getBalance(_C_NestStaking);
+            console.log('eth_reward_pre = ',eth_reward_now);
+            expect(eth_reward_now.sub(eth_reward_pre)).to.equal(takeChunkNum.mul(chunkSize).mul(oneEther).div(1000));
 
         });
 
@@ -807,8 +879,89 @@ describe("NestToken contract", function () {
                    .add(_close_tokenAmount)).to.equal(userA_token_balance_in_nestpool_now.add(userA_balance_in_exAddress_now));
 
         });
+        
+        // create a priceSheet (userA), userB and userC bite this priceSheet; level < 4
+        it("should buy token correctly !",async ()=> {
+            //========preparation========//
+            const token = _C_USDT;
+            const nestPrice = nest(1000);
+            const usdtPrice = usdt(350);
+            const chunkSize = 10;
+            const ethNum = BigNumber.from(40);
+            const nestPerChunk = BN(10000);
+            const oneEther = ethers.utils.parseEther("1");
+            const msgValue = ethers.utils.parseEther("200.0");
+
+            const takeChunkNum = BigNumber.from(1);
+            const newTokenPrice = usdt(300);
+ 
+            const tx0 = await NestMining.connect(userA).post(token, usdtPrice, nestPrice, ethNum, { value: msgValue });
+            
+            const receipt0 = await tx0.wait();
+            const sheet0 = await NestMining.contentOfPriceSheet(token, 11);
+            //===============================//
+
+            // record funds before biting
+            const nest_pool_pre = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
+            const eth_reward_pre = await provider.getBalance(_C_NestStaking);
+            
+            const userB_balance_in_exAddress_pre = await NestToken.balanceOf(userB.address); // Transfer from an external address may be required
+            const userB_eth_pool_pre = await NestPool.balanceOfEthInPool(userB.address);
+            const userB_nest_pool_pre = await NestPool.balanceOfNestInPool(userB.address);
+
+            const userC_balance_in_exAddress_pre = await NestToken.balanceOf(userC.address); 
+            const userC_eth_pool_pre = await NestPool.balanceOfEthInPool(userC.address);
+            const userC_nest_pool_pre = await NestPool.balanceOfNestInPool(userC.address);
+
+             // bite         
+            const buyToken1 = await NestMining.connect(userB).buyToken(_C_USDT,11,takeChunkNum,newTokenPrice,{ value: msgValue });
+            const sheet1 = await NestMining.contentOfPriceSheet(token,11);
+
+            const buyToken2 = await NestMining.connect(userC).buyToken(_C_USDT,11,takeChunkNum,newTokenPrice,{ value: msgValue });
+            const sheet2 = await NestMining.contentOfPriceSheet(token,11); 
+            
+            // record funds after biting
+            const _ethFee1 = eth(BN(takeChunkNum).mul(sheet0.chunkSize)).div(1000);
+            const _ethFee2 = eth(BN(takeChunkNum).mul(sheet1.chunkSize)).div(1000);
+            const freezeNestAmount = nest(nestPerChunk.mul(takeChunkNum).mul(2));
+
+            const freezeEthAmount1 = eth(BN(takeChunkNum).mul(3).mul(sheet0.chunkSize));
+            const freezeEthAmount2 = eth(BN(takeChunkNum).mul(3).mul(sheet1.chunkSize));
+
+            const nest_pool_now = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const eth_pool_now = await NestPool.balanceOfEthInPool(_C_NestPool);
+            const eth_reward_now = await provider.getBalance(_C_NestStaking);
+
+            const userB_eth_pool_now = await NestPool.balanceOfEthInPool(userB.address);
+            const userB_balance_in_exAddress_now = await NestToken.balanceOf(userB.address);
+            const userB_nest_pool_now = await NestPool.balanceOfNestInPool(userB.address);
+
+            const userC_eth_pool_now = await NestPool.balanceOfEthInPool(userC.address);
+            const userC_balance_in_exAddress_now = await NestToken.balanceOf(userC.address);
+            const userC_nest_pool_now = await NestPool.balanceOfNestInPool(userC.address);
 
 
+            // Inspection of financial transfers 
+            expect(userB_eth_pool_pre.add(msgValue).sub(_ethFee1).sub(freezeEthAmount1)).to.equal(userB_eth_pool_now);
+
+            expect(userB_nest_pool_pre.add(userB_balance_in_exAddress_pre).sub(freezeNestAmount)).to.equal(
+                   userB_nest_pool_now.add(userB_balance_in_exAddress_now));
+
+            expect(userC_eth_pool_pre.add(msgValue).sub(_ethFee2).sub(freezeEthAmount2)).to.equal(userC_eth_pool_now);
+            expect(userC_nest_pool_pre.add(userC_balance_in_exAddress_pre).sub(freezeNestAmount)).to.equal(
+                          userC_nest_pool_now.add(userC_balance_in_exAddress_now));
+
+            expect(eth_pool_pre.add(freezeEthAmount1).add(freezeEthAmount2)).to.equal(eth_pool_now);
+            expect(nest_pool_pre.add(freezeNestAmount).add(freezeNestAmount)).to.equal(nest_pool_now);
+
+            expect(eth_reward_pre.add(_ethFee1).add(_ethFee2)).to.equal(eth_reward_now);
+
+            // check the updated priceSheet
+            expect(sheet2.state).to.equal(3);
+            expect(sheet2.ethChunk).to.equal(BN(sheet1.ethChunk).add(takeChunkNum));
+            expect(sheet2.remainChunk).to.equal(BN(sheet1.remainChunk).sub(takeChunkNum));
+        });
     
     });
 
