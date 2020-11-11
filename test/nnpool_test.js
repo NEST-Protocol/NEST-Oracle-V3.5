@@ -203,12 +203,8 @@ describe("NestToken contract", function () {
     describe('NNRewardPool', function () {
 
         it("can transfer NNToken to userC and userD", async () => {
-            console.log("userC NN = ", await NNToken.balanceOf(userC.address));
-            console.log("owner NN = ", await NNToken.balanceOf(owner.address));
             await NNToken.transfer(userC.address, 500);
-            console.log("userC NN = ", await NNToken.balanceOf(userC.address));
             await NNToken.transfer(userD.address, 1000);
-            console.log("userD NN = ", await NNToken.balanceOf(userD.address));
         });
 
         it("can set NNRewardSum by the governer", async () => {
@@ -250,6 +246,18 @@ describe("NestToken contract", function () {
             expect(await NestToken.balanceOf(userD.address)).to.equal(NEST(800));
         });
 
+        it("can settle rewards when tranferring", async () => {
+            const nest_a_pre = await NestToken.balanceOf(userA.address);
+            const nest_d_pre = await NestToken.balanceOf(userD.address);
+            NNRewardPool.addNNReward(NEST(1200))
+            await NestPool.addNest(_C_NNRewardPool, NEST(1200));
+            await NNToken.connect(userD).transfer(userA.address, 500);
+            const nest_a_post = await NestToken.balanceOf(userA.address);
+            const nest_d_post = await NestToken.balanceOf(userD.address);
+            expecet(nest_d_pre.sub(nest_d_post)).to.equal(NEST(200));
+            expecet(nest_a_post.sub(nest_a_pre)).to.equal(NEST(200));
+
+        });
 
     });
 
