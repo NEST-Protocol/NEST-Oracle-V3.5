@@ -962,6 +962,101 @@ describe("NestToken contract", function () {
             expect(sheet2.ethChunk).to.equal(BN(sheet1.ethChunk).add(takeChunkNum));
             expect(sheet2.remainChunk).to.equal(BN(sheet1.remainChunk).sub(takeChunkNum));
         });
+
+        // create a priceSheet (userA), userB bite this priceSheet by buyToken and userC bite this priceSheet by sellToken; level < 4
+        it('should sell token and buy token correctly !',async ()=> {
+            //========preparation========//
+            const token = _C_USDT;
+            const nestPrice = nest(1000);
+            const usdtPrice = usdt(350);
+            const chunkSize = 10;
+            const ethNum = BigNumber.from(40);
+            const nestPerChunk = BN(10000);
+            const msgValue = ethers.utils.parseEther("200.0");
+            await USDT.connect(userC).approve(_C_NestPool,usdt(100000000)); 
+
+            const takeChunkNum = BigNumber.from(1);
+            const newTokenPrice = usdt(300);
+ 
+            const tx0 = await NestMining.connect(userA).post(token, usdtPrice, nestPrice, ethNum, { value: msgValue });
+            
+            const receipt0 = await tx0.wait();
+            const sheet0 = await NestMining.contentOfPriceSheet(token, 14);
+            //===============================//
+
+            // record funds before biting
+            const nest_pool_pre = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
+            const token_pool_pre = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            const eth_reward_pre = await provider.getBalance(_C_NestStaking);
+             
+            const userB_nest_in_exAddress_pre = await NestToken.balanceOf(userB.address); // Transfer from an external address may be required
+            const userB_eth_pool_pre = await NestPool.balanceOfEthInPool(userB.address);
+            const userB_nest_pool_pre = await NestPool.balanceOfNestInPool(userB.address);
+ 
+            const userC_nest_in_exAddress_pre = await NestToken.balanceOf(userC.address);
+            const userC_token_in_exAddress_pre = await USDT.balanceOf(userC.address);
+            const userC_eth_pool_pre = await NestPool.balanceOfEthInPool(userC.address);
+            const userC_nest_pool_pre = await NestPool.balanceOfNestInPool(userC.address);
+            const userC_token_pool_pre = await NestPool.balanceOfTokenInPool(userC.address,token);
+ 
+            // bite         
+            const buyToken = await NestMining.connect(userB).buyToken(_C_USDT,14,takeChunkNum,newTokenPrice,{ value: msgValue });
+            const sheet1 = await NestMining.contentOfPriceSheet(token,14);
+ 
+            const sellToken = await NestMining.connect(userC).sellToken(_C_USDT,14,takeChunkNum,newTokenPrice,{ value: msgValue });
+            const sheet2 = await NestMining.contentOfPriceSheet(token,14); 
+
+             // record funds after biting
+            const ethFee_BT = eth(BN(takeChunkNum).mul(sheet0.chunkSize)).div(1000);
+            const freezeNestAmount_BT = nest(nestPerChunk.mul(takeChunkNum).mul(2));
+            const freezeEthAmount_BT = eth(BN(takeChunkNum).mul(3).mul(sheet0.chunkSize));
+            
+            const ethFee_ST = eth(BN(takeChunkNum).mul(sheet1.chunkSize)).div(1000);  
+            const freezeNestAmount_ST = nest(nestPerChunk.mul(takeChunkNum)); 
+            const freezeEthAmount_ST = eth(BN(takeChunkNum).mul(2).mul(sheet1.chunkSize));
+            const freezeTokenAmount_ST = BN(takeChunkNum).mul(sheet1.chunkSize).mul(sheet1.tokenPrice);
+
+            const nest_pool_now = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const eth_pool_now = await NestPool.balanceOfEthInPool(_C_NestPool);
+            const token_pool_now = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            const eth_reward_now = await provider.getBalance(_C_NestStaking);
+
+            const userB_eth_pool_now = await NestPool.balanceOfEthInPool(userB.address);
+            const userB_nest_in_exAddress_now = await NestToken.balanceOf(userB.address);
+            const userB_nest_pool_now = await NestPool.balanceOfNestInPool(userB.address);
+
+            const userC_eth_pool_now = await NestPool.balanceOfEthInPool(userC.address);
+            const userC_nest_in_exAddress_now = await NestToken.balanceOf(userC.address);
+            const userC_token_in_exAddress_now = await USDT.balanceOf(userC.address);
+            const userC_nest_pool_now = await NestPool.balanceOfNestInPool(userC.address);
+            const userC_token_pool_now = await NestPool.balanceOfTokenInPool(userC.address,token);
+
+            // Inspection of financial transfers
+            expect(userB_eth_pool_pre.add(msgValue).sub(ethFee_BT).sub(freezeEthAmount_BT)).to.equal(userB_eth_pool_now);
+            expect(userB_nest_pool_pre.add(userB_nest_in_exAddress_pre).sub(freezeNestAmount_BT)).to.equal(
+                   userB_nest_pool_now.add(userB_nest_in_exAddress_now));
+
+            expect(userC_eth_pool_pre.add(msgValue).sub(ethFee_ST).sub(freezeEthAmount_ST)).to.equal(userC_eth_pool_now);
+            expect(userC_token_pool_pre.add(userC_token_in_exAddress_pre).sub(freezeTokenAmount_ST)).to.equal(
+                   userC_token_pool_now.add(userC_token_in_exAddress_now));
+            expect(userC_nest_pool_pre.add(userC_nest_in_exAddress_pre).sub(freezeNestAmount_ST)).to.equal(
+                userC_nest_pool_now.add(userC_nest_in_exAddress_now));
+
+            expect(eth_pool_pre.add(freezeEthAmount_BT).add(freezeEthAmount_ST)).to.equal(eth_pool_now);
+            expect(nest_pool_pre.add(freezeNestAmount_BT).add(freezeNestAmount_ST)).to.equal(nest_pool_now);
+            expect(token_pool_pre.add(freezeTokenAmount_ST)).to.equal(token_pool_now);
+
+            expect(eth_reward_pre.add(ethFee_BT).add(ethFee_ST)).to.equal(eth_reward_now);
+
+            // check the updated priceSheet
+            expect(sheet2.state).to.equal(3);
+            expect(sheet2.tokenChunk).to.equal(BN(sheet1.tokenChunk).add(takeChunkNum));
+            expect(sheet2.remainChunk).to.equal(BN(sheet1.remainChunk).sub(takeChunkNum));
+
+        });
+
+
     
     });
 
