@@ -157,7 +157,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
                     ).div(1e18).add(rewardBalances[ntoken][account]);
     }
 
-    // calculate the 
+    // calculate
     function _rewardPerTokenAndAccrued(address ntoken) internal view returns (uint256, uint256) {
         uint256 _total = _ntoken_staked_total[ntoken];
         if (_total == 0) {
@@ -206,30 +206,30 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         _;
     }
 
-    // CM: 锁仓
+    /// @notice Stake NTokens to get the dividends
     function stake(address ntoken, uint256 amount) external override nonReentrant updateReward(ntoken, msg.sender) 
     {
-        require(_state & 0x02 == 0, "Nest::Stak> !_state");
-        require(amount > 0, "Nest::Stak> !0");
+        require(_state & 0x02 == 0, "Nest:Stak:!state");
+        require(amount > 0, "Nest:Stak:!amount");
         _ntoken_staked_total[ntoken] = _ntoken_staked_total[ntoken].add(amount);
         _staked_balances[ntoken][msg.sender] = _staked_balances[ntoken][msg.sender].add(amount);
         TransferHelper.safeTransferFrom(ntoken, msg.sender, address(this), amount);
         emit NTokenStaked(ntoken, msg.sender, amount);
     }
 
-    // CM: 解除锁仓
+    /// @notice Unstake NTokens
     function unstake(address ntoken, uint256 amount) public override nonReentrant updateReward(ntoken, msg.sender) {
-        require(_state & 0x04 == 0, "Nest::Unstak> !_state");
-        require(amount > 0, "Nest::Unstak> !0");
+        require(_state & 0x04 == 0, "Nest:Unstak:!state");
+        require(amount > 0, "Nest:Unstak:!amount");
         _ntoken_staked_total[ntoken] = _ntoken_staked_total[ntoken].sub(amount);
         _staked_balances[ntoken][msg.sender] = _staked_balances[ntoken][msg.sender].sub(amount);
         TransferHelper.safeTransfer(ntoken, msg.sender, amount);
         emit NTokenUnstaked(ntoken, msg.sender, amount);
     }
 
-    // CM: 领取奖励
+    /// @notice Claim rewards
     function claim(address ntoken) public override nonReentrant updateReward(ntoken, msg.sender) {
-        require(_state & 0x08 == 0, "Nest::Claim> !_state");
+        require(_state & 0x08 == 0, "Nest:Claim:!state");
         uint256 _reward = rewardBalances[ntoken][msg.sender];
         if (_reward > 0) {
             rewardBalances[ntoken][msg.sender] = 0;

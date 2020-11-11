@@ -236,7 +236,7 @@ contract NestMining {
             uint256 nestAmount = mineNest();  
             _nestAtHeight = nestAmount.mul(c_nest_reward_percentage).div(100);
             _C_NestPool.addNest(_developer_address, nestAmount.mul(c_dev_reward_percentage).div(100));
-            _C_NestPool.addNest(address(_C_NNRewardPool), nestAmount.mul(c_dev_reward_percentage).div(100));
+            _C_NestPool.addNest(address(_C_NNRewardPool), nestAmount.mul(c_NN_reward_percentage).div(100));
             _C_NNRewardPool.addNNReward(nestAmount.mul(c_dev_reward_percentage).div(100));
         }
         _ethAtHeight = _ethAtHeight.add(ethNum);
