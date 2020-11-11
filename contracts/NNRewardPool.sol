@@ -169,7 +169,8 @@ contract NNRewardPool is INNRewardPool {
         uint256 total = NN_total_supply;
         uint256 fromReward = sum.sub(NN_reward_sum_checkpoint[from]).mul(fromBlnc).div(total);
         if (fromReward > 0) {
-            ERC20(_C_NestToken).transferFrom(address(_C_NestPool), from, fromReward);
+            INestPool(_C_NestPool).withdrawNest(address(this), fromReward);
+            ERC20(_C_NestToken).transfer(from, fromReward);
         }
         NN_reward_sum_checkpoint[from] = NN_reward_sum_checkpoint[from].add(sum);
 
@@ -177,7 +178,8 @@ contract NNRewardPool is INNRewardPool {
         uint256 toReward = sum.sub(NN_reward_sum_checkpoint[to]).mul(toBlnc).div(total);
 
         if (toReward > 0) { 
-            ERC20(_C_NestToken).transferFrom(address(_C_NestPool), to, toReward);
+            INestPool(_C_NestPool).withdrawNest(address(this), toReward);
+            ERC20(_C_NestToken).transfer(to, toReward);
         }
         NN_reward_sum_checkpoint[to] = NN_reward_sum_checkpoint[to].add(sum);
 

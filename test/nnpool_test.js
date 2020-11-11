@@ -249,16 +249,28 @@ describe("NestToken contract", function () {
         it("can settle rewards when tranferring", async () => {
             const nest_a_pre = await NestToken.balanceOf(userA.address);
             const nest_d_pre = await NestToken.balanceOf(userD.address);
-            NNRewardPool.addNNReward(NEST(1200))
+            await NNRewardPool.addNNReward(NEST(1200));
             await NestPool.addNest(_C_NNRewardPool, NEST(1200));
             await NNToken.connect(userD).transfer(userA.address, 500);
             const nest_a_post = await NestToken.balanceOf(userA.address);
             const nest_d_post = await NestToken.balanceOf(userD.address);
-            expecet(nest_d_pre.sub(nest_d_post)).to.equal(NEST(200));
-            expecet(nest_a_post.sub(nest_a_pre)).to.equal(NEST(200));
-
+            expect(nest_d_post.sub(nest_d_pre)).to.equal(NEST(800));
+            expect(nest_a_post.sub(nest_a_pre)).to.equal(NEST(0));
         });
 
+        it("can settle rewards again when tranferring", async () => {
+            const nest_a_pre = await NestToken.balanceOf(userA.address);
+            const nest_d_pre = await NestToken.balanceOf(userD.address);
+            console.log(`pre a=${nest_a_pre.div(ethdec)}, d=${nest_d_pre.div(ethdec)}`);
+            await NNRewardPool.addNNReward(NEST(2400));
+            await NestPool.addNest(_C_NNRewardPool, NEST(2400));
+            await NNToken.connect(userA).transfer(userD.address, 500);
+            const nest_a_post = await NestToken.balanceOf(userA.address);
+            const nest_d_post = await NestToken.balanceOf(userD.address);
+            console.log(`post a=${nest_a_post.div(ethdec)}, d=${nest_d_post.div(ethdec)}`);
+            expect(nest_d_post.sub(nest_d_pre)).to.equal(NEST(800));
+            expect(nest_a_post.sub(nest_a_pre)).to.equal(NEST(0));
+        });
     });
 
 });

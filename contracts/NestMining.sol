@@ -27,12 +27,6 @@ contract NestMining {
     using MiningLookupPrice for MiningData.State;
     using MiningOp for MiningData.State;
 
-    // INestPool       _C_NestPool;
-    // ERC20           _C_NestToken;
-    // INestStaking    _C_NestStaking;
-    // INNRewardPool   _C_NNRewardPool;
-    // address         _C_NestQuery;
-
     address _developer_address;
     address _NN_address;
 
@@ -85,7 +79,6 @@ contract NestMining {
         int128 sigma_sq, 
         int128 ut_sq
     );
-
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -209,15 +202,15 @@ contract NestMining {
         _sheets.push(MiningData.PriceSheet(
             uint160(msg.sender),            // miner 
             uint32(block.number),           // height
-            uint8(_ethChunks),   // chunkNum
-            uint8(_chunkSize),          // chunkSize 
-            uint8(_ethChunks),   // remainChunk
-            uint8(_ethChunks),   // ethChunk
-            uint8(0),                      // tokenChunk     
-            uint8(_state),                    // state
-            uint8(_level),                    // level
+            uint8(_ethChunks),              // chunkNum
+            uint8(_chunkSize),              // chunkSize 
+            uint8(_ethChunks),              // remainChunk
+            uint8(_ethChunks),              // ethChunk
+            uint8(0),                       // tokenChunk     
+            uint8(_state),                  // state
+            uint8(_level),                  // level
             uint8(0),                       // _reserved
-            uint128(_tokenPrice),            // tokenPrice 
+            uint128(_tokenPrice),           // tokenPrice 
             uint8(_typ),                    // typ            
             uint120(0)            
         ));
