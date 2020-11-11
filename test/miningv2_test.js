@@ -35,7 +35,7 @@ const goBlocks = async function (provider, num) {
         await advanceBlock(provider);
     }
     const h = await provider.getBlockNumber();
-    console.log(`>> [INFO] block mined +${num}, height=${h}`);
+    //console.log(`>> [INFO] block mined +${num}, height=${h}`);
 };
 
 describe("NestToken contract", function () {
@@ -145,7 +145,7 @@ describe("NestToken contract", function () {
             const amount = BigNumber.from("2000000000").mul(usdtdec);
             await USDT.connect(owner).transfer(userA.address, amount);
             const userA_balance = await USDT.balanceOf(userA.address);
-            console.log('userA_balance = ',userA_balance);
+            //console.log('userA_balance = ',userA_balance);
             expect(userA_balance).to.equal(amount);
         });
 
@@ -153,7 +153,7 @@ describe("NestToken contract", function () {
             const amount = BigNumber.from("2000000000").mul(usdtdec);
             await USDT.connect(owner).transfer(userB.address, amount);
             const userB_balance = await USDT.balanceOf(userB.address);
-            console.log('userB_balance = ',userB_balance);
+            //console.log('userB_balance = ',userB_balance);
             expect(userB_balance).to.equal(amount);
         });
     });
@@ -347,7 +347,7 @@ describe("NestToken contract", function () {
             
             const receipt = await tx.wait();
             const sheet = await NestMining.contentOfPriceSheet(_C_USDT, 1);
-            console.log("sheet = ",sheet);
+            //console.log("sheet = ",sheet);
 
             // record recent funds
             const nest_pool_pre = await NestPool.balanceOfNestInPool(_C_NestPool);
@@ -359,13 +359,13 @@ describe("NestToken contract", function () {
             // give some funds to userB
             const money = await NestToken.balanceOf(userB.address);
 
-            console.log('money = ',money);
+            //console.log('money = ',money);
             
             const buytoken = await NestMining.connect(userB).buyToken(_C_USDT,1,takeChunkNum,newTokenPrice,{ value: msgValue });
             const re = await buytoken.wait();
             const sheet1 = await NestMining.contentOfPriceSheet(_C_USDT,2);
             
-            console.log("sheet1",sheet1);
+            //console.log("sheet1",sheet1);
 
             //check new sheet
               expect(sheet1.miner).to.equal(userB.address);
@@ -404,7 +404,7 @@ describe("NestToken contract", function () {
             
             const sellTokenSheet = await NestMining.contentOfPriceSheet(token,4);
 
-            console.log("sellTokenSheet =",sellTokenSheet);
+            //console.log("sellTokenSheet =",sellTokenSheet);
 
             // check new sheet
             expect(sellTokenSheet.miner).to.equal(userB.address);
@@ -610,6 +610,205 @@ describe("NestToken contract", function () {
             expect(sheet1.state).to.equal(4);
             
         });
+
+        // assuming: priceSheet.state == 3 and taker.ethChunk > 0
+        it("should close correctly !",async ()=> {
+            // === this is preparation ===//
+            // By the following operations, the priceSheet's state is 3 
+            const token = _C_USDT;
+            await USDT.connect(userB).approve(_C_NestPool,usdt(100000000)); 
+            const nestPrice = nest(1000);
+            const usdtPrice = usdt(350);
+            const sheet_duration_block = BN(1440);
+            const ethNum = BigNumber.from(40);
+            const msgValue = ethers.utils.parseEther("200.0");
+
+            const takeChunkNum = BigNumber.from(1);
+            const newTokenPrice = usdt(300);
+
+            const tx = await NestMining.connect(userA).post(token, usdtPrice, nestPrice, ethNum, { value: msgValue });
+            
+            const sheet = await NestMining.contentOfPriceSheet(token, 7);
+            //console.log("sheet = ",sheet);
+
+            const sellToken = await NestMining.connect(userB).sellToken(token,7,takeChunkNum,newTokenPrice,{ value: msgValue });
+
+            const sheet_new = await NestMining.contentOfPriceSheet(token, 7);
+            //console.log("sheet_new = ",sheet_new);
+
+            const takerSheet = await NestMining.takerOf(token,7,0);
+            //console.log('takerSheet = ',takerSheet);
+
+            await goBlocks(provider, sheet_duration_block.sub(1));
+
+            //  ================================== //
+ 
+             // Data before updating            
+             const nestpool_token_balance_in_token_pre = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+             const nestpool_eth_balance_in_token_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
+             const nest_balance_in_nestpool_pre = await NestPool.balanceOfNestInPool(_C_NestPool);
+
+             const userA_token_balance_in_nestpool_pre = await NestPool.balanceOfTokenInPool(userA.address,token);
+             const userA_eth_balance_in_nestpool_pre = await NestPool.balanceOfEthInPool(userA.address);
+             const userA_nest_balance_in_nestpool_pre = await NestPool.balanceOfNestInPool(userA.address);
+
+             const userB_eth_balance_in_nestpool_pre = await NestPool.balanceOfEthInPool(userB.address);
+             
+             // close the priceSheet from userA
+             const closePriceSheet = await NestMining.connect(userA).close(token,7);
+
+             const sheet_new1 = await NestMining.contentOfPriceSheet(token, 7);
+              
+            
+            // if t.ethChunk > 0
+            const _recover_freezeEthAmount = eth(BN(sheet_new.chunkSize).mul(takerSheet.ethChunk));
+            const _recover_unfreezeEthAmount = eth(BN(sheet_new.chunkSize).mul(2).mul(takerSheet.ethChunk));
+
+            // Read from the NestMining.sol
+            const _nestAtHeight = BN(461760);
+            const _ethAtHeight = BN(40);
+            
+            const NestReward = nest(BN(sheet_new1.remainChunk).mul(sheet_new1.chunkSize).mul(_nestAtHeight).div(_ethAtHeight))
+
+
+            const _close_nestAmount = nest(BN(sheet_new1.chunkNum).mul(10000));
+            const _close_ethAmount = eth(BN(sheet_new1.ethChunk).mul(sheet_new1.chunkSize));
+            const _close_tokenAmount = BN(sheet_new1.tokenChunk).mul(sheet_new1.chunkSize).mul(sheet_new1.tokenPrice);
+
+            // Data  updated 
+            const nestpool_eth_balance_in_token_now = await NestPool.balanceOfEthInPool(_C_NestPool);   
+            const nestpool_token_balance_in_token_now = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            const nest_balance_in_nestpool_now = await NestPool.balanceOfNestInPool(_C_NestPool);
+
+            const userA_token_balance_in_nestpool_now = await NestPool.balanceOfTokenInPool(userA.address,token);
+            const userA_eth_balance_in_nestpool_now = await NestPool.balanceOfEthInPool(userA.address);
+            const userA_nest_balance_in_nestpool_now = await NestPool.balanceOfNestInPool(userA.address);
+           
+            const userB_eth_balance_in_nestpool_now = await NestPool.balanceOfEthInPool(userB.address);
+        
+
+            // check nestpool funds
+            // Since there are two operations involved, _recover and _close, you can only calculate the funds changes
+            // We can get those information: 
+            // about NestPool: 
+            expect(nestpool_eth_balance_in_token_pre.add(_recover_freezeEthAmount).sub(_recover_unfreezeEthAmount).sub(_close_ethAmount)).to.equal(nestpool_eth_balance_in_token_now);
+            expect(nest_balance_in_nestpool_pre.sub(_close_nestAmount)).to.equal(nest_balance_in_nestpool_now);
+            expect(nestpool_token_balance_in_token_pre.sub(_close_tokenAmount)).to.equal(nestpool_token_balance_in_token_now);
+
+            // about userB (who bit the priceSheet):
+            expect(userB_eth_balance_in_nestpool_pre.add(_recover_unfreezeEthAmount)).to.equal(userB_eth_balance_in_nestpool_now);
+            
+            // about userA (who is bitten from userB):
+            expect(userA_eth_balance_in_nestpool_pre.sub(_recover_freezeEthAmount).add(_close_ethAmount)).to.equal(userA_eth_balance_in_nestpool_now);
+            expect(userA_nest_balance_in_nestpool_pre.add(_close_nestAmount).add(NestReward)).to.equal((userA_nest_balance_in_nestpool_now));
+            expect(userA_token_balance_in_nestpool_pre.add(_close_tokenAmount)).to.equal(userA_token_balance_in_nestpool_now);
+
+        });
+
+        // assuming: priceSheet.state == 3 and taker.tokenChunk > 0
+        it("should close correctly !",async ()=> {
+            // === this is preparation ===//
+            // By the following operations, the priceSheet's state is 3 
+            const token = _C_USDT;
+            await USDT.connect(userB).approve(_C_NestPool,usdt(100000000)); 
+            const nestPrice = nest(1000);
+            const usdtPrice = usdt(350);
+            const sheet_duration_block = BN(1440);
+            const ethNum = BigNumber.from(40);
+            const msgValue = ethers.utils.parseEther("200.0");
+
+            const takeChunkNum = BigNumber.from(1);
+            const newTokenPrice = usdt(300);
+
+            const tx = await NestMining.connect(userA).post(token, usdtPrice, nestPrice, ethNum, { value: msgValue });
+            
+            const sheet = await NestMining.contentOfPriceSheet(token, 9);
+
+            const buyToken = await NestMining.connect(userB).buyToken(token,9,takeChunkNum,newTokenPrice,{ value: msgValue });
+
+            const sheet_new = await NestMining.contentOfPriceSheet(token, 9);
+            //console.log("sheet_new = ",sheet_new);
+
+            const takerSheet = await NestMining.takerOf(token,9,0);
+            //console.log('takerSheet = ',takerSheet);
+
+            await goBlocks(provider, sheet_duration_block.sub(1));
+
+            //  ================================== //
+ 
+             // Data before updating            
+             const nestpool_token_balance_in_token_pre = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+             const nestpool_eth_balance_in_token_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
+             const nest_balance_in_nestpool_pre = await NestPool.balanceOfNestInPool(_C_NestPool);
+
+             const userA_token_balance_in_nestpool_pre = await NestPool.balanceOfTokenInPool(userA.address,token);
+             const userA_balance_in_exAddress_pre = await USDT.balanceOf(userA.address); // Transfer from an external address may be required
+        
+             const userA_eth_balance_in_nestpool_pre = await NestPool.balanceOfEthInPool(userA.address);
+             const userA_nest_balance_in_nestpool_pre = await NestPool.balanceOfNestInPool(userA.address);
+
+             const userB_eth_balance_in_nestpool_pre = await NestPool.balanceOfEthInPool(userB.address);
+             const userB_token_balance_in_nestpool_pre = await NestPool.balanceOfTokenInPool(userB.address,token);
+             
+             // close the priceSheet from userA
+             const closePriceSheet = await NestMining.connect(userA).close(token,9);
+
+             const sheet_new1 = await NestMining.contentOfPriceSheet(token, 9);
+             //console.log('sheet_new1 = ',sheet_new1);
+              
+            
+            // if t.tokenChunk > 0
+            const _recover_freezeTokenAmount = BN(sheet_new.tokenPrice).mul(sheet_new.chunkSize).mul(takerSheet.tokenChunk);
+            const _recover_unfreezeTokenAmount = BN(sheet_new.tokenPrice).mul(sheet_new.chunkSize).mul(takerSheet.tokenChunk);
+            const _recover_unfreezeEthAmount = eth(BN(sheet_new.chunkSize).mul(takerSheet.tokenChunk));
+
+            // Read from the NestMining.sol
+            const _nestAtHeight = BN(461760);
+            const _ethAtHeight = BN(40);
+            
+            const NestReward = nest(BN(sheet_new1.remainChunk).mul(sheet_new1.chunkSize).mul(_nestAtHeight).div(_ethAtHeight))
+
+
+            const _close_nestAmount = nest(BN(sheet_new1.chunkNum).mul(10000));
+            const _close_ethAmount = eth(BN(sheet_new1.ethChunk).mul(sheet_new1.chunkSize));
+            // because tokenChunk == 0 , _close_tokenAmount == 0
+            const _close_tokenAmount = BN(sheet_new1.tokenChunk).mul(sheet_new1.chunkSize).mul(sheet_new1.tokenPrice);
+
+            // Data  updated 
+            const nestpool_eth_balance_in_token_now = await NestPool.balanceOfEthInPool(_C_NestPool);   
+            const nestpool_token_balance_in_token_now = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            const nest_balance_in_nestpool_now = await NestPool.balanceOfNestInPool(_C_NestPool);
+
+            const userA_token_balance_in_nestpool_now = await NestPool.balanceOfTokenInPool(userA.address,token);
+            const userA_balance_in_exAddress_now = await USDT.balanceOf(userA.address);
+            const userA_eth_balance_in_nestpool_now = await NestPool.balanceOfEthInPool(userA.address);
+            const userA_nest_balance_in_nestpool_now = await NestPool.balanceOfNestInPool(userA.address);
+           
+            const userB_eth_balance_in_nestpool_now = await NestPool.balanceOfEthInPool(userB.address);
+            const userB_token_balance_in_nestpool_now = await NestPool.balanceOfTokenInPool(userB.address,token);
+        
+
+            // check nestpool funds
+            // Since there are two operations involved, _recover and _close, you can only calculate the funds changes
+            // We can get those information: 
+            // about NestPool: 
+            expect(nestpool_eth_balance_in_token_pre.sub(_recover_unfreezeEthAmount).sub(_close_ethAmount)).to.equal(nestpool_eth_balance_in_token_now);
+            expect(nest_balance_in_nestpool_pre.sub(_close_nestAmount)).to.equal(nest_balance_in_nestpool_now);
+            expect(nestpool_token_balance_in_token_pre.add(_recover_freezeTokenAmount).sub(_recover_unfreezeTokenAmount).sub(_close_tokenAmount)).to.equal(nestpool_token_balance_in_token_now);
+
+            // about userB (who bit the priceSheet):
+            expect(userB_eth_balance_in_nestpool_pre.add(_recover_unfreezeEthAmount)).to.equal(userB_eth_balance_in_nestpool_now);
+            expect(userB_token_balance_in_nestpool_pre.add(_recover_unfreezeTokenAmount)).to.equal(userB_token_balance_in_nestpool_now);
+            
+            // about userA (who is bitten from userB):
+            expect(userA_eth_balance_in_nestpool_pre.add(_close_ethAmount)).to.equal(userA_eth_balance_in_nestpool_now);
+            expect(userA_nest_balance_in_nestpool_pre.add(_close_nestAmount).add(NestReward)).to.equal((userA_nest_balance_in_nestpool_now));
+            expect(userA_token_balance_in_nestpool_pre.add(userA_balance_in_exAddress_pre).sub(_recover_freezeTokenAmount)
+                   .add(_close_tokenAmount)).to.equal(userA_token_balance_in_nestpool_now.add(userA_balance_in_exAddress_now));
+
+        });
+
+
     
     });
 
