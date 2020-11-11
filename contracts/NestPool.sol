@@ -382,7 +382,7 @@ contract NestPool is INestPool {
     }
 
     function withdrawNest(address miner, uint256 amount) 
-        override public onlyMiningContract
+        override public 
     {
         require(amount > 0, "Nest:Pool:=0(nestAmount)");
         uint256 blncs = _nest_ledger[miner];

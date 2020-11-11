@@ -45,7 +45,7 @@ contract NTokenController is  ReentrancyGuard {
     }
 
     /// @dev A mapping for all auctions
-    ///     token(address) => Auction
+    ///     token(address) => NTokenTag
     mapping(address => NTokenTag) private nTokenTagList;
 
     // uint256 constant c_auction_duration = 5 days;
@@ -72,7 +72,7 @@ contract NTokenController is  ReentrancyGuard {
 
     modifier noContract() 
     {
-        require(address(msg.sender) == address(tx.origin), "Nest:NAuc:^(contract)");
+        require(address(msg.sender) == address(tx.origin), "Nest:NTC:^(contract)");
         _;
     }
 
@@ -80,7 +80,7 @@ contract NTokenController is  ReentrancyGuard {
 
     modifier onlyGovernance() 
     {
-        require(msg.sender == governance, "Nest:NAuc:!governance");
+        require(msg.sender == governance, "Nest:NTC:!governance");
         _;
     }
 
@@ -140,16 +140,9 @@ contract NTokenController is  ReentrancyGuard {
     function open(address token) external noContract
     {
         require(INestPool(_C_NestPool).getNTokenFromToken(token) == address(0x0), 
-            "Nest:TO:EX(token)");
+            "Nest:NTC:EX(token)");
         require(nTokenTagList[token].state == 0, 
-            "Nest:TO:DIS(token)");
-
-        // is token valid ?
-        ERC20 tokenERC20 = ERC20(token);
-        tokenERC20.safeTransferFrom(address(msg.sender), address(this), 1);
-        require(tokenERC20.balanceOf(address(this)) >= 1, 
-            "Nest:TO:!TEST(token)");
-        tokenERC20.safeTransfer(address(msg.sender), 1);
+            "Nest:NTC:DIS(token)");
 
         // is token not a ntoken?
         bool isNToken = false;
@@ -159,14 +152,25 @@ contract NTokenController is  ReentrancyGuard {
             isNToken = false;
         }
 
-        require(ERC20(_C_NestToken).transferFrom(address(msg.sender), address(this), NTOKEN_NEST_STAKED_AMOUNT), 
-            "Nest:TO:!DEPO(nest)");
+        // is token valid ?
+        ERC20 tokenERC20 = ERC20(token);
+        tokenERC20.safeTransferFrom(address(msg.sender), address(this), 1);
+        require(tokenERC20.balanceOf(address(this)) >= 1, 
+            "Nest:NTC:!TEST(token)");
+        tokenERC20.safeTransfer(address(msg.sender), 1);
 
-        nTokenTagList[token] = NTokenTag(address(msg.sender), 
-            uint128(NTOKEN_NEST_STAKED_AMOUNT), 
-            uint64(block.timestamp), 
-            0, 
-            0
+        require(isNToken == false, "Nest:NTC:(ntoken)!");
+
+        uint256 _nestAmount = NTOKEN_NEST_STAKED_AMOUNT.mul(1 ether);
+
+        require(ERC20(_C_NestToken).transferFrom(address(msg.sender), address(this), _nestAmount), 
+            "Nest:NTC:!DEPO(nest)");
+
+        nTokenTagList[token] = NTokenTag(address(msg.sender),   // owner
+            uint128(_nestAmount),                               // nestStaked
+            uint64(block.timestamp),                            // startTime
+            0,                                                  // state
+            0                                                   // _reserved
         );
 
         //  create ntoken

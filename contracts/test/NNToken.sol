@@ -1,10 +1,12 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 pragma solidity ^0.6.12;
 
 import "../lib/SafeMath.sol";
 import "../iface/INNRewardPool.sol";
 
+
+/// @dev This contract is only for debugging. It will be replaced with `Superman` deployed on the mainnet.
 contract NNToken {
     using SafeMath for uint;
 

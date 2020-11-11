@@ -27,12 +27,6 @@ contract NestMining {
     using MiningLookupPrice for MiningData.State;
     using MiningOp for MiningData.State;
 
-    // INestPool       _C_NestPool;
-    // ERC20           _C_NestToken;
-    // INestStaking    _C_NestStaking;
-    // INNRewardPool   _C_NNRewardPool;
-    // address         _C_NestQuery;
-
     address _developer_address;
     address _NN_address;
 
@@ -85,7 +79,6 @@ contract NestMining {
         int128 sigma_sq, 
         int128 ut_sq
     );
-
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -209,15 +202,15 @@ contract NestMining {
         _sheets.push(MiningData.PriceSheet(
             uint160(msg.sender),            // miner 
             uint32(block.number),           // height
-            uint8(_ethChunks),   // chunkNum
-            uint8(_chunkSize),          // chunkSize 
-            uint8(_ethChunks),   // remainChunk
-            uint8(_ethChunks),   // ethChunk
-            uint8(0),                      // tokenChunk     
-            uint8(_state),                    // state
-            uint8(_level),                    // level
+            uint8(_ethChunks),              // chunkNum
+            uint8(_chunkSize),              // chunkSize 
+            uint8(_ethChunks),              // remainChunk
+            uint8(_ethChunks),              // ethChunk
+            uint8(0),                       // tokenChunk     
+            uint8(_state),                  // state
+            uint8(_level),                  // level
             uint8(0),                       // _reserved
-            uint128(_tokenPrice),            // tokenPrice 
+            uint128(_tokenPrice),           // tokenPrice 
             uint8(_typ),                    // typ            
             uint120(0)            
         ));
@@ -236,7 +229,7 @@ contract NestMining {
             uint256 nestAmount = mineNest();  
             _nestAtHeight = nestAmount.mul(c_nest_reward_percentage).div(100);
             _C_NestPool.addNest(_developer_address, nestAmount.mul(c_dev_reward_percentage).div(100));
-            _C_NestPool.addNest(address(_C_NNRewardPool), nestAmount.mul(c_dev_reward_percentage).div(100));
+            _C_NestPool.addNest(address(_C_NNRewardPool), nestAmount.mul(c_NN_reward_percentage).div(100));
             _C_NNRewardPool.addNNReward(nestAmount.mul(c_dev_reward_percentage).div(100));
         }
         _ethAtHeight = _ethAtHeight.add(ethNum);
@@ -452,7 +445,7 @@ contract NestMining {
                     _newLevel = _level + 1;
                 }
             
-                _post(token, newTokenPrice, _ethChunkNum, uint256(_sheet.chunkSize), 0x2, _newLevel, _sheet.typ);
+                _post(token, newTokenPrice, _ethChunkNum.mul(_chunkSize), uint256(_chunkSize), 0x2, _newLevel, _sheet.typ);
                 _C_NestPool.freezeNest(address(msg.sender), _nestDeposited.mul(1e18));
             }
             _C_NestPool.freezeEth(address(msg.sender), _ethChunkNum.add(takeChunkNum).mul(_chunkSize).mul(1 ether));
@@ -530,7 +523,7 @@ contract NestMining {
                     _nestDeposited = takeChunkNum.mul(uint256(state.nestPerChunk));
                     _newLevel = _level + 1;
                 }
-                _post(token, newTokenPrice, _ethChunkNum, uint256(_sheet.chunkSize), 0x2, _newLevel, _sheet.typ);
+                _post(token, newTokenPrice, _ethChunkNum.mul(_chunkSize), uint256(_chunkSize), 0x2, _newLevel, _sheet.typ);
                 _C_NestPool.freezeNest(address(msg.sender), _nestDeposited.mul(1e18));
             }
             _C_NestPool.freezeEth(address(msg.sender), _ethChunkNum.mul(_chunkSize).mul(1 ether));

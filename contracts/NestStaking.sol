@@ -9,6 +9,7 @@ import "./lib/SafeERC20.sol";
 import "./iface/INestStaking.sol";
 import "./lib/ReentrancyGuard.sol";
 import './lib/TransferHelper.sol';
+import "hardhat/console.sol";
 
 /// @title NNRewardPool
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
@@ -27,8 +28,8 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     uint8 private _state; 
     
     /// @dev The percentage of dividends 
-    ///      - 50% to Nest/NToken holders as dividend
-    ///      - 50% to saving for buying back (future)
+    ///      - 80% to Nest/NToken holders as dividend
+    ///      - 20% to saving for buying back (future)
     uint8 private _dividend_share = 80;
 
     address private _C_NestToken;
@@ -127,7 +128,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         return _staked_balances[ntoken][account];
     }
 
-    // CM: <token收益> = <token原收益> + (<新增总收益> * 50% / <token总锁仓量>) 
+    // CM: <token收益> = <token原收益> + (<新增总收益> * 80% / <token总锁仓量>) 
     function rewardPerToken(address ntoken) public view returns (uint256) {
         uint256 _total = _ntoken_staked_total[ntoken];
         if (_total == 0) {
@@ -135,10 +136,10 @@ contract NestStaking is INestStaking, ReentrancyGuard {
             // if not, the new accrued amount will never be distributed to anyone
             return _reward_per_ntoken_stored[ntoken];
         }
-        return
-            _reward_per_ntoken_stored[ntoken].add(
+        uint256 _rewardPerToken = _reward_per_ntoken_stored[ntoken].add(
                 accrued(ntoken).mul(1e18).mul(_dividend_share).div(_total).div(100)
             );
+        return _rewardPerToken;
     }
 
     // CM: <新增总收益> = <rewardToken 余额> - <上次余额>
@@ -156,7 +157,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
                     ).div(1e18).add(rewardBalances[ntoken][account]);
     }
 
-    // calculate the 
+    // calculate
     function _rewardPerTokenAndAccrued(address ntoken) internal view returns (uint256, uint256) {
         uint256 _total = _ntoken_staked_total[ntoken];
         if (_total == 0) {
@@ -205,30 +206,30 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         _;
     }
 
-    // CM: 锁仓
+    /// @notice Stake NTokens to get the dividends
     function stake(address ntoken, uint256 amount) external override nonReentrant updateReward(ntoken, msg.sender) 
     {
-        require(_state & 0x02 == 0, "Nest::Stak> !_state");
-        require(amount > 0, "Nest::Stak> !0");
+        require(_state & 0x02 == 0, "Nest:Stak:!state");
+        require(amount > 0, "Nest:Stak:!amount");
         _ntoken_staked_total[ntoken] = _ntoken_staked_total[ntoken].add(amount);
         _staked_balances[ntoken][msg.sender] = _staked_balances[ntoken][msg.sender].add(amount);
         TransferHelper.safeTransferFrom(ntoken, msg.sender, address(this), amount);
         emit NTokenStaked(ntoken, msg.sender, amount);
     }
 
-    // CM: 解除锁仓
+    /// @notice Unstake NTokens
     function unstake(address ntoken, uint256 amount) public override nonReentrant updateReward(ntoken, msg.sender) {
-        require(_state & 0x04 == 0, "Nest::Unstak> !_state");
-        require(amount > 0, "Nest::Unstak> !0");
+        require(_state & 0x04 == 0, "Nest:Unstak:!state");
+        require(amount > 0, "Nest:Unstak:!amount");
         _ntoken_staked_total[ntoken] = _ntoken_staked_total[ntoken].sub(amount);
         _staked_balances[ntoken][msg.sender] = _staked_balances[ntoken][msg.sender].sub(amount);
         TransferHelper.safeTransfer(ntoken, msg.sender, amount);
         emit NTokenUnstaked(ntoken, msg.sender, amount);
     }
 
-    // CM: 领取奖励
+    /// @notice Claim rewards
     function claim(address ntoken) public override nonReentrant updateReward(ntoken, msg.sender) {
-        require(_state & 0x08 == 0, "Nest::Claim> !_state");
+        require(_state & 0x08 == 0, "Nest:Claim:!state");
         uint256 _reward = rewardBalances[ntoken][msg.sender];
         if (_reward > 0) {
             rewardBalances[ntoken][msg.sender] = 0;
