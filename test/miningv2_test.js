@@ -1548,6 +1548,72 @@ describe("NestToken contract", function () {
             // check level 
             expect(BN(sheet5.level).add(1)).to.equal(sheet6.level);
 
+        });
+
+        // assume that: priceSheet.level > 4, then sell token 
+        it('should sell token correctly when level > 4 !', async ()=>{
+            //========preparation========//
+            const token = _C_USDT;
+            const nestPrice = nest(1000);
+            const usdtPrice = usdt(350);
+            const chunkSize = 10;
+            const ethNum = BigNumber.from(100);
+            const nestPerChunk = BN(10000);
+            const msgValue = ethers.utils.parseEther("200.0");
+            const takeChunkNum = BigNumber.from(1);
+            const newTokenPrice = usdt(300);
+ 
+            const sheet = await NestMining.contentOfPriceSheet(token,29);
+            //===============================//
+
+            // record funds before biting
+            const nest_pool_pre = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const token_pool_pre = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
+            const eth_reward_pre = await provider.getBalance(_C_NestStaking);
+            
+            const userC_nest_in_exAddress_pre = await NestToken.balanceOf(userC.address); 
+            const userC_nest_pool_pre = await NestPool.balanceOfNestInPool(userC.address);
+            const userC_token_pool_pre = await NestPool.balanceOfTokenInPool(userC.address,token);
+            const userC_eth_pool_pre = await NestPool.balanceOfEthInPool(userC.address);
+            const userC_token_in_exAddress_pre = await USDT.balanceOf(userC.address);
+
+            // calculate fee
+            const ethFee =  eth(BN(takeChunkNum).mul(sheet.chunkSize)).div(1000);
+            const freezeNestAmount = nest(BN(nestPerChunk).mul(2 ** (BN(sheet.level).sub(4))).mul(takeChunkNum));
+            const freezeEthAmount = eth(BN(takeChunkNum).mul(sheet.chunkSize)); 
+            const freezeTokenAmount = BN(takeChunkNum).mul(sheet.chunkSize).mul(sheet.tokenPrice);      
+
+            // sell token 
+            const sellToken = await NestMining.connect(userC).sellToken(_C_USDT,29,takeChunkNum,newTokenPrice,{ value: msgValue });
+            const sheet1 = await NestMining.contentOfPriceSheet(token,30);
+            //console.log('sheet1.level =',sheet1.level);
+
+            // record funds after biting
+            const nest_pool_now = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const token_pool_now = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            const eth_pool_now = await NestPool.balanceOfEthInPool(_C_NestPool);
+            const eth_reward_now = await provider.getBalance(_C_NestStaking);
+            
+            const userC_nest_in_exAddress_now = await NestToken.balanceOf(userC.address); 
+            const userC_nest_pool_now = await NestPool.balanceOfNestInPool(userC.address);
+            const userC_token_pool_now = await NestPool.balanceOfTokenInPool(userC.address,token);
+            const userC_eth_pool_now = await NestPool.balanceOfEthInPool(userC.address);
+            const userC_token_in_exAddress_now = await USDT.balanceOf(userC.address);
+
+            // check funds
+            expect(userC_eth_pool_pre.add(msgValue).sub(ethFee).sub(freezeEthAmount)).to.equal(userC_eth_pool_now);
+            expect(userC_nest_in_exAddress_pre.add(userC_nest_pool_pre).sub(freezeNestAmount)).to.equal(userC_nest_in_exAddress_now.add(userC_nest_pool_now));
+            expect(userC_token_in_exAddress_pre.add(userC_token_pool_pre).sub(freezeTokenAmount)).to.equal(userC_token_in_exAddress_now.add(userC_token_pool_now));
+
+            expect(nest_pool_pre.add(freezeNestAmount)).to.equal(nest_pool_now);
+            expect(eth_pool_pre.add(freezeEthAmount)).to.equal(eth_pool_now);
+            expect(token_pool_pre.add(freezeTokenAmount)).to.equal(token_pool_now);
+
+            expect(eth_reward_pre.add(ethFee)).to.equal(eth_reward_now);
+
+             // check level 
+             expect(BN(sheet.level).add(1)).to.equal(sheet1.level);
 
         });
 
