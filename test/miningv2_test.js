@@ -1160,8 +1160,83 @@ describe("NestToken contract", function () {
             expect(takerSheetLength_pre).to.equal(2);
             expect(takerSheetLength_now).to.equal(0);
             expect(sheet1.state).to.equal(1);
-            
+
         });
+
+        // Assume that: priceSheet (userA), userB bite this priceSheet by buyToken and userC bite this priceSheet by sellToken; level < 4
+        // now clear this priceSheet
+        it('should clearAll correctly !', async ()=>{
+            const token = _C_USDT;
+            await USDT.connect(userA).approve(_C_NestPool,usdt(2000000000)); 
+            const msgValue = ethers.utils.parseEther("200.0");
+            
+            //====record funds before clearing====//
+            // userA's funds 
+            const userA_eth_pool_pre = await NestPool.balanceOfEthInPool(userA.address);
+            const userA_token_in_nestpool_pre = await NestPool.balanceOfTokenInPool(userA.address,token);
+            const userA_token_in_exAddress_pre = await USDT.balanceOf(userA.address);
+
+            // userB's funds in nestpool
+            const userB_token_in_nestpool_pre = await NestPool.balanceOfTokenInPool(userB.address,token);
+
+            // userC's funds in nestpool
+            const userC_eth_pool_pre = await NestPool.balanceOfEthInPool(userC.address);
+
+            // nestpool token
+            const token_nestpool_pre = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+
+            const takerSheet1 = await NestMining.takerOf(token,14,0);
+            const takerSheet2 = await NestMining.takerOf(token,14,1);
+            const sheet0 = await NestMining.contentOfPriceSheet(token, 14);
+            const takerSheetLength_pre = await NestMining.lengthOfTakers(token,14);
+            //===========================//
+
+            // clear
+            const tx = await NestMining.connect(userA).clearAll(token,14,{ value: msgValue });
+
+            //====record funds after clearing====//
+            const ethChunkAmount = BN(sheet0.chunkSize);
+            const tokenChunkAmount = BN(sheet0.tokenPrice).mul(ethChunkAmount);
+            const userB_freezeTokenAmount = BN(tokenChunkAmount).mul(takerSheet1.tokenChunk);
+            const userC_freezeEthAmount = BN(ethChunkAmount).mul(takerSheet2.ethChunk);
+            const userB_unfreezeTokenAmount = BN(tokenChunkAmount).mul(takerSheet1.tokenChunk);
+            const userC_unfreezeEthAmount = BN(ethChunkAmount).mul(takerSheet2.ethChunk);
+
+            // userA's funds 
+            const userA_eth_pool_now = await NestPool.balanceOfEthInPool(userA.address);
+            const userA_token_in_nestpool_now = await NestPool.balanceOfTokenInPool(userA.address,token);
+            const userA_token_in_exAddress_now = await USDT.balanceOf(userA.address);
+
+            // userB's funds in nestpool
+            const userB_token_in_nestpool_now = await NestPool.balanceOfTokenInPool(userB.address,token);
+
+            // userC's funds in nestpool
+            const userC_eth_pool_now = await NestPool.balanceOfEthInPool(userC.address);
+
+            // nestpool token
+            const token_nestpool_now = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            //===========================//
+
+            // check funds 
+            expect(BN(userA_eth_pool_pre).add(msgValue).sub(userC_freezeEthAmount)).to.equal(userA_eth_pool_now);
+            expect(BN(userA_token_in_nestpool_pre).add(userA_token_in_exAddress_pre).sub(userB_freezeTokenAmount)).to.equal(
+                   BN(userA_token_in_nestpool_now).add(userA_token_in_exAddress_now));
+
+            expect(userB_token_in_nestpool_pre.add(userB_unfreezeTokenAmount)).to.equal(userB_token_in_nestpool_now);
+
+            expect(userC_eth_pool_pre.add(userC_unfreezeEthAmount)).to.equal(userC_eth_pool_now);
+
+            expect(token_nestpool_pre).to.equal(token_nestpool_now);
+
+            // check other state
+            const takerSheetLength_now = await NestMining.lengthOfTakers(token,14);
+            const sheet1 = await NestMining.contentOfPriceSheet(token, 14);
+            expect(takerSheetLength_pre).to.equal(2);
+            expect(takerSheetLength_now).to.equal(0);
+            expect(sheet1.state).to.equal(1);        
+
+        });
+
     
     });
 
