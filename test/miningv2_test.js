@@ -57,7 +57,7 @@ describe("NestToken contract", function () {
 
     before(async function () {
 
-        [owner, userA, userB, userC, userD] = await ethers.getSigners();
+        [owner, userA, userB, userC, userD,] = await ethers.getSigners();
 
         ERC20Contract = await ethers.getContractFactory("UERC20");
         USDT = await ERC20Contract.deploy("10000000000000000", "USDT Test Token", "USDT", 6);
@@ -1285,7 +1285,76 @@ describe("NestToken contract", function () {
             expect(sheet1.state).to.equal(4);      
         });
 
-    
+        // bitten the priceSheet what generated on account of biting others priceSheet
+        it('should ',async ()=>{
+             //========preparation========//
+            const token = _C_USDT;
+            await USDT.connect(userB).approve(_C_NestPool,usdt(100000000)); 
+            const nestPrice = nest(1000);
+            const usdtPrice = usdt(350);
+            const ethNum = BigNumber.from(40);
+            const msgValue = ethers.utils.parseEther("200.0");
+
+            const takeChunkNum = BigNumber.from(1);
+            const newTokenPrice1 = usdt(300);
+            const newTokenPrice2 = usdt(200);
+
+            const tx = await NestMining.connect(userA).post(token, usdtPrice, nestPrice, ethNum, { value: msgValue });
+            const sheet = await NestMining.contentOfPriceSheet(token, 20);
+            
+            const buyToken = await NestMining.connect(userB).buyToken(token,20,takeChunkNum,newTokenPrice1,{ value: msgValue });
+            const sheet1 = await NestMining.contentOfPriceSheet(token, 21);
+            const takerSheet1 = await NestMining.takerOf(token,20,0);
+            //==================================//
+
+            // calculate fee
+            const ethFee = eth(BN(takeChunkNum).mul(sheet1.chunkSize)).div(1000);
+            const freezeNestAmount = nest(BN(takeChunkNum).mul(10000));
+            const freezeEthAmount = eth(BN(takeChunkNum).mul(2).mul(sheet1.chunkSize));
+            const freezeTokenAmount = BN(takeChunkNum).mul(sheet1.chunkSize).mul(sheet1.tokenPrice);
+
+            // record funds before sellToken
+            const nest_pool_pre = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
+            const token_pool_pre = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            const eth_reward_pre = await provider.getBalance(_C_NestStaking);
+
+            const userC_nest_in_exAddress_pre = await NestToken.balanceOf(userC.address); 
+            const userC_nest_pool_pre = await NestPool.balanceOfNestInPool(userC.address);
+            const userC_token_pool_pre = await NestPool.balanceOfTokenInPool(userC.address,token);
+            const userC_eth_pool_pre = await NestPool.balanceOfEthInPool(userC.address);
+            const userC_token_in_exAddress_pre = await USDT.balanceOf(userC.address);
+
+            // sell token
+            const sellToken = await NestMining.connect(userC).sellToken(token,21,takeChunkNum,newTokenPrice2,{ value: msgValue });
+
+            // record funds after sellToken
+            const nest_pool_now = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const eth_pool_now = await NestPool.balanceOfEthInPool(_C_NestPool);
+            const token_pool_now = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            const eth_reward_now = await provider.getBalance(_C_NestStaking);
+
+            const userC_nest_in_exAddress_now = await NestToken.balanceOf(userC.address); 
+            const userC_nest_pool_now = await NestPool.balanceOfNestInPool(userC.address);
+            const userC_token_pool_now = await NestPool.balanceOfTokenInPool(userC.address,token);
+            const userC_eth_pool_now = await NestPool.balanceOfEthInPool(userC.address);
+            const userC_token_in_exAddress_now = await USDT.balanceOf(userC.address);
+
+            // check funds 
+            expect(userC_eth_pool_pre.add(msgValue).sub(ethFee).sub(freezeEthAmount)).to.equal(userC_eth_pool_now);
+            expect(userC_nest_pool_pre.add(userC_nest_in_exAddress_pre).sub(freezeNestAmount)).to.equal(
+                   userC_nest_pool_now.add(userC_nest_in_exAddress_now));
+            expect(userC_token_pool_pre.add(userC_token_in_exAddress_pre).sub(freezeTokenAmount)).to.equal(
+                   userC_token_pool_now.add(userC_token_in_exAddress_now));
+
+            expect(nest_pool_pre.add(freezeNestAmount)).to.equal(nest_pool_now);
+            expect(eth_pool_pre.add(freezeEthAmount)).to.equal(eth_pool_now);
+            expect(token_pool_pre.add(freezeTokenAmount)).to.equal(token_pool_now);
+
+            expect(eth_reward_pre.add(ethFee)).to.equal(eth_reward_now);
+
+        });
+
     });
 
 });
