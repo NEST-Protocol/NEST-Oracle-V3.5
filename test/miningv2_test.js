@@ -612,7 +612,7 @@ describe("NestToken contract", function () {
            
         });
 
-         // set up a new instance
+         // set up a new instance (sellToken)
          it("should refute correctly !", async ()=> {
             const token = _C_USDT;
             await USDT.connect(userB).approve(_C_NestPool,usdt(100000000)); 
@@ -1235,6 +1235,54 @@ describe("NestToken contract", function () {
             expect(takerSheetLength_now).to.equal(0);
             expect(sheet1.state).to.equal(1);        
 
+        });
+
+        // assume that: create a new priceSheet(userA), userB bitten this priceSheet by buy token. Finally, userB does the refute function.
+        it("should refute correctly !", async ()=> {
+            const token = _C_USDT;
+            await USDT.connect(userB).approve(_C_NestPool,usdt(100000000)); 
+            const nestPrice = nest(1000);
+            const usdtPrice = usdt(350);
+            const sheet_duration_block = BN(1440);
+            const ethNum = BigNumber.from(40);
+            const msgValue = ethers.utils.parseEther("200.0");
+
+            const takeChunkNum = BigNumber.from(1);
+            const newTokenPrice = usdt(300);
+
+            const tx = await NestMining.connect(userA).post(token, usdtPrice, nestPrice, ethNum, { value: msgValue });
+            const receipt = await tx.wait();
+            const sheet = await NestMining.contentOfPriceSheet(token, 18);
+            console.log('receipt.blockNumber = ',receipt.blockNumber);
+            
+            const sellToken = await NestMining.connect(userB).buyToken(token,18,takeChunkNum,newTokenPrice,{ value: msgValue });
+
+            await goBlocks(provider, sheet_duration_block.sub(1));
+
+            const takerSheet = await NestMining.takerOf(token,18,0);
+
+            // Data before update
+            const userB_eth_balance_in_nestpool_pre = await NestPool.balanceOfEthInPool(userB.address);
+            const nestpool_eth_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
+
+            const tx1 = await NestMining.connect(userB).refute(token,18,0);
+
+            // Data before update
+            const userB_eth_balance_in_nestpool_now = await NestPool.balanceOfEthInPool(userB.address);
+            const nestpool_eth_now = await NestPool.balanceOfEthInPool(_C_NestPool);
+
+            const unfreezeEthAmount = eth(BN(takerSheet.ethChunk).mul(2).mul(sheet.chunkSize));
+
+            // check funds
+            expect(nestpool_eth_pre.sub(unfreezeEthAmount)).to.equal(nestpool_eth_now);
+            expect(userB_eth_balance_in_nestpool_pre.add(unfreezeEthAmount)).to.equal(userB_eth_balance_in_nestpool_now);
+
+            // check other state
+            const takerSheet1 = await NestMining.takerOf(token,18,0);
+            const sheet1 = await NestMining.contentOfPriceSheet(token, 18);
+            expect(takerSheet1.ethChunk).to.equal(0);
+            expect(takerSheet1.takerAddress).to.equal(0);
+            expect(sheet1.state).to.equal(4);      
         });
 
     
