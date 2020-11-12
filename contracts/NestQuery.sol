@@ -262,7 +262,7 @@ contract NestQuery is INestQuery {
         override 
         external 
         payable 
-        returns (uint256, uint256, uint64) 
+        returns (uint256, uint256, uint256) 
     {
         // check parameters
         Client memory c = decodeClient(clientList[address(msg.sender)]);
@@ -288,7 +288,7 @@ contract NestQuery is INestQuery {
             }
         
             emit PriceQueried(address(msg.sender), token, ethAmount, tokenAmount, bn);
-            return (ethAmount, tokenAmount, uint64(bn));
+            return (ethAmount, tokenAmount, uint256(bn));
         
         } else if (c.typ == 2) {
             // require(c.monthlyFee > 0, "Nest:Qury:!(monFee)");
@@ -304,6 +304,13 @@ contract NestQuery is INestQuery {
         }
 
     }
+    
+    /// @dev Compatible to Nest Protocol v3.0 
+    function updateAndCheckPriceNow(address tokenAddress) public payable returns(uint256 ethAmount, uint256 erc20Amount, uint256 blockNum) 
+    {
+        return (0, 0, 0);
+    }
+
 
 /*
     function queryPriceList(address token, uint8 num, address payback) override public payable 
