@@ -1056,7 +1056,38 @@ describe("NestToken contract", function () {
 
         });
 
+        // check the priceSheet.state == 2
+        it('should clear correctly !',async ()=> {
+             //========preparation========//
+             const token = _C_USDT;
+             const nestPrice = nest(1000);
+             const usdtPrice = usdt(350);
+             const ethNum = BigNumber.from(40);
+             const msgValue = ethers.utils.parseEther("200.0");
+             const price_duration_block = BN(25);
+ 
+             const tx0 = await NestMining.connect(userA).post(token, usdtPrice, nestPrice, ethNum, { value: msgValue });
 
+             await goBlocks(provider, price_duration_block);
+             //===============================//
+             
+             // record funds before clearing
+             const userA_eth_pool_pre = await NestPool.balanceOfEthInPool(userA.address);
+             
+             // clear 
+             const tx1 = await NestMining.connect(userA).clear(token,17,1,{ value: msgValue });
+             
+             const sheet1 = await NestMining.contentOfPriceSheet(token, 17);
+             
+             // record funds after clearing
+             const userA_eth_pool_now = await NestPool.balanceOfEthInPool(userA.address);
+
+             // check updated priceSheet
+             expect(sheet1.state).to.equal(1);
+
+             expect(userA_eth_pool_pre.add(msgValue)).to.equal(userA_eth_pool_now);
+
+        });
     
     });
 
