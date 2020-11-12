@@ -28,6 +28,7 @@ contract NTokenController is  ReentrancyGuard {
 
     /// @dev A number counter for generating ntoken name
     uint32 public ntokenCounter;
+    uint8  public flag;
     
     /// @dev Contract address of NestPool
     address private _C_NestPool;
@@ -37,11 +38,11 @@ contract NTokenController is  ReentrancyGuard {
     /// @dev A struct for an ntoken
     ///     size: 2 x 256bit
     struct NTokenTag {
-        address owner;     // the owner with the highest bid
-        uint128 nestStaked;   //  burned nest when the auction is closed
-        uint64  startTime;    // the due time of auction                                      
-        uint8   state;     // =0: normal | =1 disabled
-        uint56  _reserved;   // padding space
+        address owner;          // the owner with the highest bid
+        uint128 nestStaked;     // NEST amount staked for opening a NToken
+        uint64  startTime;      // the start time of service
+        uint8   state;          // =0: normal | =1 disabled
+        uint56  _reserved;      // padding space
     }
 
     /// @dev A mapping for all auctions
@@ -68,11 +69,18 @@ contract NTokenController is  ReentrancyGuard {
     constructor() public 
     {
         governance = msg.sender;
+        flag = 1;
     }
 
     modifier noContract() 
     {
         require(address(msg.sender) == address(tx.origin), "Nest:NTC:^(contract)");
+        _;
+    }
+
+    modifier whenOpenPairAllowed() 
+    {
+        require(flag & 0x1 != 0, "Nest:NTC:!flag");
         _;
     }
 
@@ -103,7 +111,11 @@ contract NTokenController is  ReentrancyGuard {
         }
     }
 
-
+    function setFlag(uint8 newFlag) external onlyGovernance
+    {
+        flag = newFlag;
+    }
+    
     /// @dev  Bad tokens should be banned 
     function disable(address token) external onlyGovernance
     {
@@ -137,7 +149,10 @@ contract NTokenController is  ReentrancyGuard {
     /// @notice  Open a NToken for a token by anyone (contracts aren't allowed)
     /// @dev  Create and map the (Token, NToken) pair in NestPool
     /// @param token  The address of token contract
-    function open(address token) external noContract
+    function open(address token) 
+        external 
+        noContract 
+        whenOpenPairAllowed
     {
         require(INestPool(_C_NestPool).getNTokenFromToken(token) == address(0x0), 
             "Nest:NTC:EX(token)");
