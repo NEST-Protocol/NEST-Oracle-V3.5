@@ -21,7 +21,7 @@ interface INestQuery {
 
     function renewalPPM(address defi, uint256 months) external; 
 
-    function query(address token, address payback) external payable returns (uint256, uint256, uint64);
+    function query(address token, address payback) external payable returns (uint256, uint256, uint256);
 
     /// @dev Withdraw NEST only when emergency or governance
     /// @param to  The address of recipient
