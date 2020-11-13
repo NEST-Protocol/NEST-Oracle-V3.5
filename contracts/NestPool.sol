@@ -15,19 +15,14 @@ import "hardhat/console.sol";
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
 /// @author Paradox  - <paradox@nestprotocol.org>
 
+/// @dev The contract is for bookkeeping ETH, NEST and Tokens.
 contract NestPool is INestPool {
     
     using address_make_payable for address;
     using SafeMath for uint256;
-    // using SafeMath for uint128;
     using SafeERC20 for ERC20;
 
-    event Log(string msg);
-    event LogUint(string msg, uint256 v);
-    event LogAddress(string msg, address a);
-
-    // the top-most block height where nest tokens were mined
-    uint64 _latest_mining_height;
+    address public governance;
 
     // eth ledger for all miners, if address == 0, it is the balance of pool
     mapping(address => uint256) _eth_ledger;
@@ -51,10 +46,25 @@ contract NestPool is INestPool {
     constructor(address DAOContract) public {
     // constructor(address DAOContract, address NestMiningContract) {
         _C_DAOContract = DAOContract;
+        governance = msg.sender;
     }
 
     receive() external payable {
     }
+
+    /* ========== GOVERNANCE ========== */
+
+    modifier onlyGovernance() 
+    {
+        require(msg.sender == governance, "Nest:NTC:!governance");
+        _;
+    }
+
+    function setGovernance(address _gov) external onlyGovernance 
+    { 
+        governance = _gov;
+    }
+
 
     function setContracts(address NestMiningContract, address NestTokenContract) public {
         _C_NestMining = NestMiningContract;
@@ -65,7 +75,12 @@ contract NestPool is INestPool {
         return _token_ntoken_mapping[token];
     }
 
-    function setNTokenToToken(address token, address ntoken) override public {
+    function setNTokenToToken(address token, address ntoken) 
+        override 
+        public
+        onlyGovernance 
+    {
+        console.log("token=%s", ntoken);
         _token_ntoken_mapping[token] = ntoken;
     }
 
@@ -354,17 +369,12 @@ contract NestPool is INestPool {
         override public onlyMiningContract
     {
         uint256 blncs = _eth_ledger[miner];
-        LogAddress("withdrawEthAndToken> miner", miner);
-        LogUint("withdrawEthAndToken> Pool.eth_balance", blncs);
         if (ethAmount <= blncs) {
             _eth_ledger[miner] = blncs - ethAmount;
-            LogUint("withdrawEthAndToken> this.balance", address(this).balance);
             TransferHelper.safeTransferETH(miner, ethAmount);
         }
 
         blncs = _token_ledger[token][miner];
-        emit LogAddress("withdrawNToken> miner", miner);
-        emit LogUint("withdrawNToken> Pool.token_balance", blncs);
         if (tokenAmount <= blncs) {
             _token_ledger[token][miner] = blncs - tokenAmount;
             ERC20(token).safeTransfer(miner, tokenAmount);
