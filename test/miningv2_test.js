@@ -1646,6 +1646,36 @@ describe("NestToken contract", function () {
 
         });
 
+        // check the conditions of the close function
+        it('should close fail !', async () =>{
+            //==========preparation============//
+            const token = _C_USDT;
+            const nestPrice = nest(1000);
+            const usdtPrice = usdt(350);
+            const ethNum = BigNumber.from(40);
+            const msgValue = ethers.utils.parseEther("200.0");
+
+            const takeChunkNum = BigNumber.from(1);
+            const newTokenPrice1 = usdt(300);
+            const newTokenPrice2 = usdt(200);
+
+            const tx = await NestMining.connect(userA).post(token, usdtPrice, nestPrice, ethNum, { value: msgValue });
+            const sheet = await NestMining.contentOfPriceSheet(token, 31);
+            //==================================//
+
+            // when sheet.height + 25 > block.number
+            expect(sheet.state).to.equal(2);
+            //await expectRevert(NestMining.connect(userA).close(token,31), "Nest:Mine:!EFF(sheet)");
+            await expectRevert.unspecified(NestMining.connect(userA).close(token,31));
+
+            await goBlocks(provider, 25);
+
+            // when sheet.miner != msg.sender
+            //await expectRevert(NestMining.connect(userB).close(token,31),"Nest:Mine:!(miner)");
+            await expectRevert.unspecified(NestMining.connect(userB).close(token,31));
+            
+        });
+
     });
 
 });
