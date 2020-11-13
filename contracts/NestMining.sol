@@ -243,6 +243,8 @@ contract NestMining is INestMining {
             state.minedNestAmount += uint128(nestAmount);
             _nestAtHeight = nestAmount.mul(c_nest_reward_percentage).div(100);
             _C_NestPool.addNest(_developer_address, nestAmount.mul(c_dev_reward_percentage).div(100));
+            
+            // NOTE: Removed because all NNRewards are prepaid 
             // _C_NestPool.addNest(address(_C_NNRewardPool), nestAmount.mul(c_NN_reward_percentage).div(100));
             // _C_NNRewardPool.addNNReward(nestAmount.mul(c_dev_reward_percentage).div(100));
         }
@@ -269,10 +271,18 @@ contract NestMining is INestMining {
         state._ntoken_at_height[_ntoken][block.number] = (_ntokenAtHeight * (1<< 128) + _ethAtHeight);
     }
 
-    function post(address token, uint256 tokenPrice, uint256 ntokenPrice, uint256 ethNum) public payable noContract
+    function post(
+            address token, 
+            uint256 tokenPrice, 
+            uint256 ntokenPrice, 
+            uint256 ethNum
+        ) 
+        public 
+        payable 
+        noContract
     {
         // check parameters 
-        uint gas = gasleft();
+        // uint gas = gasleft();
         require(state.flag < 2, "Nest:Mine:!flag");
         require(token != address(0x0), "Nest:Mine:!(token)"); 
         require(ethNum % state.ethNumPerChunk == 0 && ethNum >= state.ethNumPerChunk, "Nest:Mine:!(ethNum)");
@@ -321,7 +331,7 @@ contract NestMining is INestMining {
     {
         INestPool _C_NestPool = INestPool(state._C_NestPool);
 
-        if (_sheet.typ == 0x1 || _sheet.typ == 0x3) {
+        if ((_sheet.typ == 0x1 || _sheet.typ == 0x3) && _sheet.level == 0) {
             address _ntoken = _C_NestPool.getNTokenFromToken(_token);
             uint256 _eth_nest_at_height = state._ntoken_at_height[_ntoken][uint256(_sheet.height)];
             uint256 _nestAtHeight = uint256(_eth_nest_at_height / (1 << 128));
