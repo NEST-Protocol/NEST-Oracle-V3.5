@@ -1676,6 +1676,35 @@ describe("NestToken contract", function () {
             
         });
 
+        // check the conditions of the buyToken function
+        it('expect buy token failed !', async () =>{
+            //==========preparation============//
+            const token = _C_USDT;
+            const nestPrice = nest(1000);
+            const usdtPrice = usdt(350);
+            const ethNum = BigNumber.from(40);
+            const msgValue = ethers.utils.parseEther("200.0");
+ 
+            const takeChunkNum = BigNumber.from(1);
+            const newTokenPrice = usdt(300);
+            //=================================//
+
+            const sheet = await NestMining.contentOfPriceSheet(token, 31);
+            await expectRevert.unspecified(NestMining.connect(userB).buyToken(token,31,takeChunkNum,newTokenPrice,{ value: msgValue }));
+
+            await  NestMining.connect(userA).post(token, usdtPrice, nestPrice, ethNum, { value: msgValue });
+            const sheet1 = await NestMining.contentOfPriceSheet(token, 32);
+
+            const newTokenPrice1 = usdt(0);
+            await expectRevert.unspecified(NestMining.connect(userB).buyToken(token,32,takeChunkNum,newTokenPrice1,{ value: msgValue }));
+
+            const takeChunkNum1 = BN(0);
+            await expectRevert.unspecified(NestMining.connect(userB).buyToken(token,32,takeChunkNum1,newTokenPrice,{ value: msgValue }));
+
+        });
+
+
+
     });
 
 });
