@@ -1613,7 +1613,36 @@ describe("NestToken contract", function () {
             expect(eth_reward_pre.add(ethFee)).to.equal(eth_reward_now);
 
              // check level 
-             expect(BN(sheet.level).add(1)).to.equal(sheet1.level);
+            expect(BN(sheet.level).add(1)).to.equal(sheet1.level);
+
+        });
+
+        //==========start testing the boundary conditions==========//
+        // check the conditions of the post function
+        it('expect post failed !', async () =>{
+            
+            // check the conditions of ethNum
+            const token1 = _C_USDT;
+            const nestPrice1 = nest(1000);
+            const usdtPrice1 = usdt(350);
+            const msgValue1 = ethers.utils.parseEther("200.0");
+            const ethNum1 = BigNumber.from(45);
+            const ethNum2 = BigNumber.from(0);
+            await expectRevert.unspecified(NestMining.connect(userA).post(token1, usdtPrice1, nestPrice1, ethNum1, { value: msgValue1 }));
+
+            await expectRevert.unspecified(NestMining.connect(userA).post(token1, usdtPrice1, nestPrice1, ethNum2, { value: msgValue1 }));
+            //==============================//
+
+            // if ethFee > msg.value
+            const token2 = _C_USDT;
+            const nestPrice2 = nest(1000);
+            const usdtPrice2 = usdt(350);
+            const msgValue2 = ethers.utils.parseEther("8");
+            const ethNum3 = BigNumber.from(400);
+
+            // ethFee = 8 eth
+            // const ethFee = eth(BN(ethNum3).mul(2)).div(100);
+            await expectRevert.unspecified(NestMining.connect(userA).post(token2, usdtPrice2, nestPrice2, ethNum3, { value: msgValue2 }));
 
         });
 
