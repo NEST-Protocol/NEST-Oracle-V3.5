@@ -166,6 +166,11 @@ contract NestQuery is INestQuery {
         }
     }
 
+    function setFlag(uint8 newFlag) external onlyGovernance
+    {
+        flag = newFlag;
+    }
+
     /// @dev Withdraw NEST only when emergency or governance
     /// @param to  The address of recipient
     /// @param amount  The amount of NEST tokens 
