@@ -28,7 +28,7 @@ module.exports = {
   },
   contractSizer: {
     alphaSort: true,
-    runOnCompile: false,
+    runOnCompile: true,
     disambiguatePaths: false,
   },
   gasReporter: {
