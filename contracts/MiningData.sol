@@ -11,11 +11,8 @@ import "./iface/INNRewardPool.sol";
 import "./lib/SafeERC20.sol";
 
 
-/// @title ExchangeData
-/// @dev All methods in this lib are internal, therefore, there is no need
-///      to deploy this library independently.
-/// @author Daniel Wang  - <daniel@loopring.org>
-/// @author Brecht Devos - <brecht@loopring.org>
+/// @author Inf Loop - <inf-loop@nestprotocol.org>
+/// @author 0x00  - <0x00@nestprotocol.org>
 library MiningData {
 
     /* ========== CONSTANTS ========== */

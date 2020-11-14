@@ -41,6 +41,7 @@ contract NestPool is INestPool {
     address _C_DAOContract;
     address _C_NestMining;
     ERC20 _C_NestToken;
+    address C_NTokenController;
     // address _C_NNReward;
 
     constructor(address DAOContract) public {
@@ -65,11 +66,19 @@ contract NestPool is INestPool {
         governance = _gov;
     }
 
-
-    function setContracts(address NestMiningContract, address NestTokenContract) public {
-        _C_NestMining = NestMiningContract;
-        _C_NestToken = ERC20(NestTokenContract);
+    modifier onlyGovOrBy(address _contract) 
+    {
+        require(msg.sender == governance || msg.sender == _contract, "Nest:Mine:!sender");
+        _;
     }
+
+    function setContracts(address NestMining, address NestToken, address NTokenController) public {
+        _C_NestMining = NestMining;
+        _C_NestToken = ERC20(NestToken);
+        C_NTokenController = NTokenController;
+    }
+
+    /* ========== INTERNAL INTERFACE ========== */
 
     function getNTokenFromToken(address token) override view public returns (address) {
         return _token_ntoken_mapping[token];
@@ -78,7 +87,7 @@ contract NestPool is INestPool {
     function setNTokenToToken(address token, address ntoken) 
         override 
         public
-        onlyGovernance 
+        onlyGovOrBy(C_NTokenController) 
     {
         console.log("token=%s", ntoken);
         _token_ntoken_mapping[token] = ntoken;
