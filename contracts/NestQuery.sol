@@ -14,9 +14,6 @@ import "./iface/INToken.sol";
 import "./iface/INestQuery.sol";
 import "./iface/INestMining.sol";
 
-import "./NestMining.sol";
-import "./NestArch.sol";
-
 /// @title NestQuery
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
 /// @author Paradox  - <paradox@nestprotocol.org>

@@ -3,10 +3,10 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "./MiningData.sol";
-import "./MiningCalcPrice.sol";
-import "./MiningLookupPrice.sol";
-import "./MiningOp.sol";
+import "./libminingv2/MiningData.sol";
+import "./libminingv2/MiningCalcPrice.sol";
+import "./libminingv2/MiningLookupPrice.sol";
+import "./libminingv2/MiningOp.sol";
 
 import "./lib/SafeMath.sol";
 import "./lib/SafeERC20.sol";
