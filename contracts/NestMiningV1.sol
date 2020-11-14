@@ -13,13 +13,12 @@ import "./lib/ABDKMath64x64.sol";
 
 import "./iface/INestPool.sol";
 import "./iface/INestStaking.sol";
-// import "./iface/INToken.sol";
-// import "./iface/INNRewardPool.sol";
-import "hardhat/console.sol";
 
-/// @title MiningPrice module of NestMining
+// import "hardhat/console.sol";
+
+/// @title  NestMiningV1
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
-/// @author 0x00  - <0x00@nestprotocol.org>
+/// @author Paradox  - <paradox@nestprotocol.org>
 contract NestMiningV1 {
 
     using SafeMath for uint256;
@@ -27,7 +26,6 @@ contract NestMiningV1 {
     MiningV1Data.State state;
 
     using MiningV1Calc for MiningV1Data.State;
-    // using MiningOp for MiningData.State;
 
     // /* ========== CONSTANTS ========== */
 
@@ -92,7 +90,8 @@ contract NestMiningV1 {
     /* ========== CONSTRUCTOR ========== */
 
 
-    constructor() public {
+    constructor() public 
+    {
         state.governance = msg.sender;
     }
 
@@ -122,8 +121,7 @@ contract NestMiningV1 {
         state.flag = MiningV1Data.STATE_FLAG_ACTIVE;
     }
 
-    receive() external payable {
-    }
+    receive() external payable { }
 
     /* ========== MODIFIERS ========== */
 
@@ -150,7 +148,6 @@ contract NestMiningV1 {
 
     modifier onlyGovOrBy(address _contract) 
     {
-        // console.log("msg.sender=%s, _contract=%s", msg.sender, _contract);
         require(msg.sender == state.governance || msg.sender == _contract, "Nest:Mine:!sender");
         _;
     }
@@ -277,7 +274,6 @@ contract NestMiningV1 {
 
         { // settle ethers and tokens
             INestPool _C_NestPool = INestPool(state.C_NestPool);
-            console.log("msg.value=%s, _ethFee=%s", msg.value, _ethFee);
             // save the changes into miner's virtual account
             _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
 
