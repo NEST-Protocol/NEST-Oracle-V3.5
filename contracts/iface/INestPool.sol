@@ -5,12 +5,11 @@ pragma solidity ^0.6.12;
 interface INestPool {
 
     function addNest(address miner, uint256 amount) external;
-
-
-    function distributeRewards(address contributor) external returns(uint256);
-    // function increaseNestReward(address contributor, uint256 amount) external;
     function addNToken(address contributor, address ntoken, uint256 amount) external;
-    function depositEthMiner(address miner, uint256 value) external;
+
+    // function distributeRewards(address contributor) external returns(uint256);
+    // function increaseNestReward(address contributor, uint256 amount) external;
+    // function depositEthMiner(address miner, uint256 value) external;
 
     function depositEth(address miner) external payable;
 
@@ -37,7 +36,7 @@ interface INestPool {
     function withdrawNToken(address miner, address ntoken, uint256 amount) external;
     
     function balanceOfNestInPool(address miner) external view returns (uint256);
-    function transferNestInPool(address from, address to, uint256 amount) external;
+    // function transferNestInPool(address from, address to, uint256 amount) external;
 
 
     function addressOfBurnedNest() external view returns (address);

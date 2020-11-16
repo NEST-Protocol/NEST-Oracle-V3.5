@@ -3,14 +3,6 @@
 pragma solidity ^0.6.12;
 
 
-import "./iface/INestPool.sol";
-import "./iface/INestStaking.sol";
-import "./iface/INToken.sol";
-import "./iface/INNRewardPool.sol";
-
-import "./lib/SafeERC20.sol";
-
-
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
 /// @author 0x00  - <0x00@nestprotocol.org>
 library MiningData {

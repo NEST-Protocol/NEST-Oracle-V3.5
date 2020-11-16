@@ -5,10 +5,10 @@ pragma experimental ABIEncoderV2;
 
 import "./MiningData.sol";
 
-import "./lib/SafeMath.sol";
-import "./lib/SafeERC20.sol";
-import './lib/TransferHelper.sol';
-import "./lib/ABDKMath64x64.sol";
+import "../lib/SafeMath.sol";
+import "../lib/SafeERC20.sol";
+import '../lib/TransferHelper.sol';
+import "../lib/ABDKMath64x64.sol";
 
 // import "./iface/INestPool.sol";
 // import "./iface/INestStaking.sol";

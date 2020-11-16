@@ -308,7 +308,7 @@ describe("NestToken contract", function () {
         NestToken = await NestToken.deploy();
 
         NestPoolContract = await ethers.getContractFactory("NestPool");
-        NestPool = await NestPoolContract.deploy(owner.address); // TODO: arg should be DAOContract
+        NestPool = await NestPoolContract.deploy(); // TODO: arg should be DAOContract
 
         NestStakingContract = await ethers.getContractFactory("NestStaking");
         NestStaking = await NestStakingContract.deploy(NestToken.address);
@@ -364,7 +364,7 @@ describe("NestToken contract", function () {
         await NestPool.setNTokenToToken(_C_USDT, _C_NestToken);
         console.log(`> [INIT] deployer: set (USDT <-> NEST)`);
 
-        await NestPool.setContracts(_C_NestMining, _C_NestToken, _C_NTokenController);
+        await NestPool.setContracts(_C_NestMining, _C_NestToken, _C_NTokenController, _C_NNRewardPool);
 
         await NestMining.setAddresses(dev.address, dev.address);
         await NestMining.setContracts(_C_NestToken, _C_NestPool, _C_NestStaking, _C_NestQuery);
@@ -471,14 +471,14 @@ describe("NestToken contract", function () {
         it("should be able to query a price", async () => {
             await NestMining.connect(userA).post2(_C_USDT, 20, USDT(450), NEST(1000), { value: ETH(100) });
             await goBlocks(provider, 26);
-            const price = await NestMining.latestPrice(_C_USDT);
+            const price = await NestMining.latestPriceOf(_C_USDT);
             expect(price.ethNum).to.equal(20);
             expect(price.tokenAmount).to.equal(USDT(450).mul(20));
         });   
 
         it("should be able to compute avg and sigma", async () => {
-            await NestMining._stat(_C_USDT);
-            const price = await NestMining.priceAvgAndSigmaOfToken(_C_USDT);
+            await NestMining.stat(_C_USDT);
+            const price = await NestMining.priceAvgAndSigmaOf(_C_USDT);
 
             console.log(`[INFO] price=${show_64x64(price[0])} avg=${show_64x64(price[1])}, sigma=${show_64x64(price[2])}, height=${price[3]}}`);
         }); 
