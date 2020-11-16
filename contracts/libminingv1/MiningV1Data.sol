@@ -22,17 +22,23 @@ library MiningV1Data {
     uint256 constant BITE_AMOUNT_INFLATE_FACTOR  = 2;
 
 
-    // uint256 constant c_mining_nest_genesis_block_height = 6236588;
-    uint256 constant c_mining_nest_genesis_block_height = 1; // for testing
+    // uint256 constant MINING_NEST_GENESIS_BLOCK_HEIGHT = 6236588;
+    uint256 constant MINING_NEST_GENESIS_BLOCK_HEIGHT = 1; // for testing    
 
-    uint256 constant c_mining_nest_yield_cutback_period = 2400000;
-    uint256 constant c_mining_nest_yield_cutback_rate = 80;
-    uint256 constant c_mining_nest_yield_off_period_amount = 40 ether;
-    uint256 constant c_mining_nest_yield_per_block_base = 400 ether;
+    uint256 constant MINING_NEST_YIELD_CUTBACK_PERIOD = 2400000; // ~ 1 years 
+    uint256 constant MINING_NEST_YIELD_CUTBACK_RATE = 80;     // percentage = 80%
 
-    uint256 constant c_mining_ntoken_yield_cutback_rate = 80;
-    uint256 constant c_mining_ntoken_yield_off_period_amount = 0.4 ether;
-    uint256 constant c_mining_ntoken_yield_per_block_base = 4 ether;
+    // yield amount (per block) after the first ten years
+    uint256 constant MINING_NEST_YIELD_OFF_PERIOD_AMOUNT = 40 ether;  
+    // yield amount (per block) in the first year, it drops to 80% in the following nine years
+    uint256 constant MINING_NEST_YIELD_PER_BLOCK_BASE = 400 ether;  
+
+    uint256 constant MINING_NTOKEN_YIELD_CUTBACK_RATE = 80;
+    uint256 constant MINING_NTOKEN_YIELD_OFF_PERIOD_AMOUNT = 0.4 ether;
+    uint256 constant MINING_NTOKEN_YIELD_PER_BLOCK_BASE = 4 ether;
+
+
+
     // uint256[10] private _mining_ntoken_yield_per_block_amount;
 
     uint256 constant c_mining_eth_unit = 10;  // 10 ether
@@ -99,10 +105,12 @@ library MiningV1Data {
     struct State {
 
         uint8  flag;                // =0: initialized
-                                    // =1: active | =2: stop mining, 
-                                    // but clear/close/refute are allowed
-                                    // =3: only withdrawals are allowed
-                                    // =4: shutdown
+                                    // =1: active 
+                                    // =2: stop mining, 
+                                    // =3: stop sheet closing
+                                    // =4: stop assets withdrawing
+                                    // =5: stop price querying
+                                    // =127: shutdown completely
         
         uint8    version;           // = 2
         uint8    miningEthUnit;     // = 10;

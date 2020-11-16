@@ -472,7 +472,7 @@ describe("NestToken contract", function () {
             await NestMining.connect(userA).post2(_C_USDT, 20, USDT(450), NEST(1000), { value: ETH(100) });
             await goBlocks(provider, 26);
             const price = await NestMining.latestPriceOf(_C_USDT);
-            expect(price.ethNum).to.equal(20);
+            expect(price.ethAmount).to.equal(ETH(20));
             expect(price.tokenAmount).to.equal(USDT(450).mul(20));
         });   
 

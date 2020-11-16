@@ -144,7 +144,8 @@ library MiningV1Calc {
         ));
     }
 
-    function _stat(MiningV1Data.State storage state, address token) external 
+    function _stat(MiningV1Data.State storage state, address token) 
+        external 
     {
         MiningV1Data.PriceInfo memory p0 = state.priceInfo[token];
         MiningV1Data.PriceSheet[] storage pL = state.priceSheetList[token];
@@ -162,6 +163,7 @@ library MiningV1Calc {
             p0.avgTokenAmount = ABDKMath64x64.fromUInt(_sheet.tokenAmountPerEth);
             state.priceInfo[token] = p0;
         }
+
         MiningV1Data.PriceInfo memory p1;
 
         while (uint256(p0.index) < pL.length && uint256(p0.height) + MiningV1Data.PRICE_DURATION_BLOCK < block.number){
@@ -183,7 +185,9 @@ library MiningV1Calc {
     }
 
 
-    function _statOneBlock(MiningV1Data.State storage state, address token) public {
+    function _statOneBlock(MiningV1Data.State storage state, address token) 
+        public 
+    {
         MiningV1Data.PriceInfo memory p0 = state.priceInfo[token];
         MiningV1Data.PriceSheet[] storage pL = state.priceSheetList[token];
         if (pL.length < 2) {
@@ -197,6 +201,103 @@ library MiningV1Calc {
             state.priceInfo[token] = p1;
         }
         return;
+    }
+
+    /// @notice Return a consecutive price list for a token 
+    /// @dev 
+    /// @param token The address of token contract
+    /// @param num   The length of price list
+    function _priceListOfToken(
+            MiningV1Data.State storage state, 
+            address token, 
+            uint8 num
+        )
+        public 
+        view
+        returns (uint128[] memory data, uint256 atHeight) 
+    {
+        MiningV1Data.PriceSheet[] storage _list = state.priceSheetList[token];
+        uint256 len = _list.length;
+        uint256 _index = 0;
+        data = new uint128[](num * 3);
+        MiningV1Data.PriceSheet memory _sheet;
+        uint256 _ethNum;
+
+        // loop
+        uint256 _curr = 0;
+        uint256 _prev = 0;
+        for (uint i = 1; i <= len; i++) {
+            _sheet = _list[len - i];
+            _curr = uint256(_sheet.height);
+            if (_prev == 0) {
+                if (_curr + MiningV1Data.PRICE_DURATION_BLOCK < block.number) {
+                    data[_index] = uint128(_curr);
+                    _ethNum = uint256(_sheet.remainNum);
+                    data[_index + 1] = uint128(_ethNum.mul(1 ether));
+                    data[_index + 2] = uint128(_ethNum.mul(_sheet.tokenAmountPerEth));
+                    atHeight = _curr;
+                    _prev = _curr;
+                }
+            } else if (_prev == _curr) {
+                _ethNum = uint256(_sheet.remainNum);
+                data[_index + 1] += uint128(_ethNum.mul(1 ether));
+                data[_index + 2] += uint128(_ethNum.mul(_sheet.tokenAmountPerEth));
+            } else if (_prev > _curr) {
+                _index += 3;
+                if (_index >= uint256(num * 3)) {
+                    break;
+                }
+                data[_index] = uint128(_curr);
+                _ethNum = uint256(_sheet.remainNum);
+                data[_index + 1] = uint128(_ethNum.mul(1 ether));
+                data[_index + 2] = uint128(_ethNum.mul(_sheet.tokenAmountPerEth));
+                _prev = _curr;
+            }
+        } 
+        require (data.length == uint256(num * 3), "Incorrect price list length");
+    }
+
+
+    function _priceOfTokenAtHeight(
+            MiningV1Data.State storage state, 
+            address token, 
+            uint64 atHeight
+        )
+        external 
+        view 
+        returns(uint256 ethAmount, uint256 tokenAmount, uint256 blockNum) 
+    {
+
+        MiningV1Data.PriceSheet[] storage _list = state.priceSheetList[token];
+        uint256 len = state.priceSheetList[token].length;
+        MiningV1Data.PriceSheet memory _sheet;
+        uint256 _ethNum;
+
+        if (len == 0) {
+            return (0, 0, 0);
+        }
+
+        uint256 _first = 0;
+        uint256 _prev = 0;
+        for (uint i = 1; i <= len; i++) {
+            _sheet = _list[len - i];
+            _first = uint256(_sheet.height);
+            if (_prev == 0) {
+                if (_first <= uint256(atHeight) && _first + MiningV1Data.PRICE_DURATION_BLOCK < block.number) {
+                    _ethNum = uint256(_sheet.remainNum);
+                    ethAmount = _ethNum.mul(1 ether);
+                    tokenAmount = _ethNum.mul(_sheet.tokenAmountPerEth);
+                    blockNum = _first;
+                    _prev = _first;
+                }
+            } else if (_first == _prev) {
+                _ethNum = uint256(_sheet.remainNum);
+                ethAmount = ethAmount.add(_ethNum.mul(1 ether));
+                tokenAmount = tokenAmount.add(_ethNum.mul(_sheet.tokenAmountPerEth));
+            } else if (_prev > _first) {
+                break;
+            }
+        }
     }
 
 }
