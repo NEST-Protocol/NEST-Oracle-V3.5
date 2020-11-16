@@ -104,7 +104,11 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         return _state;
     }
 
-    function withdrawSavingByGov(address ntoken, address to, uint256 amount) external nonReentrant onlyGovernance {
+    function withdrawSavingByGov(address ntoken, address to, uint256 amount) 
+        external 
+        nonReentrant 
+        onlyGovernance 
+    {
         _pending_saving_amount[ntoken] = _pending_saving_amount[ntoken].sub(amount);
         TransferHelper.safeTransferETH(to, amount);
 
@@ -118,18 +122,24 @@ contract NestStaking is INestStaking, ReentrancyGuard {
 
     /* ========== VIEWS ========== */
     // 
-    function totalStaked(address ntoken) external override view returns (uint256) 
+    function totalStaked(address ntoken) 
+        external override view returns (uint256) 
     {
         return _ntoken_staked_total[ntoken];
     }
 
-    function stakedBalanceOf(address ntoken, address account) external override view returns (uint256) 
+    function stakedBalanceOf(address ntoken, address account) 
+        external override view returns (uint256) 
     {
         return _staked_balances[ntoken][account];
     }
 
     // CM: <token收益> = <token原收益> + (<新增总收益> * 80% / <token总锁仓量>) 
-    function rewardPerToken(address ntoken) public view returns (uint256) {
+    function rewardPerToken(address ntoken) 
+        public 
+        view 
+        returns (uint256) 
+    {
         uint256 _total = _ntoken_staked_total[ntoken];
         if (_total == 0) {
             // use the old rewardPerTokenStored
@@ -143,7 +153,11 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     }
 
     // CM: <新增总收益> = <rewardToken 余额> - <上次余额>
-    function accrued(address ntoken) public view returns (uint256) {
+    function accrued(address ntoken) 
+        public 
+        view 
+        returns (uint256) 
+    {
         // eth increment of eth since last update
         uint256 _newest = rewardsTotal[ntoken];
         // lastest must be larger than lastUpdate
@@ -151,14 +165,22 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     }
 
     // CM: <用户收益> = [<用户token锁仓> * (<token收益> - <用户已领收益>) / 1e18] + <用户奖励>
-    function earned(address ntoken, address account) public view returns (uint256) {
+    function earned(address ntoken, address account) 
+        public 
+        view 
+        returns (uint256) 
+    {
         return _staked_balances[ntoken][account].mul(
                         rewardPerToken(ntoken).sub(_reward_per_ntoken_claimed[ntoken][account])
                     ).div(1e18).add(rewardBalances[ntoken][account]);
     }
 
     // calculate
-    function _rewardPerTokenAndAccrued(address ntoken) internal view returns (uint256, uint256) {
+    function _rewardPerTokenAndAccrued(address ntoken) 
+        internal
+        view 
+        returns (uint256, uint256) 
+    {
         uint256 _total = _ntoken_staked_total[ntoken];
         if (_total == 0) {
             // use the old rewardPerTokenStored, and accrued should be zero here
@@ -174,7 +196,8 @@ contract NestStaking is INestStaking, ReentrancyGuard {
 
     /* ========== STAK/UNSTAK/CLAIM ========== */
 
-    modifier updateReward(address ntoken, address account) {
+    modifier updateReward(address ntoken, address account) 
+    {
         uint256 _total = _ntoken_staked_total[ntoken];
         uint256 _accrued = rewardsTotal[ntoken].sub(lastRewardsTotal[ntoken]);
         uint256 _rewardPerToken;      
@@ -207,7 +230,11 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     }
 
     /// @notice Stake NTokens to get the dividends
-    function stake(address ntoken, uint256 amount) external override nonReentrant updateReward(ntoken, msg.sender) 
+    function stake(address ntoken, uint256 amount) 
+        external 
+        override 
+        nonReentrant 
+        updateReward(ntoken, msg.sender) 
     {
         require(_state & 0x02 == 0, "Nest:Stak:!state");
         require(amount > 0, "Nest:Stak:!amount");
@@ -218,7 +245,12 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     }
 
     /// @notice Unstake NTokens
-    function unstake(address ntoken, uint256 amount) public override nonReentrant updateReward(ntoken, msg.sender) {
+    function unstake(address ntoken, uint256 amount) 
+        public 
+        override 
+        nonReentrant 
+        updateReward(ntoken, msg.sender)
+    {
         require(_state & 0x04 == 0, "Nest:Stak:!state");
         require(amount > 0, "Nest:Stak:!amount");
         _ntoken_staked_total[ntoken] = _ntoken_staked_total[ntoken].sub(amount);
@@ -228,7 +260,12 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     }
 
     /// @notice Claim rewards
-    function claim(address ntoken) public override nonReentrant updateReward(ntoken, msg.sender) {
+    function claim(address ntoken) 
+        public 
+        override 
+        nonReentrant 
+        updateReward(ntoken, msg.sender) 
+    {
         require(_state & 0x08 == 0, "Nest:Stak:!state");
         uint256 _reward = rewardBalances[ntoken][msg.sender];
         if (_reward > 0) {
@@ -246,7 +283,11 @@ contract NestStaking is INestStaking, ReentrancyGuard {
 
     /* ========== INTER-CALLS ========== */
 
-    function addETHReward(address ntoken) external payable override {
+    function addETHReward(address ntoken) 
+        external 
+        payable 
+        override 
+    {
         require(_state & 0x10 == 0, "Nest:Stak:!_state");
         // NOTE: no need to update reward here
         // support for sending ETH for rewards
