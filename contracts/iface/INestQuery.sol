@@ -11,7 +11,7 @@ pragma solidity ^0.6.12;
 
 interface INestQuery {
  
-    function setFee(uint256 min, uint256 max, uint256 single, uint256 monthly) external;
+    // function setFee(uint256 min, uint256 max, uint256 single, uint256 monthly) external;
 
     function activatePPQ(address defi) external;
 

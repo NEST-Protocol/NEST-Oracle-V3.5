@@ -23,10 +23,10 @@ contract NestQuery is INestQuery {
     using SafeMath for uint256;
 
     struct TokenPrice {
-        uint64 min;
-        uint64 max;
-        uint64 single;
-        uint64 monthly;   // unit: NestToken 
+        uint32 singleFeeEth;     
+        uint32 monthlyFeeNest;   // unit: NestToken 
+        uint32 activationFeeNest;
+        uint32 _reserved;
     }
 
     uint8  public flag;     // 0: query allowed, client activation forbidden
@@ -51,9 +51,13 @@ contract NestQuery is INestQuery {
     address    private _C_NestPool;
     address    private _C_NestStaking;
 
-    uint256 constant CLIENT_ACTIVATION_NEST_AMOUNT = 10_000 ether;
-    uint256 constant CLIENT_MONTHLY_FEE_NEST_AMOUNT = 1_000 ether;
+    uint32 constant CLIENT_ACTIVATION_NEST_AMOUNT = 10_000;
+    uint32 constant CLIENT_MONTHLY_FEE_NEST_AMOUNT = 1_000;
     uint256 constant CLIENT_ACTIVATION_DURATION = 1 seconds;
+
+    uint32 constant CLIENT_TYPE_PAY_PER_QUERY = 1;
+    uint32 constant CLIENT_TYPE_PAY_PER_MONTH = 2;
+
 
     mapping(address => uint256) private clientList;
     mapping(address => address) private clientOp;
@@ -111,35 +115,27 @@ contract NestQuery is INestQuery {
 
     /// @notice Setup the price for queryings, one price for all token
     /// @dev    It should be called right after deployment
-    function setFee(uint256 min, uint256 max, uint256 single, uint256 monthly) 
-        override 
+    function setFee(uint256 single, uint256 monthly) 
         public 
         onlyGovernance
     {
-        (uint256 _min, uint256 _max, uint256 _single, uint256 _mon) =  decodePriceOfQuery(priceOfQueryEncoded);
+        (uint32 _single, uint32 _mon, uint32 _act, uint32 _res) =  decode_4x32_256(priceOfQueryEncoded);
 
-        if (_min == 0 && _max == 0 && _single == 0 && _mon == 0) {
-            _min = ((0.001 ether) / 1e12); 
-            _max = ((0.02 ether) / 1e12);
+        if (_single == 0 && _mon == 0 && _act == 0) {
             _single = ((0.01 ether) / 1e12);
-            _mon = 10_000;
+            _mon = CLIENT_MONTHLY_FEE_NEST_AMOUNT;
+            _act = CLIENT_ACTIVATION_NEST_AMOUNT;
         }
-
-        if (min != 0) {
-            _min = min; 
-        } 
-        if (max != 0) {
-            _max = max;
-        }
+        
         if (single != 0) {
-            _single = single;
+            _single = uint32(single);
         }
 
         if (monthly != 0) {
-            _mon = monthly;
+            _mon = uint32(monthly);
         }
 
-        priceOfQueryEncoded = encodePriceOfQuery(_min, _max, _single, _mon);
+        priceOfQueryEncoded = encode_4x32_256(_single, _mon, _act, _res);
     }
 
     function setContracts(address C_NestToken, address C_NestMining, address C_NestStaking, address C_NestPool) 
@@ -202,21 +198,28 @@ contract NestQuery is INestQuery {
 
     /// @notice Activate a pay-per-query defi client with NEST tokens
     /// 
-    function activatePPQ(address defi) override external noContract whenClientOpened
+    function activatePPQ(
+            address defi
+        ) 
+        override 
+        external 
+        noContract 
+        whenClientOpened
     {
         if (defi == address(0)) {
             defi = address(msg.sender);
         }
         Client memory _c = decodeClient(clientList[defi]);
         require (_c.typ == 0, "Nest:Qury:EX(client)");
-
+        (, , uint256 _actFee, ) = decode_4x32_256(priceOfQueryEncoded);  
+        uint256 _nestFee = _actFee.mul(1 ether);
         uint256 _start = uint64(block.timestamp.add(CLIENT_ACTIVATION_DURATION));
         uint256 _end = 0;
         uint256 _mfee = 0;
         clientList[defi] = encodeClient(uint64(_start), uint64(_end), uint32(_mfee), 0x1);
         clientOp[defi] = address(msg.sender);
         emit ClientActivated(defi, _start, _end);
-        ERC20(_C_NestToken).transferFrom(address(msg.sender), address(this), CLIENT_ACTIVATION_NEST_AMOUNT);
+        ERC20(_C_NestToken).transferFrom(address(msg.sender), address(this), _nestFee);
     }
 
     /// @notice Activate a pay-per-month client with NEST tokens
@@ -234,6 +237,8 @@ contract NestQuery is INestQuery {
         }
         Client memory _c = decodeClient(clientList[defi]);
         require (_c.typ == 0, "Nest:Qury:EX(client)");
+        (, , uint256 _actFee, ) = decode_4x32_256(priceOfQueryEncoded);  
+        uint256 _nestFee = _actFee.mul(1 ether);
 
         uint256 _start = block.timestamp.add(CLIENT_ACTIVATION_DURATION);
         uint256 _end = _start;
@@ -241,7 +246,7 @@ contract NestQuery is INestQuery {
         clientOp[defi] = address(msg.sender);
 
         emit ClientActivated(defi, _start, _end);
-        ERC20(_C_NestToken).transferFrom(address(msg.sender), address(this), CLIENT_ACTIVATION_NEST_AMOUNT);
+        ERC20(_C_NestToken).transferFrom(address(msg.sender), address(this), _nestFee);
     }
 
     function deactivate(address defi) override external whenClientOpened
@@ -270,9 +275,9 @@ contract NestQuery is INestQuery {
         require(months > 0, "Nest:Qury:!(months)");
         Client memory c = decodeClient(clientList[defi]);
         // uint256 _monthlyFee = uint256(c.fee);
-        require(c.typ == 2, "Nest:Qury:!(client)"); 
+        require(c.typ == CLIENT_TYPE_PAY_PER_MONTH, "Nest:Qury:!(client)"); 
 
-        uint256 _fee = CLIENT_MONTHLY_FEE_NEST_AMOUNT.mul(months);
+        uint256 _fee = uint256(c.fee).mul(1 ether).mul(months);
 
         uint256 start_time;
         if (c.endTime != 0) {
@@ -298,15 +303,15 @@ contract NestQuery is INestQuery {
     {
         // check parameters
         Client memory c = decodeClient(clientList[address(msg.sender)]);
-        require (c.typ == 1 || c.typ == 2, "Nest:Qury:=!(client.typ)");
-        if (c.typ == 1) {
+        require (c.typ == CLIENT_TYPE_PAY_PER_QUERY || c.typ == CLIENT_TYPE_PAY_PER_MONTH, "Nest:Qury:=!(client.typ)");
+        if (c.typ == CLIENT_TYPE_PAY_PER_QUERY) {
             // require(c.monthlyFee == 0, "Nest:Qury:=0(monFee)");
             require(c.startTime != 0 && uint256(c.startTime) < block.timestamp 
                 && uint256(c.endTime) == 0, "Nest:Qury:!(client.time)");
 
             // lookup the latest effective price
             (uint256 ethAmount, uint256 tokenAmount, uint256 bn) = INestMining(_C_NestMining).priceOf(token);
-            (, , uint256 _single, ) = decodePriceOfQuery(priceOfQueryEncoded);  
+            (uint256 _single, , , ) = decode_4x32_256(priceOfQueryEncoded);  
 
             {
                 address _nToken = INestPool(_C_NestPool).getNTokenFromToken(token); 
@@ -322,7 +327,7 @@ contract NestQuery is INestQuery {
             // emit PriceQueried(address(msg.sender), token, ethAmount, tokenAmount, bn);
             return (ethAmount, tokenAmount, uint256(bn));
         
-        } else if (c.typ == 2) {
+        } else if (c.typ == CLIENT_TYPE_PAY_PER_MONTH) {
             // require(c.monthlyFee > 0, "Nest:Qury:!(monFee)");
             uint256 startTime = uint256(c.startTime);
             uint256 endTime = uint256(c.endTime);
@@ -388,30 +393,33 @@ contract NestQuery is INestQuery {
     }
 */
 
-    // function encodePriceOfQuery(uint64 padding, uint64 min, uint64 max, uint64 single) internal pure returns (uint256 enc) 
-    function encodePriceOfQuery(uint256 min, uint256 max, uint256 single, uint256 monthly) internal pure returns (uint256 enc) 
+    function encode_4x32_256(uint32 p1, uint32 p2, uint32 p3, uint32 p4) 
+        internal 
+        pure 
+        returns (uint256 enc) 
     {
         assembly {
-            let y := 0
-            mstore(0x20, single)
-            mstore(0x18, max)
-            mstore(0x10, min)
-            mstore(0x8, monthly)
+            mstore(0x20, p1)
+            mstore(0x18, p2)
+            mstore(0x10, p3)
+            mstore(0x8, p4)
             enc := mload(0x20)
         }
     }
 
-    function decodePriceOfQuery(uint256 enc) internal pure returns (uint256 min, uint256 max, uint256 single, uint256 monthly) 
+    function decode_4x32_256(uint256 enc) 
+        internal 
+        pure 
+        returns (uint32 p1, uint32 p2, uint32 p3, uint32 p4) 
     {
-
         assembly {
-            single := enc
+            p1 := enc
             mstore(0x18, enc)
-            monthly := mload(0)
+            p4 := mload(0)
             mstore(0x10, enc)
-            min := mload(0)
+            p3 := mload(0)
             mstore(0x8, enc)
-            max := mload(0)
+            p2 := mload(0)
         }
     }
 

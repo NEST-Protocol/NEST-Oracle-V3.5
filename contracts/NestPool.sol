@@ -30,7 +30,7 @@ contract NestPool is INestPool {
     // token => miner => amount 
     mapping(address => mapping(address => uint256)) _token_ledger;
 
-    mapping(address => uint256) _nest_ledger;
+    // mapping(address => uint256) _nest_ledger;
 
     mapping(address => address) _token_ntoken_mapping;
 
@@ -102,6 +102,7 @@ contract NestPool is INestPool {
     function transferNestInPool(address from, address to, uint256 amount) 
         external onlyGovernance
     {
+        mapping(address => uint256) storage _nest_ledger = _token_ledger[address(C_NestToken)];
         uint256 blnc = _nest_ledger[from];
         require (amount > 0 && blnc >= amount, "Nest:Pool:!amount");
         _nest_ledger[from] = blnc.sub(amount);
@@ -202,7 +203,10 @@ contract NestPool is INestPool {
     function freezeNest(address miner, uint256 nestAmount) 
         override public onlyMiningContract 
     {
+        mapping(address => uint256) storage _nest_ledger = _token_ledger[address(C_NestToken)];
+
         uint256 blncs = _nest_ledger[miner];
+        
         if (blncs < nestAmount) {
             C_NestToken.transferFrom(miner,  address(this), nestAmount - blncs); //safe math
             _nest_ledger[miner] = 0; 
@@ -215,6 +219,8 @@ contract NestPool is INestPool {
     function unfreezeNest(address miner, uint256 nestAmount) 
         override public onlyMiningContract 
     {
+        mapping(address => uint256) storage _nest_ledger = _token_ledger[address(C_NestToken)];
+
         if (nestAmount > 0) {
             _nest_ledger[address(this)] =  _nest_ledger[address(this)].sub(nestAmount);
             _nest_ledger[miner] = _nest_ledger[miner].add(nestAmount); 
@@ -283,6 +289,8 @@ contract NestPool is INestPool {
     function balanceOfNestInPool(address miner) 
         override public view returns (uint256)
     {
+        mapping(address => uint256) storage _nest_ledger = _token_ledger[address(C_NestToken)];
+
         return _nest_ledger[miner];
     }
 
@@ -312,6 +320,8 @@ contract NestPool is INestPool {
     function addNest(address miner, uint256 amount) 
         override public // onlyMiningContract 
     {
+        mapping(address => uint256) storage _nest_ledger = _token_ledger[address(C_NestToken)];
+
         require (amount > 0, "Nest:Pool:(amount)=0");
         _nest_ledger[miner] = _nest_ledger[miner].add(amount);
     }
@@ -418,6 +428,8 @@ contract NestPool is INestPool {
     function withdrawNest(address miner, uint256 amount) 
         override public onlyGovOrBy2(C_NestMining, C_NNRewardPool)
     {
+        mapping(address => uint256) storage _nest_ledger = _token_ledger[address(C_NestToken)];
+
         require(amount > 0, "Nest:Pool:=0(nestAmount)");
         uint256 blncs = _nest_ledger[miner];
         require(amount <= blncs, "Nest:Pool:(nestAmount)<BAL");
@@ -451,7 +463,8 @@ contract NestPool is INestPool {
     /* ========== HELPERS ========== */
 
 
-    function addressOfBurnedNest() override public view returns (address) {
+    function addressOfBurnedNest() override public view returns (address) 
+    {
         return _x_nest_burning_address;
     }
 
@@ -462,14 +475,20 @@ contract NestPool is INestPool {
     //     }
     // } 
         
-    function getMinerEthAndToken(address miner, address token) public view returns (uint256 ethAmount, uint256 tokenAmount) {
+    function getMinerEthAndToken(address miner, address token) 
+        public view returns (uint256 ethAmount, uint256 tokenAmount) 
+    {
         ethAmount = _eth_ledger[miner];
         if (token != address(0x0)) {
             tokenAmount = _token_ledger[token][miner];
         }
     } 
 
-    function getMinerNest(address miner) public view returns (uint256 nestAmount) {
+    function getMinerNest(address miner) public view returns (uint256 nestAmount) 
+    {
+
+        mapping(address => uint256) storage _nest_ledger = _token_ledger[address(C_NestToken)];
+
         nestAmount = _nest_ledger[miner];
     } 
 
