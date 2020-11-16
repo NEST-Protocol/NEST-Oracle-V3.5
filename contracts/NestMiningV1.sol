@@ -226,7 +226,7 @@ contract NestMiningV1 {
 
 
         // calculate eth fee
-        uint256 _ethFee = ethNum.mul(state.miningFeeRate).div(1000).mul(1e18);
+        uint256 _ethFee = ethNum.mul(state.miningFeeRate).mul(1e18).div(1000);
 
         { // settle ethers and tokens
 
