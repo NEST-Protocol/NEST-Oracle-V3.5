@@ -32,6 +32,11 @@ contract NestQuery is INestQuery {
         uint64 monthly;   // unit: NestToken 
     }
 
+    uint8  public flag;     // 0: query allowed, client activation forbidden
+                            // 1: query forbidden, client activation allowed
+                            // 2: query allowed, client activation forbidden
+                            // 3: query forbidden, client activation allowed;
+
     uint256 private priceOfQueryEncoded;
 
     address public governance;
@@ -43,8 +48,6 @@ contract NestQuery is INestQuery {
         uint32 typ;     // =1: PPQ | =2: PPM
         uint64 _reserved;
     }
-
-    // address private _x_dev_address;
 
     address    private _C_NestToken;
     address    private _C_NestMining;
@@ -68,9 +71,25 @@ contract NestQuery is INestQuery {
     constructor() public 
     {
         governance = address(msg.sender); 
+        flag = 3;
     }
 
+    function init() external {
+        flag = 3;
+    }
     /* ========== GOVERNANCE ========== */
+
+    modifier whenQuryOpened() 
+    {
+        require(flag & 0x1 != 0, "Nest:Qury:!flag");
+        _;
+    }
+
+    modifier whenClientOpened() 
+    {
+        require(flag & 0x2 != 0, "Nest:Qury:!flag");
+        _;
+    }
 
     modifier onlyGovernance() 
     {
@@ -95,7 +114,10 @@ contract NestQuery is INestQuery {
 
     /// @notice Setup the price for queryings, one price for all token
     /// @dev    It should be called right after deployment
-    function setFee(uint256 min, uint256 max, uint256 single, uint256 monthly) override public onlyGovernance
+    function setFee(uint256 min, uint256 max, uint256 single, uint256 monthly) 
+        override 
+        public 
+        onlyGovernance
     {
         (uint256 _min, uint256 _max, uint256 _single, uint256 _mon) =  decodePriceOfQuery(priceOfQueryEncoded);
 
@@ -144,6 +166,11 @@ contract NestQuery is INestQuery {
         }
     }
 
+    function setFlag(uint8 newFlag) external onlyGovernance
+    {
+        flag = newFlag;
+    }
+
     /// @dev Withdraw NEST only when emergency or governance
     /// @param to  The address of recipient
     /// @param amount  The amount of NEST tokens 
@@ -178,7 +205,7 @@ contract NestQuery is INestQuery {
 
     /// @notice Activate a pay-per-query defi client with NEST tokens
     /// 
-    function activatePPQ(address defi) override external noContract
+    function activatePPQ(address defi) override external noContract whenClientOpened
     {
         if (defi == address(0)) {
             defi = address(msg.sender);
@@ -196,7 +223,14 @@ contract NestQuery is INestQuery {
     }
 
     /// @notice Activate a pay-per-month client with NEST tokens
-    function activatePPM(address defi, uint256 monthlyFee) override external noContract
+    function activatePPM(
+            address defi, 
+            uint256 monthlyFee
+        ) 
+        override 
+        external 
+        noContract 
+        whenClientOpened
     {
         if (defi == address(0)) {
             defi = address(msg.sender);
@@ -213,7 +247,7 @@ contract NestQuery is INestQuery {
         ERC20(_C_NestToken).transferFrom(address(msg.sender), address(this), CLIENT_ACTIVATION_NEST_AMOUNT);
     }
 
-    function deactivate(address defi) override external 
+    function deactivate(address defi) override external whenClientOpened
     {
         if (defi == address(0)) {
             defi = address(msg.sender);
@@ -222,13 +256,13 @@ contract NestQuery is INestQuery {
         clientList[defi] = encodeClient(0, 0, 0, 0);
     }
 
-    function remove(address defi) external onlyGovernance noContract 
+    function remove(address defi) external onlyGovernance noContract whenClientOpened
     {
         clientList[defi] = encodeClient(0, 0, 0, 0);
         clientOp[defi] = address(0);
     }
 
-    function renewalPPM(address defi, uint256 months) override external noContract 
+    function renewalPPM(address defi, uint256 months) override external noContract whenClientOpened
     {
         if (defi == address(0)) {
             defi = address(msg.sender);
@@ -260,9 +294,10 @@ contract NestQuery is INestQuery {
     /// @notice Query for PPQ (pay-per-query) clients
     function query(address token, address payback) 
         override 
-        external 
+        public 
         payable 
-        returns (uint256, uint256, uint64) 
+        whenQuryOpened
+        returns (uint256, uint256, uint256) 
     {
         // check parameters
         Client memory c = decodeClient(clientList[address(msg.sender)]);
@@ -287,8 +322,8 @@ contract NestQuery is INestQuery {
                 }
             }
         
-            emit PriceQueried(address(msg.sender), token, ethAmount, tokenAmount, bn);
-            return (ethAmount, tokenAmount, uint64(bn));
+            // emit PriceQueried(address(msg.sender), token, ethAmount, tokenAmount, bn);
+            return (ethAmount, tokenAmount, uint256(bn));
         
         } else if (c.typ == 2) {
             // require(c.monthlyFee > 0, "Nest:Qury:!(monFee)");
@@ -304,6 +339,20 @@ contract NestQuery is INestQuery {
         }
 
     }
+    
+    /// @notice The main function called by DeFi clients, compatible to Nest Protocol v3.0 
+    /// @dev  The payback address is ZERO, so the changes are kept in this contract
+    function updateAndCheckPriceNow(
+            address tokenAddress
+        ) 
+        public 
+        payable 
+        whenQuryOpened
+        returns(uint256 ethAmount, uint256 erc20Amount, uint256 blockNum) 
+    {
+        return query(tokenAddress, address(0));
+    }
+
 
 /*
     function queryPriceList(address token, uint8 num, address payback) override public payable 

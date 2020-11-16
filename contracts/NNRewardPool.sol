@@ -6,7 +6,7 @@ import "./lib/SafeMath.sol";
 import "./iface/INestPool.sol";
 import "./lib/SafeERC20.sol";
 import './lib/TransferHelper.sol';
-// import "./iface/IBonusPool.sol";
+import "./iface/INestMining.sol";
 // import "./iface/INToken.sol";
 // import "./NestMining.sol";
 import "./iface/INNRewardPool.sol";
@@ -23,6 +23,10 @@ import "hardhat/console.sol";
 contract NNRewardPool is INNRewardPool {
     using SafeMath for uint256;
 
+    uint8   public flag;    // | 1: active 
+                            // | 2: only claims are allowed
+                            // | 3: shutdown
+
     uint256 public NN_reward_sum;
     uint256 public NN_total_supply;
 
@@ -32,6 +36,10 @@ contract NNRewardPool is INNRewardPool {
     address _C_NestMining;
 
     address public governance;
+
+    uint256 constant DEV_REWARD_PERCENTAGE   = 5;
+    uint256 constant NN_REWARD_PERCENTAGE    = 15;
+    uint256 constant MINER_REWARD_PERCENTAGE = 80;
 
     /// @dev From nest-node address to checkpoints of reward-sum
     mapping(address => uint256) public NN_reward_sum_checkpoint;
@@ -60,6 +68,7 @@ contract NNRewardPool is INNRewardPool {
         _C_NNToken = NNToken;
         NN_total_supply = uint128(ERC20(_C_NNToken).totalSupply());
         governance = msg.sender;
+        flag = 0;
     }
 
     modifier onlyBy(address _account)
@@ -112,20 +121,6 @@ contract NNRewardPool is INNRewardPool {
         }
     }
 
-    /// @notice Add rewards for Nest-Nodes, only governance or NestMining (contract) are allowed
-    /// @dev The rewards need to pull from NestPool
-    /// @param _amount The amount of Nest token as the rewards to each nest-node
-    function addNNReward(uint256 _amount) override external onlyGovOrBy(_C_NestMining)
-    {
-        // uint256 _amount = _C_NestPool.balanceOfNestInPool(address(this));
-        if (_amount > 0) {
-            uint256 _newSum = uint256(NN_reward_sum).add(_amount);
-            NN_reward_sum = uint128(_newSum);
-            emit NNRewardAdded(_amount, _newSum);
-        }
-        return;
-    }
-
     function setNNRewardSum(uint256 sum) external onlyGovernance
     {
         NN_reward_sum = uint128(sum);
@@ -138,6 +133,46 @@ contract NNRewardPool is INNRewardPool {
         }
     }
 
+    function setFlag(uint8 newFlag) external onlyGovernance
+    {
+        flag = newFlag;
+    }
+
+    /* ========== ADDING REWARDS ========== */
+
+
+    /// @notice Add rewards for Nest-Nodes, only governance or NestMining (contract) are allowed
+    /// @dev [Obseleted] The rewards need to pull from NestPool
+    /// @param _amount The amount of Nest token as the rewards to each nest-node
+    function addNNReward(uint256 _amount) override external onlyGovOrBy(_C_NestMining)
+    {
+        require(flag < 2, "Nest:NN:!flag");
+
+        // uint256 _amount = _C_NestPool.balanceOfNestInPool(address(this));
+        if (_amount > 0) {
+            uint256 _newSum = uint256(NN_reward_sum).add(_amount);
+            NN_reward_sum = uint128(_newSum);
+            emit NNRewardAdded(_amount, _newSum);
+        }
+        return;
+    }
+
+    /// @dev The updator is to update the sum of NEST tokens mined in NestMining
+    /// DISCUSSION: when shall we notify updator ??
+    function updateNNReward() external
+    {
+        require(flag < 2, "Nest:NN:!flag");
+
+        uint256 _allMined = INestMining(_C_NestMining).minedNestAmount();
+        if (_allMined > NN_reward_sum) {
+            uint256 _amount = _allMined.mul(NN_REWARD_PERCENTAGE).div(100).sub(NN_reward_sum);
+            uint256 _newSum = uint256(NN_reward_sum).add(_amount);
+            NN_reward_sum = uint128(_newSum);
+            emit NNRewardAdded(_amount, _newSum);
+        }
+    }
+
+
     /* ========== claim/settle ========== */
 
 
@@ -145,6 +180,8 @@ contract NNRewardPool is INNRewardPool {
     /// @dev The rewards need to pull from NestPool
     function claimNNReward() override external noContract
     {
+        require(flag < 3, "Nest:NN:!flag");
+
         uint256 blnc =  ERC20(_C_NNToken).balanceOf(address(msg.sender));
         require(blnc > 0, "Nest:NN:!(NNToken)");
         uint256 total = NN_total_supply;
@@ -163,6 +200,8 @@ contract NNRewardPool is INNRewardPool {
 
     function settleNNReward(address from, address to) internal 
     {
+        require(flag < 3, "Nest:NN:!flag");
+
         uint256 fromBlnc = ERC20(_C_NNToken).balanceOf(address(from));
         require (fromBlnc > 0, "Nest:NN:!(fromBlnc)");
         uint256 sum = NN_reward_sum;

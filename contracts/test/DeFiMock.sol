@@ -27,7 +27,7 @@ contract DeFiMock {
     }
 
     function query(address token) payable public {
-        (uint256 ethAmount, uint256 tokenAmount, uint64 bn) = _NestQuery.query{value:msg.value}(token, msg.sender);
+        (uint256 ethAmount, uint256 tokenAmount, uint256 bn) = _NestQuery.query{value:msg.value}(token, msg.sender);
         prices.push(PriceInfo(token, bn, ethAmount, tokenAmount));
     }
 

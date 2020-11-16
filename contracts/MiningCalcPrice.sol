@@ -66,16 +66,6 @@ library MiningCalcPrice {
     {
         int128 _newP = ABDKMath64x64.div(ABDKMath64x64.fromUInt(tokenA), 
                                         ABDKMath64x64.fromUInt(ethA));
-        // {
-        //     uint i = uint(_avg>>64);
-        //     uint j = uint(_avg<<64>>64);
-        //     console.log("_avg=%s.%s", i, j);
-        // }
-        // {
-        //     uint i = uint(_newP>>64);
-        //     uint j = uint(_newP<<64>>64);
-        //     console.log("_newP=%s.%s", i, j);
-        // }
         int128 _newAvg;
 
         if (_avg == 0) {
@@ -85,11 +75,6 @@ library MiningCalcPrice {
                 ABDKMath64x64.mul(ABDKMath64x64.divu(95, 100), _avg), 
                 ABDKMath64x64.mul(ABDKMath64x64.divu(5,100), _newP));
         }
-        // {
-        //     uint i = uint(_newAvg>>64);
-        //     uint j = uint(_newAvg<<64>>64);
-        //     console.log("_newAvg=%s.%s", i, j);
-        // }
         return _newAvg;
 
     }
@@ -121,11 +106,27 @@ library MiningCalcPrice {
                             // QUES: redundant condition ?
                             // && pL[i].height + MiningData.c_price_duration_block < block.number) 
         {
-            ethA1 = ethA1 + uint256(pL[i].remainChunk).mul(pL[i].chunkSize);
-            tokenA1 = tokenA1 + uint256(pL[i].remainChunk).mul(pL[i].chunkSize).mul(pL[i].tokenPrice);
+            uint256 _remain = uint256(pL[i].remainChunk);
+            if (_remain == 0) {
+                continue;
+            }
+            ethA1 = ethA1 + _remain.mul(pL[i].chunkSize);
+            tokenA1 = tokenA1 + _remain.mul(pL[i].chunkSize).mul(pL[i].tokenPrice);
             i = i + 1;
         } //loop: sheets[i].height = h
         i = i - 1;
+        if (ethA1 == 0 || tokenA1 == 0) {
+            return (MiningData.Price(
+                    uint32(i),  // index
+                    uint32(0),  // height
+                    uint32(0),  // ethNum
+                    uint128(0),  // tokenAmount
+                    int128(0),  // volatility_sigma_sq
+                    int128(0),  // volatility_ut_sq
+                    int128(0),  // avgTokenAmount
+                    0           // _reserved2
+            ));
+        }
         // (int128 new_sigma_sq, int128 new_ut_sq) = (1, 1);
         (int128 new_sigma_sq, int128 new_ut_sq) = _calcEWMA(
             p0.ethNum, p0.tokenAmount, 
@@ -149,10 +150,13 @@ library MiningCalcPrice {
         }
         while (uint256(p0.index) < pL.length && uint256(p0.height) + MiningData.c_price_duration_block < block.number){
             p1 = _moveAndCalc(p0, pL);
-            if (p1.index <= p0.index) {
+            if (p1.index <= p0.index) {   // bootstraping
                 break;
-            }
-            p0 = p1;
+            } else if (p1.ethNum == 0) {  // jump cross a block with bitten prices
+                p0.index = p1.index; 
+            } else {                      // calculate one more block
+                p0 = p1;
+            }    
         }
 
         if (p0.index > state._priceInEffect[token].index) {

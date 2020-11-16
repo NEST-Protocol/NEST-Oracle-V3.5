@@ -5,19 +5,19 @@ const { BN, time, balance, constants, expectEvent, expectRevert } = require('@op
 const usdtdec = BigNumber.from(10).pow(6);
 const ethdec = ethers.constants.WeiPerEther;
 
-const eth = function (amount) {
+const ETH = function (amount) {
     return BigNumber.from(amount).mul(ethdec);
 };
 
-const usdt = function (amount) {
+const USDT = function (amount) {
     return BigNumber.from(amount).mul(usdtdec);
 };
 
-const wbtc = function (amount) {
+const WBTC = function (amount) {
     return BigNumber.from(amount).mul(BigNumber.from(10).pow(8));
 };
 
-const nest = function (amount) {
+const NEST = function (amount) {
     return BigNumber.from(amount).mul(ethdec);
 };
 
@@ -60,7 +60,7 @@ const show_64x64 = function (s) {
 }
 
 
-describe("NestToken contract", function () {
+describe("Nest Protocol", function () {
     // Mocha has four functions that let you hook into the the test runner's
     // lifecyle. These are: `before`, `beforeEach`, `after`, `afterEach`.
 
@@ -75,6 +75,7 @@ describe("NestToken contract", function () {
     let _C_NestPool;
     let _C_USDT;
     let _C_NNRewardPool;
+    let _C_NestQuery;
     let provider = ethers.provider;
 
     before(async function () {
@@ -82,8 +83,8 @@ describe("NestToken contract", function () {
         [owner, userA, userB, userC, userD] = await ethers.getSigners();
 
         ERC20Contract = await ethers.getContractFactory("UERC20");
-        USDT = await ERC20Contract.deploy("10000000000000000", "USDT Test Token", "USDT", 6);
-        WBTC = await ERC20Contract.deploy("2100000000000000", "WBTC Test Token", "WBTC", 8);
+        CUSDT = await ERC20Contract.deploy("10000000000000000", "USDT Test Token", "USDT", 6);
+        CWBTC = await ERC20Contract.deploy("2100000000000000", "WBTC Test Token", "WBTC", 8);
 
         IterableMappingContract = await ethers.getContractFactory("IterableMapping");
         IterableMapping = await IterableMappingContract.deploy();
@@ -102,25 +103,32 @@ describe("NestToken contract", function () {
         NestStakingContract = await ethers.getContractFactory("NestStaking");
         NestStaking = await NestStakingContract.deploy(NestToken.address);
 
-        MiningCalcPriceContract = await ethers.getContractFactory("MiningCalcPrice");
-        MiningCalcPrice = await MiningCalcPriceContract.deploy();
-        MiningLookupPriceContract = await ethers.getContractFactory("MiningLookupPrice");
-        MiningLookupPrice = await MiningLookupPriceContract.deploy();
-        MiningOpContract = await ethers.getContractFactory("MiningOp");
-        MiningOp = await MiningOpContract.deploy();
-        NestMiningContract = await ethers.getContractFactory("NestMining",
-            {
-                libraries: {
-                    MiningCalcPrice: MiningCalcPrice.address,
-                    MiningLookupPrice: MiningLookupPrice.address,
-                    MiningOp: MiningOp.address
-                }
-            }
-        );        
-        
-        NestMining = await NestMiningContract.deploy();
+        // MiningCalcPriceContract = await ethers.getContractFactory("MiningCalcPrice");
+        // MiningCalcPrice = await MiningCalcPriceContract.deploy();
+        // MiningLookupPriceContract = await ethers.getContractFactory("MiningLookupPrice");
+        // MiningLookupPrice = await MiningLookupPriceContract.deploy();
+        // MiningOpContract = await ethers.getContractFactory("MiningOp");
+        // MiningOp = await MiningOpContract.deploy();
+        // NestMiningContract = await ethers.getContractFactory("NestMining",
+        //     {
+        //         libraries: {
+        //             MiningCalcPrice: MiningCalcPrice.address,
+        //             MiningLookupPrice: MiningLookupPrice.address,
+        //             MiningOp: MiningOp.address
+        //         }
+        //     }
+        // );        
 
-        await NestMining.init(NestToken.address, NestPool.address, NestStaking.address, );
+        MiningV1CalcContract = await ethers.getContractFactory("MiningV1Calc");
+        MiningV1Calc = await MiningV1CalcContract.deploy();
+        NestMiningV1Contract = await ethers.getContractFactory("NestMiningV1",
+        {
+            libraries: {
+                MiningV1Calc: MiningV1Calc.address
+                }
+        });    
+        
+        NestMining = await NestMiningV1Contract.deploy();
 
         NNTokenContract = await ethers.getContractFactory("NNToken");
         NNToken = await NNTokenContract.deploy(1500, "NNT");
@@ -134,31 +142,36 @@ describe("NestToken contract", function () {
         NestQueryContract = await ethers.getContractFactory("NestQuery");
         NestQuery = await NestQueryContract.deploy();
 
+        DeFiMockContract = await ethers.getContractFactory("DeFiMock");
+        DeFiMock = await DeFiMockContract.deploy(NestQuery.address);
+
         _C_NestStaking = NestStaking.address;
         _C_NestToken = NestToken.address;
         _C_NestPool = NestPool.address;
         _C_NestMining = NestMining.address;
-        _C_USDT = USDT.address;
-        _C_WBTC = WBTC.address;
-        console.log("_C_USDT=", _C_USDT);
-        console.log("_C_WBTC=", _C_WBTC);
+        _C_USDT = CUSDT.address;
+        _C_WBTC = CWBTC.address;
         _C_NNRewardPool = NNRewardPool.address;
         _C_NNToken = NNToken.address;
         _C_NTokenController = NTokenController.address;
         _C_NestQuery = NestQuery.address;
 
-        await NestPool.setContracts(_C_NestMining, _C_NestToken);
+        _C_DeFi = DeFiMock.address;
+
+
+
+        await NestMining.init();
+        await NestMining.setContracts(_C_NestToken, _C_NestPool, _C_NestStaking, _C_NestQuery);
+
+        await NestPool.setContracts(_C_NestMining, _C_NestToken, _C_NTokenController);
         await NestPool.setNTokenToToken(_C_USDT, _C_NestToken);
-        await NestMining.setContracts(_C_NestToken, _C_NestPool, _C_NestStaking, _C_NNRewardPool, _C_NestQuery);
+
         await NNRewardPool.loadContracts(_C_NestToken, _C_NNToken, _C_NestPool, _C_NestMining);
+
         await NTokenController.setContracts(_C_NestToken, _C_NestPool);
+        
         await NestQuery.setContracts(_C_NestToken, _C_NestMining, _C_NestStaking, _C_NestPool);
 
-
-        DeFiMockContract = await ethers.getContractFactory("DeFiMock");
-        DeFiMock = await DeFiMockContract.deploy(_C_NestQuery);
-
-        _C_DeFi = DeFiMock.address;
     });
 
     describe("Deployment", function () {
@@ -173,63 +186,68 @@ describe("NestToken contract", function () {
         //   expect(await NestToken.owner()).to.equal(owner.address);
         // });
 
-        it("Should assign the total supply of tokens to the owner", async function () {
+        it("should link contracts", async function () {
+
+
+        });
+
+        it("should assign the total supply of tokens to the owner", async function () {
             const ownerBalance = await NestToken.balanceOf(owner.address);
             expect(await NestToken.totalSupply()).to.equal(ownerBalance);
         });
     });
 
     describe('NEST Token', function () {
-        it("should have correct totalSupply, ETH(10,000,000,000)", async () => {
-            const expectedTotalSupply = eth('10000000000');
+        it("should have correct totalSupply, NEST(10,000,000,000)", async () => {
+            const expectedTotalSupply = NEST('10000000000');
             let totalSupply = await NestToken.totalSupply();
             expect(totalSupply).to.equal(expectedTotalSupply);
         });
 
-        it("should transfer correctly, ETH(2,000,000,000) [Owner => userA]", async () => {
-            const amount = BigNumber.from("2000000000").mul(ethdec);
+        it("should transfer correctly, NEST(2,000,000,000) [Owner => userA]", async () => {
+            const amount = NEST("2000000000");
             await NestToken.connect(owner).transfer(userA.address, amount);
             const userA_balance = await NestToken.balanceOf(userA.address);
             expect(userA_balance).to.equal(amount);
         });
 
-        it("should transfer correctly, ETH(2,000,000,000) [Owner => userB]", async () => {
-            const amount = BigNumber.from("2000000000").mul(ethdec);
+        it("should transfer correctly, NEST(2,000,000,000) [Owner => userB]", async () => {
+            const amount = NEST("2000000000");
             await NestToken.connect(owner).transfer(userB.address, amount);
             const userB_balance = await NestToken.balanceOf(userB.address);
             expect(userB_balance).to.equal(amount);
         });
 
         it("should transfer fail", async () => {
-            let amount = eth("10000000001");
+            let amount = NEST("10000000001");
             await expectRevert.unspecified(
                 NestToken.connect(owner).transfer(userA.address, amount)
             );
         });
 
-        it("should approve correctly, ETH(10,000,000,000) [userA -> _C_NestStaking]", async () => {
-            const amount = eth("10000000000");
+        it("should approve correctly, NEST(10,000,000,000) [userA -> _C_NestStaking]", async () => {
+            const amount = NEST("10000000000");
             const rs = await NestToken.connect(userA).approve(_C_NestStaking, amount);
             const approved = await NestToken.allowance(userA.address, _C_NestStaking);
             expect(approved).to.equal(amount);
         });
 
-        it("should approve correctly, ETH(10,000,000,000) [userB -> _C_NestStaking]", async () => {
-            const amount = eth("10000000000");
+        it("should approve correctly, NEST(10,000,000,000) [userB -> _C_NestStaking]", async () => {
+            const amount = NEST("10000000000");
             const rs = await NestToken.connect(userB).approve(_C_NestStaking, amount);
             const approved = await NestToken.allowance(userB.address, _C_NestStaking);
             expect(approved).to.equal(amount);
         });
 
         it("should approve correctly, NEST(10,000,000,000) [userA -> _C_NestPool]", async () => {
-            const amount = nest("10000000000");
+            const amount = NEST("10000000000");
             const rs = await NestToken.connect(userA).approve(_C_NestPool, amount);
             const approved = await NestToken.allowance(userA.address, _C_NestPool);
             expect(approved).to.equal(amount);
         });
 
         it("should approve correctly, NEST(10,000,000,000) [userB -> _C_NestPool]", async () => {
-            const amount = nest("10000000000");
+            const amount = NEST("10000000000");
             const rs = await NestToken.connect(userB).approve(_C_NestPool, amount);
             const approved = await NestToken.allowance(userB.address, _C_NestPool);
             expect(approved).to.equal(amount);
@@ -240,33 +258,38 @@ describe("NestToken contract", function () {
     describe('Nest Query', function () {
 
         it("can post 7 price sheets", async () => {
-            const nestPrice = nest(1000);
-            const usdtPrice = usdt(350);
+            const nestPrice = NEST(1000);
+            const usdtPrice = USDT(350);
             const chunkSize = 10;
             const ethNum = BigNumber.from(10);
             const msgValue = ethers.utils.parseEther("21.0");
 
-            await NestMining.connect(userA).post(_C_USDT, usdt(450), nestPrice, ethNum, { value: msgValue });
+            await CUSDT.transfer(userA.address, USDT('10000000'));
+            await CUSDT.transfer(userB.address, USDT('10000000'));
+            await CUSDT.connect(userA).approve(_C_NestPool, USDT(1000000));
+            await CUSDT.connect(userB).approve(_C_NestPool, USDT(1000000));
+
+            await NestMining.connect(userA).post2(_C_USDT, 10, USDT(450), NEST(1000), { value: msgValue });
             await goBlocks(provider, 5);
-            await NestMining.connect(userA).post(_C_USDT, usdt(452), nestPrice, ethNum, { value: msgValue });
+            await NestMining.connect(userA).post2(_C_USDT, 10, USDT(452), NEST(1010), { value: msgValue });
             await goBlocks(provider, 5);
-            await NestMining.connect(userA).post(_C_USDT, usdt(450), nestPrice, ethNum, { value: msgValue });
+            await NestMining.connect(userA).post2(_C_USDT, 10, USDT(450), NEST(1003), { value: msgValue });
             await goBlocks(provider, 5);            
-            await NestMining.connect(userA).post(_C_USDT, usdt(453), nestPrice, ethNum, { value: msgValue });
+            await NestMining.connect(userA).post2(_C_USDT, 10, USDT(453), NEST(1005), { value: msgValue });
             await goBlocks(provider, 5);            
-            await NestMining.connect(userA).post(_C_USDT, usdt(451), nestPrice, ethNum, { value: msgValue });
+            await NestMining.connect(userA).post2(_C_USDT, 10, USDT(451), NEST(1011), { value: msgValue });
             await goBlocks(provider, 5);            
-            await NestMining.connect(userA).post(_C_USDT, usdt(454), nestPrice, ethNum, { value: msgValue });
+            await NestMining.connect(userA).post2(_C_USDT, 10, USDT(454), NEST(1013), { value: msgValue });
             await goBlocks(provider, 5);            
-            await NestMining.connect(userA).post(_C_USDT, usdt(452), nestPrice, ethNum, { value: msgValue });
+            await NestMining.connect(userA).post2(_C_USDT, 10, USDT(452), NEST(1002), { value: msgValue });
             await goBlocks(provider, 30);
 
             expect(await NestMining.lengthOfPriceSheets(_C_USDT)).to.equal(7);
         });
 
         it("can stat the price", async () => {
-            const nestPrice = nest(1000);
-            const usdtPrice = usdt(350);
+            const nestPrice = NEST(1000);
+            const usdtPrice = USDT(350);
             const chunkSize = 10;
             const ethNum = BigNumber.from(10);
             const msgValue = ethers.utils.parseEther("21.0");
@@ -280,26 +303,25 @@ describe("NestToken contract", function () {
                 }
             });
             console.log("event=", ev);
-            const rs = await NestMining.latestPrice(_C_USDT);
+            const rs = await NestMining.latestPriceOf(_C_USDT);
             console.log(`price(USDT){ethNum:${rs.ethNum}, tokenAmount:${rs.tokenAmount.div(usdtdec).toString()},h=${rs.atHeight}}`);
-            const vo = await NestMining.volatility(_C_USDT);
             // console.log("sigma_sq=", show_64x64(vo.volatility_sigma_sq));
             // console.log("tokenAvgPrice=", show_64x64(vo.tokenAvgPrice));
             // console.log("vola=", vo);
             const price = await NestMining.priceAvgAndSigmaOf(_C_USDT);
             console.log("price=", price);
-            console.log("sigma=", show_64x64(price[4]));
-            console.log("avg=", show_64x64(price[3]));
+            console.log("sigma=", show_64x64(price[2]));
+            console.log("avg=", show_64x64(price[1]));
         });
 
 
         it("can post and then stat the price", async () => {
-            const msgValue = ethers.utils.parseEther("21.0");
+            const msgValue = ETH("21");
 
             // Get the filter (the second null could be omitted)
             // const filter = NestMining.filters.PriceComputed(null, null, null, null, null);
             // NestMining.queryfilter(filter);
-            const tr = await NestMining.connect(userB).post(_C_USDT, usdt(450), nest(1000), BigNum(10), { value: msgValue });
+            const tr = await NestMining.connect(userB).post2(_C_USDT, 10, USDT(450), NEST(1000), { value: msgValue });
             let receipt = await tr.wait();
             let ev = receipt.events.find((ev) => {
                 if (ev.event == "PricePosted") {
@@ -326,20 +348,20 @@ describe("NestToken contract", function () {
                 }
             });
             console.log("event=", ev);
-            const rs = await NestMining.latestPrice(_C_USDT);
+            const rs = await NestMining.latestPriceOf(_C_USDT);
             console.log(`price(USDT){ethNum:${rs.ethNum}, tokenAmount:${rs.tokenAmount.div(usdtdec).toString()},h=${rs.atHeight}}`);
-            const vo = await NestMining.volatility(_C_USDT);
+            // const vo = await NestMining.volatility(_C_USDT);
             // console.log("sigma_sq=", show_64x64(vo.volatility_sigma_sq));
             // console.log("tokenAvgPrice=", show_64x64(vo.tokenAvgPrice));
             // console.log("vola=", vo);
             const price = await NestMining.priceAvgAndSigmaOf(_C_USDT);
             console.log("price=", price);
-            console.log("sigma=", show_64x64(price[4]));
-            console.log("avg=", show_64x64(price[3]));
+            console.log("sigma=", show_64x64(price[2]));
+            console.log("avg=", show_64x64(price[1]));
         });
 
         it("can activate a DeFi client", async () => {
-            await NestToken.connect(userA).approve(_C_NestQuery, nest(1000000));
+            await NestToken.connect(userA).approve(_C_NestQuery, NEST(1000000));
             await NestQuery.connect(userA).activatePPQ(_C_DeFi);
 
         });
@@ -383,7 +405,7 @@ describe("NestToken contract", function () {
         //     console.log(`height=${h}`);
 
         //     await goBlocks(provider, 25);
-        //     const usdtPrice = usdt(350);
+        //     const usdtPrice = USDT(350);
 
         //     const nest_userA_pre = await NestPool.getMinerNest(userA.address);
         //     const eth_nestpool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);

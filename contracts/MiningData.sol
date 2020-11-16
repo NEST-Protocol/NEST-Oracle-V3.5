@@ -11,11 +11,8 @@ import "./iface/INNRewardPool.sol";
 import "./lib/SafeERC20.sol";
 
 
-/// @title ExchangeData
-/// @dev All methods in this lib are internal, therefore, there is no need
-///      to deploy this library independently.
-/// @author Daniel Wang  - <daniel@loopring.org>
-/// @author Brecht Devos - <brecht@loopring.org>
+/// @author Inf Loop - <inf-loop@nestprotocol.org>
+/// @author 0x00  - <0x00@nestprotocol.org>
 library MiningData {
 
     /* ========== CONSTANTS ========== */
@@ -107,14 +104,20 @@ library MiningData {
 
         address governance;
 
-        uint256 _latest_mining_height;
         uint256[10] _mining_nest_yield_per_block_amount;
-
         uint256[10] _mining_ntoken_yield_per_block_amount;
-
 
         uint32 ethNumPerChunk;      // 10 ether
         uint32 nestPerChunk;        // 10_000 NEST
+        uint32 latestMiningHeight;  // last block whose NEST had been mined
+        // NOTE: for NTokens, the `latestMiningHeight` values are written to NToken 
+        //  contracts. See NToken.checkBlockInfo() for more info.
+        uint8  flag;                // =0: initialized
+                                    // =1: active | =2: stop mining, 
+                                    // but clear/close/refute are allowed
+                                    // =3: only withdrawals are allowed
+                                    // =4: shutdown
+        uint128 minedNestAmount;   
 
         // A mapping (from token(address) to an array of PriceSheet)
         mapping(address => PriceSheet[]) priceSheetList;
@@ -126,10 +129,9 @@ library MiningData {
         mapping(address => mapping(uint256 => Taker[])) _takers;
 
         // _nest_at_height: block height => (nest amount, ethers amount)
-        // mapping(uint256 => uint256)                     _nest_at_height;
+        mapping(uint256 => uint256)                     _nest_at_height;
         // _ntoken_at_height: ntoken => block height => (ntoken amount, eth amount)
         mapping(address => mapping(uint256 => uint256)) _ntoken_at_height;
-
 
         address     _C_NestPool;
         address     _C_NestToken;

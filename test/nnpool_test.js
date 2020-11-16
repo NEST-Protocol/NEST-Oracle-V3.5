@@ -68,26 +68,32 @@ describe("NestToken contract", function () {
         NestStakingContract = await ethers.getContractFactory("NestStaking");
         NestStaking = await NestStakingContract.deploy(NestToken.address);
 
-        MiningCalcPriceContract = await ethers.getContractFactory("MiningCalcPrice");
-        MiningCalcPrice = await MiningCalcPriceContract.deploy();
-        MiningLookupPriceContract = await ethers.getContractFactory("MiningLookupPrice");
-        MiningLookupPrice = await MiningLookupPriceContract.deploy();
-        MiningOpContract = await ethers.getContractFactory("MiningOp");
-        MiningOp = await MiningOpContract.deploy();
-        NestMiningContract = await ethers.getContractFactory("NestMining",
-            {
-                libraries: {
-                    MiningCalcPrice: MiningCalcPrice.address,
-                    MiningLookupPrice: MiningLookupPrice.address,
-                    MiningOp: MiningOp.address
+        // MiningCalcPriceContract = await ethers.getContractFactory("MiningCalcPrice");
+        // MiningCalcPrice = await MiningCalcPriceContract.deploy();
+        // MiningLookupPriceContract = await ethers.getContractFactory("MiningLookupPrice");
+        // MiningLookupPrice = await MiningLookupPriceContract.deploy();
+        // MiningOpContract = await ethers.getContractFactory("MiningOp");
+        // MiningOp = await MiningOpContract.deploy();
+        // NestMiningContract = await ethers.getContractFactory("NestMining",
+        //     {
+        //         libraries: {
+        //             MiningCalcPrice: MiningCalcPrice.address,
+        //             MiningLookupPrice: MiningLookupPrice.address,
+        //             MiningOp: MiningOp.address
+        //         }
+        //     }
+        // );
+
+        MiningV1CalcContract = await ethers.getContractFactory("MiningV1Calc");
+        MiningV1Calc = await MiningV1CalcContract.deploy();
+        NestMiningV1Contract = await ethers.getContractFactory("NestMiningV1",
+        {
+            libraries: {
+                MiningV1Calc: MiningV1Calc.address
                 }
-            }
-        );
+        });     
+        NestMining = await NestMiningV1Contract.deploy();
         
-        NestMining = await NestMiningContract.deploy();
-
-        await NestMining.init(NestToken.address, NestPool.address, NestStaking.address, );
-
         NNTokenContract = await ethers.getContractFactory("NNToken");
         NNToken = await NNTokenContract.deploy(1500, "NNT");
 
@@ -96,6 +102,9 @@ describe("NestToken contract", function () {
 
         NTokenControllerContract = await ethers.getContractFactory("NTokenController");
         NTokenController = await NTokenControllerContract.deploy();
+
+        NestQueryContract = await ethers.getContractFactory("NestQuery");
+        NestQuery = await NestQueryContract.deploy();
 
         _C_NestStaking = NestStaking.address;
         _C_NestToken = NestToken.address;
@@ -108,13 +117,17 @@ describe("NestToken contract", function () {
         _C_NNRewardPool = NNRewardPool.address;
         _C_NNToken = NNToken.address;
         _C_NTokenController = NTokenController.address;
+        _C_NestQuery = NestQuery.address;
 
-        await NestPool.setContracts(_C_NestMining, _C_NestToken);
+        await NestMining.init();
+        await NestMining.setContracts(_C_NestToken, _C_NestPool, _C_NestStaking, _C_NestQuery);
+
+        await NestPool.setContracts(_C_NestMining, _C_NestToken, _C_NTokenController);
         await NestPool.setNTokenToToken(_C_USDT, _C_NestToken);
-        await NestMining.setContracts(_C_NestToken, _C_NestPool, _C_NestStaking, _C_NNRewardPool, _C_NNRewardPool);
         await NNRewardPool.loadContracts(_C_NestToken, _C_NNToken, _C_NestPool, _C_NestMining);
         await NTokenController.setContracts(_C_NestToken, _C_NestPool);
         await NNToken.setContracts(_C_NNRewardPool);
+        await NestQuery.setContracts(_C_NestToken, _C_NestMining, _C_NestStaking, _C_NestPool);
 
     });
 
@@ -259,17 +272,30 @@ describe("NestToken contract", function () {
         });
 
         it("can settle rewards again when tranferring", async () => {
+            const NN_total_supply = await NNRewardPool.NN_total_supply();
             const nest_a_pre = await NestToken.balanceOf(userA.address);
             const nest_d_pre = await NestToken.balanceOf(userD.address);
+            const nn_a_pre = await NNToken.balanceOf(userA.address);
+            const nn_d_pre = await NNToken.balanceOf(userD.address);
+            const sum = await NNRewardPool.NN_reward_sum();
+            const cp_a = await NNRewardPool.NN_reward_sum_checkpoint(userA.address);
+            const cp_d = await NNRewardPool.NN_reward_sum_checkpoint(userD.address);
             console.log(`pre a=${nest_a_pre.div(ethdec)}, d=${nest_d_pre.div(ethdec)}`);
-            await NNRewardPool.addNNReward(NEST(2400));
-            await NestPool.addNest(_C_NNRewardPool, NEST(2400));
+            
+            const reward = NEST(2400);
+            await NNRewardPool.addNNReward(reward);
+            await NestPool.addNest(_C_NNRewardPool, reward);
+
             await NNToken.connect(userA).transfer(userD.address, 500);
             const nest_a_post = await NestToken.balanceOf(userA.address);
             const nest_d_post = await NestToken.balanceOf(userD.address);
+            const nn_a_post = await NNToken.balanceOf(userA.address);
+            const nn_d_post = await NNToken.balanceOf(userD.address);
             console.log(`post a=${nest_a_post.div(ethdec)}, d=${nest_d_post.div(ethdec)}`);
-            expect(nest_d_post.sub(nest_d_pre)).to.equal(NEST(800));
-            expect(nest_a_post.sub(nest_a_pre)).to.equal(NEST(0));
+            const reward_d = reward.add(sum).sub(cp_d).mul(nn_d_pre).div(NN_total_supply);
+            const reward_a= reward.add(sum).sub(cp_a).mul(nn_a_pre).div(NN_total_supply);
+            expect(nest_d_post.sub(nest_d_pre)).to.equal(reward_d);
+            expect(nest_a_post.sub(nest_a_pre)).to.equal(reward_a);
         });
     });
 
