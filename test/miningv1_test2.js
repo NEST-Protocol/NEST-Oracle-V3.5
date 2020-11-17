@@ -621,13 +621,8 @@ describe("NestToken contract", function () {
 
             expect(token_pool_pre.add(freezeTokenAmount)).to.equal(token_pool_now);
             
-            console.log('NToken_pool_pre = ',NToken_pool_pre.toString());
-            console.log('freezeNTokenAmount = ',freezeNTokenAmount.toString());
-            console.log('NToken_pool_now = ',NToken_pool_now.toString());
- 
             expect(NToken_pool_pre.add(freezeNTokenAmount).add(freezeNestAmount)).to.equal(NToken_pool_now);
            
-
             // check funds about nestStaking
             expect(eth_reward_pre.add(ethFee)).to.equal(eth_reward_now);
 
@@ -673,7 +668,94 @@ describe("NestToken contract", function () {
            expect(postSheet1.tokenNumBal).to.equal(ethNum);
            expect(postSheet1.tokenAmountPerEth).to.equal(NTokenAmountPerEth);
 
-       });
+        });
+
+        // calculate funds and check state about close function 
+        it('can close priceSheet correctly !', async () => {
+            const token = _C_WBTC;
+            const ethNum = 10;
+            const miningFeeRate = 10;
+            const tokenAmountPerEth = MBTC(30);
+            const msgValue = ETH(BigN(50));
+            const NToken = await NestPool.getNTokenFromToken(token);
+
+            await goBlocks(provider, 25);
+            
+            // record funds before posting
+            const userA_nest_pool_pre = await NestPool.balanceOfNestInPool(userA.address);
+            const userA_token_pool_pre = await NestPool.balanceOfTokenInPool(userA.address,token);
+            const userA_NToken_pool_pre = await NestPool.balanceOfTokenInPool(userA.address,NToken);
+            const userA_eth_pool_pre = await NestPool.balanceOfEthInPool(userA.address);
+
+            const nest_pool_pre = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const token_pool_pre = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
+
+            const postSheet = await NestMining.contentOfPriceSheet(token, 0);
+
+            // close priceSheet 
+            await NestMining.connect(userA).close(token,0);
+
+            // calculate fee
+            const reward = NEST(BigN(postSheet.ethNum).mul(4)).div(10);
+            const unfreezeEthAmount = ETH(BigN(postSheet.ethNumBal));
+            console.log('postSheet.ethNumBal = ',postSheet.ethNumBal);
+            console.log('unfreezeEthAmount = ',unfreezeEthAmount);
+
+            const unfreezeTokenAmount = BigN(postSheet.tokenNumBal).mul(postSheet.tokenAmountPerEth);
+            const unfreezeNestAmount = NEST(BigN(1000));
+
+            
+            // record funds before posting
+            const userA_nest_pool_post = await NestPool.balanceOfNestInPool(userA.address);
+            const userA_token_pool_post = await NestPool.balanceOfTokenInPool(userA.address,token);
+            const userA_NToken_pool_post = await NestPool.balanceOfTokenInPool(userA.address,NToken);
+            const userA_eth_pool_post = await NestPool.balanceOfEthInPool(userA.address);
+
+            const nest_pool_post = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const token_pool_post = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            const eth_pool_post = await NestPool.balanceOfEthInPool(_C_NestPool);
+
+            // check funds
+            // check userA
+            expect(userA_eth_pool_pre.add(unfreezeEthAmount)).to.equal(userA_eth_pool_post);
+
+            expect(userA_token_pool_pre.add(unfreezeTokenAmount)).to.equal(userA_token_pool_post);
+
+            expect(userA_nest_pool_pre.add(unfreezeNestAmount)).to.equal(userA_nest_pool_post);
+
+            expect(userA_NToken_pool_pre.add(reward)).to.equal(userA_NToken_pool_post);
+
+            // check nestPool
+            expect(eth_pool_pre.sub(unfreezeEthAmount)).to.equal(eth_pool_post);
+            expect(token_pool_pre.sub(unfreezeTokenAmount)).to.equal(token_pool_post);
+            expect(nest_pool_pre.sub(unfreezeNestAmount)).to.equal(nest_pool_post);
+
+        });
+
+        // check the updated priceSheet when doing close function
+        it('should update priceSheet correctly', async () => {
+            const token = _C_WBTC;
+            const ethNum = 10;
+            const miningFeeRate = 10;
+            const tokenAmountPerEth = MBTC(30);
+            const msgValue = ETH(BigN(50));
+            const NToken = await NestPool.getNTokenFromToken(token);
+
+            const postSheet = await NestMining.contentOfPriceSheet(token, 0);
+
+            // check the updated PriceSheet
+            expect(postSheet.ethNumBal).to.equal(0);
+
+            expect(postSheet.tokenNumBal).to.equal(0);
+
+            expect(postSheet.nestNum1k).to.equal(0);
+
+            // PRICESHEET_STATE_CLOSED == 0
+            expect(postSheet.state).to.equal(0);
+            
+        });
+
 
     });
 });
