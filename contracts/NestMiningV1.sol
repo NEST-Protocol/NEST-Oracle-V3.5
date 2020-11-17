@@ -13,6 +13,7 @@ import "./lib/ABDKMath64x64.sol";
 
 import "./iface/INestPool.sol";
 import "./iface/INestStaking.sol";
+import "hardhat/console.sol";
 
 // import "hardhat/console.sol";
 
@@ -437,9 +438,12 @@ contract NestMiningV1 {
                 _sheet.ethNumBal = 0;
                 _sheet.tokenNumBal = 0;
                 _sheet.nestNum1k = 0;
+
+                _sheet.state = MiningV1Data.PRICESHEET_STATE_CLOSED;
+                prices[indices[i]] = _sheet;
+
                 uint256 _ntokenH = uint256(state.minedAtHeight[token][h] >> 128);
                 uint256 _ethH = uint256(state.minedAtHeight[token][h] << 128 >> 128);
-               
                 _reward = _reward.add(uint256(_sheet.ethNum).mul(_ntokenH).div(_ethH));
                 emit PriceClosed(address(msg.sender), token, indices[i]);
             }
