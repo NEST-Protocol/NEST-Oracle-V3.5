@@ -1058,6 +1058,53 @@ describe("NestToken contract", function () {
 
         });
 
+        //======================check the part of price queries==============================//
+        // check latestPriceOf function
+        it('should query latestPriceOf function correctly!', async () => {
+            //============preparation============//
+            const token = _C_WBTC;
+            const ethNum1 = 10;
+            const ethNum2 = 20;
+            const ethNum3 = 30;
+
+            const tokenAmountPerEth1 = MBTC(30);
+            const tokenAmountPerEth2 = MBTC(20);
+            const tokenAmountPerEth3 = MBTC(10);
+            
+            const msgValue = ETH(BigN(100));
+            const NToken = await NestPool.getNTokenFromToken(token);
+          
+            // post two priceSheet by the same user and token address
+            await NestMining.connect(userA).post(token,ethNum1,tokenAmountPerEth1,{value: msgValue});
+            const postSheet1 = await NestMining.contentOfPriceSheet(token, 6);
+            console.log("postSheet1.height = ",postSheet1.height);
+ 
+            await NestMining.connect(userB).post(token,ethNum2,tokenAmountPerEth2,{value: msgValue});
+            const postSheet2 = await NestMining.contentOfPriceSheet(token, 7);
+            console.log("postSheet2.height = ",postSheet2.height);
+
+ 
+            await NestMining.connect(userA).post(token,ethNum3,tokenAmountPerEth3,{value: msgValue});
+            const postSheet3 = await NestMining.contentOfPriceSheet(token, 8);
+            console.log("postSheet3.height = ",postSheet3.height);
+
+
+            await goBlocks(provider, 26);
+            //===================================//
+
+            // latestPriceOf function
+            const price = await NestMining.latestPriceOf(token);
+
+            // check the result of query
+            expect(price.ethAmount).to.equal(ETH(BigN(postSheet3.remainNum)));
+
+            expect(price.tokenAmount).to.equal((postSheet3.tokenAmountPerEth).mul(postSheet3.remainNum));
+
+            expect(price.blockNum).to.equal(postSheet3.height);
+
+
+ 
+        });
 
     });
 });
