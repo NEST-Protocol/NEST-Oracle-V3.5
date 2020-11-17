@@ -822,6 +822,15 @@ contract NestMiningV1 {
         sheet.tokenNumBal = _sheet.tokenNumBal;
     }
 
+    function contentOfPriceSheet(address token, uint256 index) view public 
+        returns (MiningV1Data.PriceSheet memory ps) 
+    {
+        uint256 len = state.priceSheetList[token].length;
+        require (index < len, "Nest:Mine:>(len)");
+        return state.priceSheetList[token][index];
+    }
+
+
     /* ========== CALCULATION ========== */
 
     function stat(address _token) public 
