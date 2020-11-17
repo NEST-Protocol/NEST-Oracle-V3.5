@@ -699,14 +699,11 @@ describe("NestToken contract", function () {
             // calculate fee
             const reward = NEST(BigN(postSheet.ethNum).mul(4)).div(10);
             const unfreezeEthAmount = ETH(BigN(postSheet.ethNumBal));
-            console.log('postSheet.ethNumBal = ',postSheet.ethNumBal);
-            console.log('unfreezeEthAmount = ',unfreezeEthAmount);
-
             const unfreezeTokenAmount = BigN(postSheet.tokenNumBal).mul(postSheet.tokenAmountPerEth);
             const unfreezeNestAmount = NEST(BigN(1000));
 
             
-            // record funds before posting
+            // record funds after posting
             const userA_nest_pool_post = await NestPool.balanceOfNestInPool(userA.address);
             const userA_token_pool_post = await NestPool.balanceOfTokenInPool(userA.address,token);
             const userA_NToken_pool_post = await NestPool.balanceOfTokenInPool(userA.address,NToken);
@@ -753,9 +750,119 @@ describe("NestToken contract", function () {
 
             // PRICESHEET_STATE_CLOSED == 0
             expect(postSheet.state).to.equal(0);
-            
+
         });
 
+        // calculate funds and check state about closeList function 
+        it('can close priceSheet correctly by closeList function !', async () => {
+             //============preparation============//
+            const token = _C_WBTC;
+            const ethNum1 = 10;
+            const ethNum2 = 20;
+            const tokenAmountPerEth1 = MBTC(30);
+            const tokenAmountPerEth2 = MBTC(20);
+            const msgValue = ETH(BigN(50));
+            const NToken = await NestPool.getNTokenFromToken(token);
+         
+            // post two priceSheet by the same user and token address
+            await NestMining.connect(userA).post(token,ethNum1,tokenAmountPerEth1,{value: msgValue});
+            const postSheet1 = await NestMining.contentOfPriceSheet(token, 1);
+
+            await goBlocks(provider, 5);
+
+            await NestMining.connect(userA).post(token,ethNum2,tokenAmountPerEth2,{value: msgValue});
+            const postSheet2 = await NestMining.contentOfPriceSheet(token, 2);
+
+            await goBlocks(provider, 25);
+            //===================================//
+
+            // record funds before posting
+            const userA_nest_pool_pre = await NestPool.balanceOfNestInPool(userA.address);
+            const userA_token_pool_pre = await NestPool.balanceOfTokenInPool(userA.address,token);
+            const userA_NToken_pool_pre = await NestPool.balanceOfTokenInPool(userA.address,NToken);
+            const userA_eth_pool_pre = await NestPool.balanceOfEthInPool(userA.address);
+
+            const nest_pool_pre = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const token_pool_pre = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
+
+            // closeList function
+            await NestMining.connect(userA).closeList(token,[1,2]);
+
+            // calculate fee 
+            const reward1 = NEST(BigN(postSheet1.ethNum).mul(112)).div(10);
+            const reward2 = NEST(BigN(postSheet2.ethNum).mul(24)).div(20);
+            const totalReward = reward1.add(reward2);
+
+            const unfreezeEthAmount1 = ETH(postSheet1.ethNumBal);
+            const unfreezeEthAmount2 = ETH(postSheet2.ethNumBal);
+            const totalUnfreezeEthAmount = unfreezeEthAmount1.add(unfreezeEthAmount2);
+
+            const unfreezeTokenAmount1 = BigN(postSheet1.tokenNumBal).mul(postSheet1.tokenAmountPerEth);
+            const unfreezeTokenAmount2 = BigN(postSheet2.tokenNumBal).mul(postSheet2.tokenAmountPerEth);
+            const totalUnfreezeTokenAmount2 = unfreezeTokenAmount1.add(unfreezeTokenAmount2);
+
+            const totalUnfreezeNestAmount = NEST(2000);
+
+            // record funds after closing
+            const userA_nest_pool_pos = await NestPool.balanceOfNestInPool(userA.address);
+            const userA_token_pool_pos = await NestPool.balanceOfTokenInPool(userA.address,token);
+            const userA_NToken_pool_pos = await NestPool.balanceOfTokenInPool(userA.address,NToken);
+            const userA_eth_pool_pos = await NestPool.balanceOfEthInPool(userA.address);
+
+            const nest_pool_pos = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const token_pool_pos = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            const eth_pool_pos = await NestPool.balanceOfEthInPool(_C_NestPool);
+            // check funds
+            expect(userA_eth_pool_pre.add(totalUnfreezeEthAmount)).to.equal(userA_eth_pool_pos);
+
+            expect(userA_token_pool_pre.add(totalUnfreezeTokenAmount2)).to.equal(userA_token_pool_pos);
+
+            expect(userA_nest_pool_pre.add(totalUnfreezeNestAmount)).to.equal(userA_nest_pool_pos);
+
+            expect(userA_NToken_pool_pre.add(totalReward)).to.equal(userA_NToken_pool_pos);
+
+            // check nestPool
+            expect(eth_pool_pre.sub(totalUnfreezeEthAmount)).to.equal(eth_pool_pos);
+            expect(token_pool_pre.sub(totalUnfreezeTokenAmount2)).to.equal(token_pool_pos);
+            expect(nest_pool_pre.sub(totalUnfreezeNestAmount)).to.equal(nest_pool_pos);
+
+        });
+
+        // check the updated priceSheet when doing closeList function
+        it('should update priceSheet correctly', async () => {
+            const token = _C_WBTC;
+            const ethNum = 10;
+            const miningFeeRate = 10;
+            const tokenAmountPerEth = MBTC(30);
+            const msgValue = ETH(BigN(50));
+            const NToken = await NestPool.getNTokenFromToken(token);
+
+            const postSheet1 = await NestMining.contentOfPriceSheet(token, 1);
+            const postSheet2 = await NestMining.contentOfPriceSheet(token, 2);
+
+
+            // check the updated PriceSheet1
+            expect(postSheet1.ethNumBal).to.equal(0);
+
+            expect(postSheet1.tokenNumBal).to.equal(0);
+
+            expect(postSheet1.nestNum1k).to.equal(0);
+
+            // PRICESHEET_STATE_CLOSED == 0
+            expect(postSheet1.state).to.equal(0);
+
+            
+            // check the updated PriceSheet2
+            expect(postSheet2.ethNumBal).to.equal(0);
+
+            expect(postSheet2.tokenNumBal).to.equal(0);
+
+            expect(postSheet2.nestNum1k).to.equal(0);
+
+            // PRICESHEET_STATE_CLOSED == 0
+            expect(postSheet2.state).to.equal(0);
+        });
 
     });
 });
