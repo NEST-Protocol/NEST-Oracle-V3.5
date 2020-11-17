@@ -560,7 +560,6 @@ describe("NestToken contract", function () {
             const userA_token_pool_pre = await NestPool.balanceOfTokenInPool(userA.address,token);
             const userA_token_in_exAddress_pre = await CUSDT.balanceOf(userA.address);
             const userA_NToken_pool_pre = await NestPool.balanceOfTokenInPool(userA.address,NToken);
-            //const userA_NToken_in_exAddress_pre = await CWBTC.balanceOf(userA.address);
             const userA_eth_pool_pre = await NestPool.balanceOfEthInPool(userA.address);
             
  
@@ -622,22 +621,59 @@ describe("NestToken contract", function () {
 
             expect(token_pool_pre.add(freezeTokenAmount)).to.equal(token_pool_now);
             
-            console.log('NToken_pool_pre = ',NToken_pool_pre);
+            console.log('NToken_pool_pre = ',NToken_pool_pre.toString());
             console.log('freezeNTokenAmount = ',freezeNTokenAmount.toString());
             console.log('NToken_pool_now = ',NToken_pool_now.toString());
  
-            expect(NToken_pool_pre.add(freezeNTokenAmount)).to.equal(NToken_pool_now);
+            expect(NToken_pool_pre.add(freezeNTokenAmount).add(freezeNestAmount)).to.equal(NToken_pool_now);
            
-
-            expect(nest_pool_pre.add(freezeNestAmount)
-                                .add(freezeNestAmount))
-                   .to.equal(nest_pool_now);
-
 
             // check funds about nestStaking
             expect(eth_reward_pre.add(ethFee)).to.equal(eth_reward_now);
 
         });
+
+       // check the price sheet when address == _C_WBTC and index == 0
+       it('should update price sheet correctly !', async () => {
+           const token = _C_USDT;
+           const ethNum = 10;
+           const tokenAmountPerEth = USDT(450);
+           const NTokenAmountPerEth = NEST(1000);
+           const h = await provider.getBlockNumber();
+
+           const NToken = await NestPool.getNTokenFromToken(token);
+
+           const postSheet = await NestMining.contentOfPriceSheet(token, 0);
+           
+           // check the token priceSheet
+           expect(postSheet.miner).to.equal(userA.address);
+           expect(postSheet.height).to.equal(h);
+           expect(postSheet.ethNum).to.equal(ethNum);
+           expect(postSheet.remainNum).to.equal(ethNum);
+           expect(postSheet.level).to.equal(0);
+           expect(postSheet.typ).to.equal(1);
+           expect(postSheet.state).to.equal(1);
+           expect(postSheet.nestNum1k).to.equal(1);
+           expect(postSheet.ethNumBal).to.equal(ethNum);
+           expect(postSheet.tokenNumBal).to.equal(ethNum);
+           expect(postSheet.tokenAmountPerEth).to.equal(tokenAmountPerEth);
+
+           const postSheet1 = await NestMining.contentOfPriceSheet(NToken, 0);
+           
+           // check the token priceSheet
+           expect(postSheet1.miner).to.equal(userA.address);
+           expect(postSheet1.height).to.equal(h);
+           expect(postSheet1.ethNum).to.equal(ethNum);
+           expect(postSheet1.remainNum).to.equal(ethNum);
+           expect(postSheet1.level).to.equal(0);
+           expect(postSheet1.typ).to.equal(2);
+           expect(postSheet1.state).to.equal(1);
+           expect(postSheet1.nestNum1k).to.equal(1);
+           expect(postSheet1.ethNumBal).to.equal(ethNum);
+           expect(postSheet1.tokenNumBal).to.equal(ethNum);
+           expect(postSheet1.tokenAmountPerEth).to.equal(NTokenAmountPerEth);
+
+       });
 
     });
 });
