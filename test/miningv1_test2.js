@@ -890,7 +890,7 @@ describe("NestToken contract", function () {
             await NestMining.connect(userA).post(token,ethNum,tokenAmountPerEth,{value: msgValue});
             const postSheet = await NestMining.contentOfPriceSheet(token, 3);
             //=========================================//
-            // record funds before posting
+            // record funds before biting token
             const userB_nest_in_exAddress_pre = await NestToken.balanceOf(userB.address); 
             const userB_nest_pool_pre = await NestPool.balanceOfNestInPool(userB.address);
             const userB_token_pool_pre = await NestPool.balanceOfTokenInPool(userB.address,token);
@@ -914,7 +914,7 @@ describe("NestToken contract", function () {
             const freezeEthAmount = ETH(BigN(biteNum).mul(3));
             const freezeTokenAmount = BigN(biteNum).mul(2).mul(newTokenAmountPerEth).sub(BigN(biteNum).mul(postSheet.tokenAmountPerEth));
 
-            // record funds after closing
+            // record funds after biting token
             const userB_nest_in_exAddress_pos = await NestToken.balanceOf(userB.address); 
             const userB_nest_pool_pos = await NestPool.balanceOfNestInPool(userB.address);
             const userB_token_pool_pos = await NestPool.balanceOfTokenInPool(userB.address,token);
@@ -965,6 +965,95 @@ describe("NestToken contract", function () {
             expect(postSheet1.state).to.equal(2);// bitten
             expect(postSheet1.ethNumBal).to.equal(BigN(postSheet.ethNumBal).add(biteNum));
             expect(postSheet1.tokenNumBal).to.equal(BigN(postSheet.tokenNumBal).sub(biteNum));
+            expect(postSheet1.remainNum).to.equal(BigN(postSheet.remainNum).sub(biteNum));
+
+        });
+
+        // check biteEth function
+        it('should bite eth correctly!', async () => {
+            //================preparation==================//
+            const token = _C_WBTC;
+            const biteNum = 10;
+            const newTokenAmountPerEth = MBTC(20);
+            const msgValue = ETH(BigN(50));
+    
+            const postSheet = await NestMining.contentOfPriceSheet(token, 3);
+            //=========================================//
+            // record funds before biting eth
+            const userB_nest_in_exAddress_pre = await NestToken.balanceOf(userB.address); 
+            const userB_nest_pool_pre = await NestPool.balanceOfNestInPool(userB.address);
+            const userB_token_pool_pre = await NestPool.balanceOfTokenInPool(userB.address,token);
+            const userB_eth_pool_pre = await NestPool.balanceOfEthInPool(userB.address);
+            const userB_token_in_exAddress_pre = await CWBTC.balanceOf(userB.address);
+
+            const nest_pool_pre = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const token_pool_pre = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
+            const eth_reward_pre = await provider.getBalance(_C_NestStaking);
+ 
+            // biteToken function
+            await NestMining.connect(userB).biteEth(token,3,biteNum,newTokenAmountPerEth,{value: msgValue});
+            const newPostSheet = await NestMining.contentOfPriceSheet(token, 5);
+            const postSheet1 = await NestMining.contentOfPriceSheet(token, 3);
+
+            // calculate fee
+            const ethFee =  ETH(BigN(biteNum)).div(1000);
+            const newNestNum1k = BigN(postSheet.nestNum1k).mul(biteNum).mul(2).div(postSheet.ethNum).mul(2);
+            const freezeNestAmount = NEST(newNestNum1k.mul(1000));
+            const freezeEthAmount = ETH(BigN(biteNum));
+            const freezeTokenAmount = BigN(biteNum).mul(2).mul(newTokenAmountPerEth).add(BigN(biteNum).mul(postSheet.tokenAmountPerEth));
+
+            // record funds after biting eth
+            const userB_nest_in_exAddress_pos = await NestToken.balanceOf(userB.address); 
+            const userB_nest_pool_pos = await NestPool.balanceOfNestInPool(userB.address);
+            const userB_token_pool_pos = await NestPool.balanceOfTokenInPool(userB.address,token);
+            const userB_eth_pool_pos = await NestPool.balanceOfEthInPool(userB.address);
+            const userB_token_in_exAddress_pos = await CWBTC.balanceOf(userB.address);
+
+            const nest_pool_pos = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const token_pool_pos = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
+            const eth_pool_pos = await NestPool.balanceOfEthInPool(_C_NestPool);
+            const eth_reward_pos = await provider.getBalance(_C_NestStaking);
+
+            // check funds
+            expect(userB_eth_pool_pre.add(msgValue)
+                                     .sub(ethFee)
+                                     .sub(freezeEthAmount))
+                   .to.equal(userB_eth_pool_pos);
+
+            expect(userB_token_in_exAddress_pre.add(userB_token_pool_pre)
+                                               .sub(freezeTokenAmount))
+                  .to.equal(userB_token_in_exAddress_pos.add(userB_token_pool_pos));
+
+            expect(userB_nest_in_exAddress_pre.add(userB_nest_pool_pre)
+                                              .sub(freezeNestAmount))
+                  .to.equal(userB_nest_in_exAddress_pos.add(userB_nest_pool_pos));
+
+            expect(eth_pool_pre.add(freezeEthAmount)).to.equal(eth_pool_pos);
+            expect(token_pool_pre.add(freezeTokenAmount)).to.equal(token_pool_pos);
+            expect(nest_pool_pre.add(freezeNestAmount)).to.equal(nest_pool_pos);
+
+            expect(eth_reward_pre.add(ethFee)).to.equal(eth_reward_pos);
+
+            // check new priceSheet
+            const h = await provider.getBlockNumber();
+
+            expect(newPostSheet.miner).to.equal(userB.address);
+            expect(newPostSheet.height).to.equal(h);
+            expect(newPostSheet.ethNum).to.equal(BigN(biteNum).mul(2));
+            expect(newPostSheet.remainNum).to.equal(BigN(biteNum).mul(2));
+            expect(newPostSheet.level).to.equal(BigN(postSheet.level).add(1));
+            expect(newPostSheet.typ).to.equal(postSheet.typ);
+            expect(newPostSheet.state).to.equal(1);// posted
+            expect(newPostSheet.ethNumBal).to.equal(BigN(biteNum).mul(2));
+            expect(newPostSheet.tokenNumBal).to.equal(BigN(biteNum).mul(2));
+            expect(newPostSheet.nestNum1k).to.equal(newNestNum1k);
+            expect(newPostSheet.tokenAmountPerEth).to.equal(newTokenAmountPerEth);
+
+            // check the updated priceSheet
+            expect(postSheet1.state).to.equal(2);// bitten
+            expect(postSheet1.ethNumBal).to.equal(BigN(postSheet.ethNumBal).sub(biteNum));
+            expect(postSheet1.tokenNumBal).to.equal(BigN(postSheet.tokenNumBal).add(biteNum));
             expect(postSheet1.remainNum).to.equal(BigN(postSheet.remainNum).sub(biteNum));
 
         });
