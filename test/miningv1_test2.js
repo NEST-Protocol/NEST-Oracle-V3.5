@@ -1077,16 +1077,16 @@ describe("NestToken contract", function () {
             // post two priceSheet by the same user and token address
             await NestMining.connect(userA).post(token,ethNum1,tokenAmountPerEth1,{value: msgValue});
             const postSheet1 = await NestMining.contentOfPriceSheet(token, 6);
-            console.log("postSheet1.height = ",postSheet1.height);
+            //console.log("postSheet1.height = ",postSheet1.height);
  
             await NestMining.connect(userB).post(token,ethNum2,tokenAmountPerEth2,{value: msgValue});
             const postSheet2 = await NestMining.contentOfPriceSheet(token, 7);
-            console.log("postSheet2.height = ",postSheet2.height);
+            //console.log("postSheet2.height = ",postSheet2.height);
 
  
             await NestMining.connect(userA).post(token,ethNum3,tokenAmountPerEth3,{value: msgValue});
             const postSheet3 = await NestMining.contentOfPriceSheet(token, 8);
-            console.log("postSheet3.height = ",postSheet3.height);
+            //console.log("postSheet3.height = ",postSheet3.height);
 
 
             await goBlocks(provider, 26);
@@ -1102,8 +1102,26 @@ describe("NestToken contract", function () {
 
             expect(price.blockNum).to.equal(postSheet3.height);
 
+        });
 
- 
+        // check priceOf function
+        it("should return correct query result", async () => {
+            const token = _C_WBTC;
+            const postSheet = await NestMining.contentOfPriceSheet(token, 8);
+
+            const ethAmount = ETH(postSheet.remainNum);
+            const tokenAmount = BigN(postSheet.remainNum).mul(postSheet.tokenAmountPerEth);
+            
+            // Storing data to a structure
+            await NestMining.stat(token);
+            
+            // priceOf function
+            const pi = await NestMining.connect(_C_NestQuery).priceOf(token);
+            
+            // check data
+            expect(pi.ethAmount).to.equal(ethAmount);
+            expect(pi.tokenAmount).to.equal(tokenAmount);
+            expect(pi.blockNum).to.equal(postSheet.height);
         });
 
     });
