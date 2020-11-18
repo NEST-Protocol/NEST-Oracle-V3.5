@@ -1183,5 +1183,36 @@ describe("NestToken contract", function () {
             expect(data.height).to.equal(blockNum);
         });
 
+        // Return a consecutive price list for a token 
+        it("should read data correctly!", async () => {
+            const token = _C_WBTC;
+            const h = provider.getBlockNumber();
+
+            const postSheet1 = await NestMining.contentOfPriceSheet(token, 8);
+            const height1 = postSheet1.height;
+            const ethAmount1 = ETH(BigN(postSheet1.remainNum));
+            const tokenAmount1 = BigN(postSheet1.remainNum).mul(postSheet1.tokenAmountPerEth);
+            
+            const postSheet2 = await NestMining.contentOfPriceSheet(token, 7);
+            const height2 = postSheet2.height;
+            const ethAmount2 = ETH(BigN(postSheet2.remainNum));
+            const tokenAmount2 = BigN(postSheet2.remainNum).mul(postSheet2.tokenAmountPerEth);
+
+            // priceOf function, in this case, the parameter of atHeight is big enough
+            const re = await NestMining.priceListOfToken(token,2);
+            
+            // check data 
+            expect(re.data[0]).to.equal(height1);
+            expect(re.data[1]).to.equal(ethAmount1);
+            expect(re.data[2]).to.equal(tokenAmount1);
+            
+            expect(re.data[3]).to.equal(height2);
+            expect(re.data[4]).to.equal(ethAmount2);
+            expect(re.data[5]).to.equal(tokenAmount2);
+
+            expect(re.atHeight).to.equal(height1);
+
+        });
+
     });
 });
