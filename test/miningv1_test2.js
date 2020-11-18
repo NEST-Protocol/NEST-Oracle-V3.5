@@ -1123,23 +1123,6 @@ describe("NestToken contract", function () {
             expect(pi.tokenAmount).to.equal(tokenAmount);
             expect(pi.blockNum).to.equal(postSheet.height);
         });
-
-        /*// check priceAvgAndSigmaOf function
-        it("should return correct data!", async () => {
-            const token = _C_WBTC;
-            const postSheet = await NestMining.contentOfPriceSheet(token, 8);
-
-            const ethAmount = ETH(postSheet.remainNum);
-            const tokenAmount = BigN(postSheet.remainNum).mul(postSheet.tokenAmountPerEth);
-            
-            // Storing data to a structure
-            await NestMining.stat(token);
-            
-            // priceOf function
-            const pi = await NestMining.connect(_C_NestQuery).priceAvgAndSigmaOf(token);
-            console.log("pi = ",pi.toString());
-
-        });*/
         
         // Given a block height and token address, query the data from the quotation table in the block 
         // where the previous most recent price for this block was determined.
@@ -1200,7 +1183,7 @@ describe("NestToken contract", function () {
 
             // priceOf function, in this case, the parameter of atHeight is big enough
             const re = await NestMining.priceListOfToken(token,2);
-            
+
             // check data 
             expect(re.data[0]).to.equal(height1);
             expect(re.data[1]).to.equal(ethAmount1);
@@ -1211,6 +1194,46 @@ describe("NestToken contract", function () {
             expect(re.data[5]).to.equal(tokenAmount2);
 
             expect(re.atHeight).to.equal(height1);
+
+        });
+
+        // check priceAvgAndSigmaOf function
+        it("should return correct data!", async () => {
+            const token = _C_WBTC;
+            const postSheet = await NestMining.contentOfPriceSheet(token, 8);
+         
+            // Storing data to a structure
+            await NestMining.stat(token);
+            
+            // priceAvgAndSigmaOf function
+            const pi = await NestMining.connect(_C_NestQuery).priceAvgAndSigmaOf(token);
+            console.log(`p=${show_64x64(pi[0])} avg=${show_64x64(pi[1])}, sigma=${show_64x64(pi[2])}, height=${pi[3]}}`);
+
+            // observe changes of sigma and avg
+            // post and bit token to change state
+            const ethNum = 20;
+            const biteNum = 10;
+            const tokenAmountPerEth = MBTC(30);
+            const newTokenAmountPerEth = MBTC(20);
+            const msgValue = ETH(BigN(50));
+            
+            await goBlocks(provider, 5);
+         
+            // post priceSheet
+            await NestMining.connect(userA).post(token,ethNum,tokenAmountPerEth,{value: msgValue});
+            const postSheet1 = await NestMining.contentOfPriceSheet(token, 9);
+ 
+            // biteToken function, the new priceSheet is not closed
+            await NestMining.connect(userB).biteToken(token,9,biteNum,newTokenAmountPerEth,{value: msgValue});
+
+            await goBlocks(provider, 24);
+
+            // Storing data to a structure
+            await NestMining.stat(token);
+            
+            // priceAvgAndSigmaOf function
+            const p = await NestMining.connect(_C_NestQuery).priceAvgAndSigmaOf(token);
+            console.log(`p=${show_64x64(p[0])} avg=${show_64x64(p[1])}, sigma=${show_64x64(p[2])}, height=${p[3]}}`);
 
         });
 
