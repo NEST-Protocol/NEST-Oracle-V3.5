@@ -1124,5 +1124,43 @@ describe("NestToken contract", function () {
             expect(pi.blockNum).to.equal(postSheet.height);
         });
 
+        /*// check priceAvgAndSigmaOf function
+        it("should return correct data!", async () => {
+            const token = _C_WBTC;
+            const postSheet = await NestMining.contentOfPriceSheet(token, 8);
+
+            const ethAmount = ETH(postSheet.remainNum);
+            const tokenAmount = BigN(postSheet.remainNum).mul(postSheet.tokenAmountPerEth);
+            
+            // Storing data to a structure
+            await NestMining.stat(token);
+            
+            // priceOf function
+            const pi = await NestMining.connect(_C_NestQuery).priceAvgAndSigmaOf(token);
+            console.log("pi = ",pi.toString());
+
+        });*/
+        
+        // Given a block height and token address, query the data from the quotation table in the block 
+        // where the previous most recent price for this block was determined.
+        it("should return correct result!", async () => {
+            const token = _C_WBTC;
+            const h = provider.getBlockNumber();
+
+            const postSheet = await NestMining.contentOfPriceSheet(token, 8);
+            const ethAmount = ETH(BigN(postSheet.remainNum));
+            const tokenAmount = BigN(postSheet.remainNum).mul(postSheet.tokenAmountPerEth);
+            const blockNum = postSheet.height;
+
+            // priceOf function, in this case, the parameter of atHeight is big enough
+            const data = await NestMining.priceOfTokenAtHeight(token,h);
+
+            // check data 
+            expect(data.ethAmount).to.equal(ethAmount);
+            expect(data.tokenAmount).to.equal(tokenAmount);
+            expect(data.height).to.equal(blockNum);
+
+        });
+
     });
 });
