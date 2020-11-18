@@ -1162,5 +1162,26 @@ describe("NestToken contract", function () {
 
         });
 
+        // Given a block height and token address, query the data from the quotation table in the block 
+        // where the previous most recent price for this block was determined.
+        it("should return correct result!", async () => {
+            const token = _C_WBTC;
+
+            // postSheet.height =  70
+            const postSheet = await NestMining.contentOfPriceSheet(token, 2);
+
+            const ethAmount = ETH(BigN(postSheet.remainNum));
+            const tokenAmount = BigN(postSheet.remainNum).mul(postSheet.tokenAmountPerEth);
+            const blockNum = postSheet.height;
+
+            // priceOf function, the height of the block where the most recent quote is located is 70
+            const data = await NestMining.priceOfTokenAtHeight(token,100);
+
+            // check data 
+            expect(data.ethAmount).to.equal(ethAmount);
+            expect(data.tokenAmount).to.equal(tokenAmount);
+            expect(data.height).to.equal(blockNum);
+        });
+
     });
 });
