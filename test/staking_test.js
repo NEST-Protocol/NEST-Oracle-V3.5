@@ -6,19 +6,19 @@ const usdtdec = BigNumber.from(10).pow(6);
 const ethdec = ethers.constants.WeiPerEther;
 const nestdec = ethdec;
 
-const eth = function (amount) {
+const ETH = function (amount) {
     return BigNumber.from(amount).mul(ethdec);
 };
 
-const usdt = function (amount) {
+const USDT = function (amount) {
     return BigNumber.from(amount).mul(usdtdec);
 };
 
-const wbtc = function (amount) {
+const WBTC = function (amount) {
     return BigNumber.from(amount).mul(BigNumber.from(10).pow(8));
 };
 
-const nest = function (amount) {
+const NEST = function (amount) {
     return BigNumber.from(amount).mul(ethdec);
 };
 
@@ -27,7 +27,7 @@ const BigN = function (n) {
 };
 
 
-describe("NestToken contract", function () {
+describe("NestStaking contract", function () {
     // Mocha has four functions that let you hook into the the test runner's
     // lifecyle. These are: `before`, `beforeEach`, `after`, `afterEach`.
 
@@ -46,11 +46,11 @@ describe("NestToken contract", function () {
 
     before(async function () {
 
-        [owner, userA, userB, userC, userD] = await ethers.getSigners();
+        [owner, userA, userB, userC, userD, dev, NNodeA, NNodeB] = await ethers.getSigners();
 
         ERC20Contract = await ethers.getContractFactory("UERC20");
-        USDT = await ERC20Contract.deploy("10000000000000000", "USDT Test Token", "USDT", 6);
-        WBTC = await ERC20Contract.deploy("2100000000000000", "WBTC Test Token", "WBTC", 8);
+        CUSDT = await ERC20Contract.deploy("10000000000000000", "USDT Test Token", "USDT", 6);
+        CWBTC = await ERC20Contract.deploy("2100000000000000", "WBTC Test Token", "WBTC", 8);
 
         IterableMappingContract = await ethers.getContractFactory("IterableMapping");
         IterableMapping = await IterableMappingContract.deploy();
@@ -64,30 +64,20 @@ describe("NestToken contract", function () {
         NestToken = await NestTokenContract.deploy();
 
         NestPoolContract = await ethers.getContractFactory("NestPool");
-        NestPool = await NestPoolContract.deploy(owner.address); // TODO: arg should be DAOContract
+        NestPool = await NestPoolContract.deploy(); // TODO: arg should be DAOContract
 
         NestStaking = await ethers.getContractFactory("NestStaking");
         NestStaking = await NestStaking.deploy(NestToken.address);
 
-        MiningCalcPriceContract = await ethers.getContractFactory("MiningCalcPrice");
-        MiningCalcPrice = await MiningCalcPriceContract.deploy();
-        MiningLookupPriceContract = await ethers.getContractFactory("MiningLookupPrice");
-        MiningLookupPrice = await MiningLookupPriceContract.deploy();
-        MiningOpContract = await ethers.getContractFactory("MiningOp");
-        MiningOp = await MiningOpContract.deploy();
-        NestMiningContract = await ethers.getContractFactory("NestMining",
-            {
-                libraries: {
-                    MiningCalcPrice: MiningCalcPrice.address,
-                    MiningLookupPrice: MiningLookupPrice.address,
-                    MiningOp: MiningOp.address
+        MiningV1CalcContract = await ethers.getContractFactory("MiningV1Calc");
+        MiningV1Calc = await MiningV1CalcContract.deploy();
+        NestMiningV1Contract = await ethers.getContractFactory("NestMiningV1",
+        {
+            libraries: {
+                MiningV1Calc: MiningV1Calc.address
                 }
-            }
-        );
-        
-        NestMining = await NestMiningContract.deploy();
-
-        await NestMining.init(NestToken.address, NestPool.address, NestStaking.address, );
+        });     
+        NestMining = await NestMiningV1Contract.deploy();
 
         NNTokenContract = await ethers.getContractFactory("NNToken");
         NNToken = await NNTokenContract.deploy(1500, "NNT");
@@ -98,23 +88,32 @@ describe("NestToken contract", function () {
         NTokenControllerContract = await ethers.getContractFactory("NTokenController");
         NTokenController = await NTokenControllerContract.deploy();
 
+        NestQueryContract = await ethers.getContractFactory("NestQuery");
+        NestQuery = await NestQueryContract.deploy();
+
         _C_NestStaking = NestStaking.address;
         _C_NestToken = NestToken.address;
         _C_NestPool = NestPool.address;
         _C_NestMining = NestMining.address;
-        _C_USDT = USDT.address;
-        _C_WBTC = WBTC.address;
-        console.log("_C_USDT=", _C_USDT);
-        console.log("_C_WBTC=", _C_WBTC);
+        _C_USDT = CUSDT.address;
+        _C_WBTC = CWBTC.address;
         _C_NNRewardPool = NNRewardPool.address;
         _C_NNToken = NNToken.address;
         _C_NTokenController = NTokenController.address;
+        _C_NestQuery = NestQuery.address;
 
-        await NestPool.setContracts(_C_NestMining, _C_NestToken);
+        await NestMining.init();
+
+        await NestPool.setContracts(_C_NestMining, _C_NestToken, _C_NTokenController, _C_NNRewardPool);
         await NestPool.setNTokenToToken(_C_USDT, _C_NestToken);
-        await NestMining.setContracts(_C_NestToken, _C_NestPool, _C_NestStaking, _C_NNRewardPool, _C_NNRewardPool);
+
+        await NestMining.setAddresses(dev.address, dev.address);
+        await NestMining.setContracts(_C_NestToken, _C_NestPool, _C_NestStaking, _C_NestQuery);
+
         await NNRewardPool.loadContracts(_C_NestToken, _C_NNToken, _C_NestPool, _C_NestMining);
         await NTokenController.setContracts(_C_NestToken, _C_NestPool);
+        await NestQuery.setContracts(_C_NestToken, _C_NestMining, _C_NestStaking, _C_NestPool);
+
 
     });
 
@@ -138,55 +137,55 @@ describe("NestToken contract", function () {
 
     describe('NEST Token', function () {
         it("should have correct totalSupply, ETH(10,000,000,000)", async () => {
-            const expectedTotalSupply = eth('10000000000');
+            const expectedTotalSupply = ETH('10000000000');
             let totalSupply = await NestToken.totalSupply();
             expect(totalSupply).to.equal(expectedTotalSupply);
         });
 
         it("should transfer correctly, ETH(2,000,000,000) [Owner => userA]", async () => {
-            const amount = BigNumber.from("2000000000").mul(ethdec);
+            const amount = ETH("2000000000");
             await NestToken.connect(owner).transfer(userA.address, amount);
             const userA_balance = await NestToken.balanceOf(userA.address);
             expect(userA_balance).to.equal(amount);
         });
 
         it("should transfer correctly, ETH(2,000,000,000) [Owner => userB]", async () => {
-            const amount = BigNumber.from("2000000000").mul(ethdec);
+            const amount = ETH("2000000000");
             await NestToken.connect(owner).transfer(userB.address, amount);
             const userB_balance = await NestToken.balanceOf(userB.address);
             expect(userB_balance).to.equal(amount);
         });
 
         it("should transfer fail", async () => {
-            let amount = eth("10000000001");
+            let amount = ETH("10000000001");
             expect(
                 NestToken.connect(owner).transfer(userA.address, amount)
             ).to.be.reverted;
         });
 
         it("should approve correctly, ETH(10,000,000,000) [userA -> _C_NestStaking]", async () => {
-            const amount = eth("10000000000");
+            const amount = ETH("10000000000");
             const rs = await NestToken.connect(userA).approve(_C_NestStaking, amount);
             const approved = await NestToken.allowance(userA.address, _C_NestStaking);
             expect(approved).to.equal(amount);
         });
 
         it("should approve correctly, ETH(10,000,000,000) [userB -> _C_NestStaking]", async () => {
-            const amount = eth("10000000000");
+            const amount = ETH("10000000000");
             const rs = await NestToken.connect(userB).approve(_C_NestStaking, amount);
             const approved = await NestToken.allowance(userB.address, _C_NestStaking);
             expect(approved).to.equal(amount);
         });
 
         it("should approve correctly, ETH(10,000,000,000) [userA -> _C_NestPool]", async () => {
-            const amount = eth("10000000000");
+            const amount = ETH("10000000000");
             const rs = await NestToken.connect(userA).approve(_C_NestPool, amount);
             const approved = await NestToken.allowance(userA.address, _C_NestPool);
             expect(approved).to.equal(amount);
         });
 
         it("should approve correctly, ETH(10,000,000,000) [userB -> _C_NestPool]", async () => {
-            const amount = eth("10000000000");
+            const amount = ETH("10000000000");
             const rs = await NestToken.connect(userB).approve(_C_NestPool, amount);
             const approved = await NestToken.allowance(userB.address, _C_NestPool);
             expect(approved).to.equal(amount);
@@ -204,14 +203,14 @@ describe("NestToken contract", function () {
         });
 
         it ("should add rewards correctly", async () => {
-            const amount = eth(100);
+            const amount = ETH(100);
             let tx = await NestStaking.addETHReward(_C_NestToken, {value: amount});
             let blncs = await NestStaking.rewardsTotal(_C_NestToken);
             expect(blncs).to.equal(amount);
         });
 
         it("should stake correctly", async () => {
-            const amount = nest(100);
+            const amount = NEST(100);
             let tx = await NestStaking.connect(userA).stake(_C_NestToken, amount);
             const blncs = await NestStaking.stakedBalanceOf(_C_NestToken, userA.address);
             expect(blncs).to.equal(amount);
@@ -221,7 +220,7 @@ describe("NestToken contract", function () {
         });
 
         it("should calculate reward correctly", async () => {
-            const total = eth(100);
+            const total = ETH(100);
             const staked = await NestStaking.stakedBalanceOf(_C_NestToken, userA.address);
             console.log(`[VIEW] staked(Nest, userA)=${staked.div(nestdec)}`);
             const reward_per_ntoken = await NestStaking.rewardPerToken(_C_NestToken);
@@ -239,7 +238,7 @@ describe("NestToken contract", function () {
         });
 
         it("should claim rewards correctly", async () => {
-            const amount = eth(100);
+            const amount = ETH(100);
             const reward = amount.mul(dividend_share_percentage).div(100);
             let total_pre = await NestStaking.rewardsTotal(_C_NestToken);
             let ethA_pre = await userA.getBalance();
