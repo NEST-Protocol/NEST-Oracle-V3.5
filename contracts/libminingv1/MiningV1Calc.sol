@@ -12,6 +12,7 @@ import "../iface/INestStaking.sol";
 import "../iface/INToken.sol";
 import "../iface/INNRewardPool.sol";
 import "../libminingv1/MiningV1Data.sol";
+import "hardhat/console.sol";
 
 
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
@@ -97,9 +98,9 @@ library MiningV1Calc {
         uint256 ethA1 = 0;
         uint256 tokenA1 = 0;
         while (i < pL.length && pL[i].height == h) { 
-            // console.log("_moveAndCalc, i=%s, remainNum=%s", i, pL[i].remainNum);
             uint256 _remain = uint256(pL[i].remainNum);
             if (_remain == 0) {
+                i = i + 1;
                 continue;
             }
             ethA1 = ethA1 + _remain;
@@ -107,8 +108,6 @@ library MiningV1Calc {
             i = i + 1;
         }
         i = i - 1;
-        // console.log("_calcEWMA, interval=%s", i - p0.index);
-        // console.log("_calcEWMA, p0.index=%s, p0.ethNum=%s, p0.tokenAmount", p0.index, p0.ethNum, p0.tokenAmount);
 
         if (ethA1 == 0 || tokenA1 == 0) {
             return (MiningV1Data.PriceInfo(
@@ -144,11 +143,12 @@ library MiningV1Calc {
         ));
     }
 
-    function _stat(MiningV1Data.State storage state, address token) 
+    function _stat(MiningV1Data.State storage state, address token)
         external 
     {
         MiningV1Data.PriceInfo memory p0 = state.priceInfo[token];
         MiningV1Data.PriceSheet[] storage pL = state.priceSheetList[token];
+
         if (pL.length < 2) {
             return;
         }
