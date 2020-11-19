@@ -208,7 +208,12 @@ contract NestMiningV1 {
 */
     /* ========== POST/CLOSE Price Sheets ========== */
 
-    /// @dev  It is for TOKEN (except USDx) and NTOKEN (except NEST)
+
+    /// @notice Post a price sheet for TOKEN
+    /// @dev  It is for TOKEN (except USDx)
+    /// @param token The address of TOKEN contract
+    /// @param ethNum The numbers of ethers to post sheets
+    /// @param tokenAmountPerEth The price of TOKEN
     function post(
             address token, 
             uint256 ethNum, 
@@ -281,6 +286,12 @@ contract NestMiningV1 {
         return; 
     }
 
+    /// @notice Post two price sheets for token and ntoken respectively
+    /// @dev  Support dual-posts for TOKEN/NTOKEN, (ETH, TOKEN) + (ETH, NTOKEN)
+    /// @param token The address of TOKEN contract
+    /// @param ethNum The numbers of ethers to post sheets
+    /// @param tokenAmountPerEth The price of TOKEN
+    /// @param ntokenAmountPerEth The price of NTOKEN
     function post2(
             address token, 
             uint256 ethNum, 
@@ -295,6 +306,8 @@ contract NestMiningV1 {
         require(ethNum >= state.miningEthUnit && ethNum % state.miningEthUnit == 0, "Nest:Mine:!(ethNum)");
         require(tokenAmountPerEth > 0 && ntokenAmountPerEth > 0, "Nest:Mine:!(price)");
         address _ntoken = INestPool(state.C_NestPool).getNTokenFromToken(token);
+
+        // NOTE: only allow dual-posting for USDx/NEST pair 
         require(_ntoken == address(state.C_NestToken), "Nest:Mine:!(ntoken)");
 
         // calculate eth fee
@@ -316,6 +329,15 @@ contract NestMiningV1 {
         }
 
         {
+            uint8 typ1;
+            uint8 typ2; 
+            if (_ntoken == address(state.C_NestToken)) {
+                typ1 = MiningV1Data.PRICESHEET_TYPE_USD;
+                typ2 = MiningV1Data.PRICESHEET_TYPE_NEST;
+            } else {
+                typ1 = MiningV1Data.PRICESHEET_TYPE_TOKEN;
+                typ2 = MiningV1Data.PRICESHEET_TYPE_NTOKEN;
+            }
             MiningV1Data.PriceSheet[] storage _sheetToken = state.priceSheetList[token];
             // append a new price sheet
             _sheetToken.push(MiningV1Data.PriceSheet(
@@ -324,7 +346,7 @@ contract NestMiningV1 {
                 uint32(ethNum),                 // ethNum
                 uint32(ethNum),                 // remainNum
                 uint8(0),                       // level
-                uint8(MiningV1Data.PRICESHEET_TYPE_USD),     // typ
+                uint8(typ1),     // typ
                 uint8(MiningV1Data.PRICESHEET_STATE_POSTED), // state 
                 uint8(0),                       // _reserved
                 uint32(ethNum),                 // ethNumBal
@@ -341,7 +363,7 @@ contract NestMiningV1 {
                 uint32(ethNum),                 // ethNum
                 uint32(ethNum),                 // remainNum
                 uint8(0),                       // level
-                uint8(MiningV1Data.PRICESHEET_TYPE_NEST),     // typ
+                uint8(typ2),     // typ
                 uint8(MiningV1Data.PRICESHEET_STATE_POSTED), // state 
                 uint8(0),                       // _reserved
                 uint32(ethNum),                 // ethNumBal
@@ -354,35 +376,54 @@ contract NestMiningV1 {
         }
 
         { // mining
-            // TODO: support token <-> ntoken, add _mineNToken()
-            uint256 _minedH = state.minedAtHeight[token][block.number];
-            uint256 _nestH = uint256(_minedH >> 128);
-            uint256 _ethH = uint256(_minedH % (1 << 128));
-            if (_nestH == 0) {
-                uint256 _nestAmount = _mineNest();  
-                state.latestMiningHeight = uint32(block.number); 
-                state.minedNestAmount += uint128(_nestAmount);
-                _nestH = _nestAmount.mul(MiningV1Data.MINER_NEST_REWARD_PERCENTAGE).div(100); 
+            if (_ntoken == address(state.C_NestToken)) {
+                uint256 _minedH = state.minedAtHeight[token][block.number];
+                uint256 _nestH = uint256(_minedH >> 128);
+                uint256 _ethH = uint256(_minedH % (1 << 128));
+                if (_nestH == 0) {
+                    uint256 _nestAmount = _mineNest();  
+                    state.latestMiningHeight = uint32(block.number); 
+                    state.minedNestAmount += uint128(_nestAmount);
+                    _nestH = _nestAmount.mul(MiningV1Data.MINER_NEST_REWARD_PERCENTAGE).div(100); 
+                }
+                _ethH = _ethH.add(ethNum);
+                state.minedAtHeight[token][block.number] = (_nestH * (1<< 128) + _ethH);
+            } else {
+                uint256 _minedH = state.minedAtHeight[token][block.number];
+                uint256 _ntokenH = uint256(_minedH >> 128);
+                uint256 _ethH = uint256(_minedH % (1 << 128));
+                if (_ntokenH == 0) {
+                    uint256 _ntokenAmount = _mineNToken(_ntoken);  
+                    state.latestMiningHeight = uint32(block.number); 
+                    _ntokenH = _ntokenAmount;
+                    INToken(_ntoken).increaseTotal2(_ntokenAmount, address(state.C_NestPool));
+                }
+                _ethH = _ethH.add(ethNum);
+                state.minedAtHeight[token][block.number] = (_ntokenH * (1<< 128) + _ethH);
             }
-            _ethH = _ethH.add(ethNum);
-            // require(_nestH < (1 << 128) && _ethH < (1 << 128), "nestAtHeight/ethAtHeight error");
-            state.minedAtHeight[token][block.number] = (_nestH * (1<< 128) + _ethH);
         }
 
         return; 
     }
 
-    /// @dev Close a price sheet of USD/NEST/TOKEN
-    function close(address token, uint256 index) public noContract 
+    /// @notice Close a price sheet of (ETH, USDx) | (ETH, NEST) | (ETH, TOKEN) | (ETH, NTOKEN)
+    /// @dev Here we allow an empty price sheet (still in VERIFICATION-PERIOD) to be closed 
+    /// @param token The address of TOKEN contract
+    /// @param index The index of the price sheet w.r.t. `token`
+    function close(address token, uint256 index) 
+        external 
+        noContract 
     {
         MiningV1Data.PriceSheet memory _sheet = state.priceSheetList[token][index];
-        require(_sheet.height + MiningV1Data.PRICE_DURATION_BLOCK < block.number, "Nest:Mine:!(height)");  // safe_math: untainted values
+        require(_sheet.height + MiningV1Data.PRICE_DURATION_BLOCK < block.number // safe_math
+            || _sheet.remainNum == 0, "Nest:Mine:!(height)");
+
         require(address(_sheet.miner) == address(msg.sender), "Nest:Mine:!(miner)");
 
         INestPool _C_NestPool = INestPool(state.C_NestPool);
         address _ntoken = _C_NestPool.getNTokenFromToken(token);
 
-        {   
+        {
             uint256 h = _sheet.height;
             if (_sheet.typ == MiningV1Data.PRICESHEET_TYPE_USD && _sheet.level == 0) {
                 uint256 _nestH = uint256(state.minedAtHeight[token][h] / (1 << 128));
@@ -416,7 +457,13 @@ contract NestMiningV1 {
         emit PriceClosed(address(msg.sender), token, index);
     }
 
-    function closeList(address token, uint64[] memory indices) public 
+    /// @notice Close a batch of price sheets passed VERIFICATION-PHASE
+    /// @dev Empty sheets but in VERIFICATION-PHASE aren't allowed
+    /// @param token The address of TOKEN contract
+    /// @param indices A list of indices of sheets w.r.t. `token`
+    function closeList(address token, uint32[] memory indices) 
+        external 
+        noContract
     {
         uint256 _ethAmount;
         uint256 _tokenAmount;
@@ -475,7 +522,9 @@ contract NestMiningV1 {
     /// @param biteNum The amount of bitting (in the unit of ETH), realAmount = biteNum * newTokenAmountPerEth
     /// @param newTokenAmountPerEth The new price of token (1 ETH : some TOKEN), here some means newTokenAmountPerEth
     function biteToken(address token, uint256 index, uint256 biteNum, uint256 newTokenAmountPerEth) 
-        public payable noContract
+        public 
+        payable 
+        noContract
     {
         require(token != address(0x0), "Nest:Mine:(token)=0"); 
         require(newTokenAmountPerEth > 0, "Nest:Mine:(price)=0");
