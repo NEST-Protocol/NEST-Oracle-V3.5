@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "../lib/SafeMath.sol";
 import "../lib/SafeERC20.sol";
@@ -14,8 +15,9 @@ import "../iface/INNRewardPool.sol";
 import "../libminingv1/MiningV1Data.sol";
 
 
+/// @title  NestMiningV1/MiningV1Calc
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
-/// @author 0x00  - <0x00@nestprotocol.org>
+/// @author Paradox  - <paradox@nestprotocol.org>
 library MiningV1Calc {
 
     using SafeMath for uint256;
@@ -296,6 +298,106 @@ library MiningV1Calc {
                 tokenAmount = tokenAmount.add(_ethNum.mul(_sheet.tokenAmountPerEth));
             } else if (_prev > _first) {
                 break;
+            }
+        }
+    }
+
+    function _priceSheet(
+            MiningV1Data.State storage state, 
+            address token, 
+            uint256 index
+        ) 
+        view external 
+        returns (MiningV1Data.PriceSheetPub memory sheet) 
+    {
+        uint256 len = state.priceSheetList[token].length;
+        require (index < len, "Nest:Mine:!index");
+        MiningV1Data.PriceSheet memory _sheet = state.priceSheetList[token][index];
+        sheet.miner = _sheet.miner;
+        sheet.height = _sheet.height;
+        sheet.ethNum = _sheet.ethNum;
+        sheet.typ = _sheet.typ;
+        sheet.state = _sheet.state;
+        sheet.ethNumBal = _sheet.ethNumBal;
+        sheet.tokenNumBal = _sheet.tokenNumBal;
+    }
+
+    
+    function unVerifiedSheetList(
+            MiningV1Data.State storage state, 
+            address token
+        ) 
+        view 
+        public
+        returns (MiningV1Data.PriceSheet[] memory sheets) 
+    {
+        MiningV1Data.PriceSheet[] storage _list = state.priceSheetList[token]; 
+        uint256 len = _list.length;
+        uint256 num;
+        for (uint i = 0; i < len; i++) {
+            if (_list[len - 1 - i].height + MiningV1Data.PRICE_DURATION_BLOCK < block.number) {
+                break;
+            }
+            num += 1;
+        }
+
+        sheets = new MiningV1Data.PriceSheet[](num);
+        for (uint i = 0; i < num; i++) {
+            MiningV1Data.PriceSheet memory _sheet = _list[len - 1 - i];
+            if (_sheet.height + MiningV1Data.PRICE_DURATION_BLOCK < block.number) {
+                break;
+            }
+            sheets[i] = _sheet;
+        }
+    }
+
+    function unClosedSheetListOf(
+            MiningV1Data.State storage state, 
+            address miner, 
+            address token, 
+            uint256 fromIndex, 
+            uint256 num) 
+        view 
+        external
+        returns (MiningV1Data.PriceSheet[] memory sheets) 
+    {
+        sheets = new MiningV1Data.PriceSheet[](num);
+        MiningV1Data.PriceSheet[] storage _list = state.priceSheetList[token]; 
+        uint256 len = _list.length;
+        for (uint i = 0; i < num; i++) {
+            if (fromIndex < i) {
+                break;
+            }
+            MiningV1Data.PriceSheet memory _sheet = _list[i];
+            if (uint256(_sheet.miner) == uint256(miner)
+                && (_sheet.state == MiningV1Data.PRICESHEET_STATE_POSTED 
+                    || _sheet.state == MiningV1Data.PRICESHEET_STATE_BITTEN)) {
+                sheets[i] = _sheet;
+            }
+        }
+    }
+
+    function sheetListOf(
+           MiningV1Data.State storage state, 
+           address miner, 
+           address token, 
+           uint256 fromIndex, 
+           uint256 num
+        ) 
+        view 
+        external
+        returns (MiningV1Data.PriceSheet[] memory sheets) 
+    {
+        sheets = new MiningV1Data.PriceSheet[](num);
+        MiningV1Data.PriceSheet[] storage _list = state.priceSheetList[token]; 
+        uint256 len = _list.length;
+        for (uint i = 0; i < num; i++) {
+            if (fromIndex < i) {
+                break;
+            }
+            MiningV1Data.PriceSheet memory _sheet = _list[fromIndex - i];
+            if (uint256(_sheet.miner) == uint256(miner)) {
+                sheets[i] = _sheet;
             }
         }
     }

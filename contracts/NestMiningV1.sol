@@ -5,6 +5,7 @@ pragma experimental ABIEncoderV2;
 
 import "./libminingv1/MiningV1Data.sol";
 import "./libminingv1/MiningV1Calc.sol";
+import "./libminingv1/MiningV1Op.sol";
 
 import "./lib/SafeMath.sol";
 import "./lib/SafeERC20.sol";
@@ -27,6 +28,7 @@ contract NestMiningV1 {
     MiningV1Data.State state;
 
     using MiningV1Calc for MiningV1Data.State;
+    using MiningV1Op for MiningV1Data.State;
 
 
     struct Params {
@@ -36,17 +38,6 @@ contract NestMiningV1 {
         uint8    miningFeeRate;     // = 10;
     }
 
-    /// @dev The struct is for public data in a price sheet, so as to protect prices from being read
-    struct PriceSheetPub {
-        uint160 miner;       //  miner who posted the price (most significant bits, or left-most)
-        uint32  height;
-        uint32  ethNum;   
-
-        uint8   typ;             // 1: USD | 2: NEST | 3: TOKEN | 4: NTOKEN(Not Available)
-        uint8   state;           // 0: closed | 1: posted | 2: bitten
-        uint32  ethNumBal;
-        uint32  tokenNumBal;
-    }
 
     // /* ========== CONSTANTS ========== */
 
@@ -63,16 +54,7 @@ contract NestMiningV1 {
     uint256 constant MINING_NTOKEN_YIELD_PER_BLOCK_BASE = 4 ether;
     uint256 constant MINING_NTOKEN_YIELD_BLOCK_LIMIT = 300;
 
-    /* ========== EVENTS ========== */
 
-    event PricePosted(address miner, address token, uint256 index, uint256 ethAmount, uint256 tokenAmount);
-    event PriceClosed(address miner, address token, uint256 index);
-    event Deposit(address miner, address token, uint256 amount);
-    event Withdraw(address miner, address token, uint256 amount);
-    event TokenBought(address miner, address token, uint256 index, uint256 biteEthAmount, uint256 biteTokenAmount);
-    event TokenSold(address miner, address token, uint256 index, uint256 biteEthAmount, uint256 biteTokenAmount);
-
-    event VolaComputed(uint32 h, uint32 pos, uint32 ethA, uint128 tokenA, int128 sigma_sq, int128 ut_sq);
     // event NTokenMining(uint256 height, uint256 yieldAmount, address ntoken);
     // event NestMining(uint256 height, uint256 yieldAmount);
 
@@ -80,7 +62,7 @@ contract NestMiningV1 {
 
     constructor() public 
     {
-        state.governance = msg.sender;
+        // state.governance = msg.sender;
     }
 
     function init() external 
@@ -264,7 +246,7 @@ contract NestMiningV1 {
                 uint32(state.nestStakedNum1k),        // nestNum1k
                 uint128(tokenAmountPerEth)      // tokenAmountPerEth
             ));
-            emit PricePosted(msg.sender, token, (_sheetToken.length - 1), ethNum.mul(1 ether), tokenAmountPerEth.mul(ethNum)); 
+            emit MiningV1Data.PricePosted(msg.sender, token, (_sheetToken.length - 1), ethNum.mul(1 ether), tokenAmountPerEth.mul(ethNum)); 
 
         }
 
@@ -371,8 +353,8 @@ contract NestMiningV1 {
                 uint32(state.nestStakedNum1k),        // nestNum1k
                 uint128(ntokenAmountPerEth)      // tokenAmountPerEth
             ));
-            emit PricePosted(msg.sender, token, (_sheetToken.length - 1), ethNum.mul(1 ether), tokenAmountPerEth.mul(ethNum)); 
-            emit PricePosted(msg.sender, _ntoken, (_sheetNToken.length - 1), ethNum.mul(1 ether), ntokenAmountPerEth.mul(ethNum)); 
+            emit MiningV1Data.PricePosted(msg.sender, token, (_sheetToken.length - 1), ethNum.mul(1 ether), tokenAmountPerEth.mul(ethNum)); 
+            emit MiningV1Data.PricePosted(msg.sender, _ntoken, (_sheetNToken.length - 1), ethNum.mul(1 ether), ntokenAmountPerEth.mul(ethNum)); 
         }
 
         { // mining
@@ -454,7 +436,7 @@ contract NestMiningV1 {
 
         state.priceSheetList[token][index] = _sheet;
 
-        emit PriceClosed(address(msg.sender), token, index);
+        emit MiningV1Data.PriceClosed(address(msg.sender), token, index);
     }
 
     /// @notice Close a batch of price sheets passed VERIFICATION-PHASE
@@ -465,55 +447,8 @@ contract NestMiningV1 {
         external 
         noContract
     {
-        uint256 _ethAmount;
-        uint256 _tokenAmount;
-        uint256 _nestAmount;
-        uint256 _reward;
-
-        MiningV1Data.PriceSheet[] storage prices = state.priceSheetList[token];
-        
-        for (uint i=0; i<indices.length; i++) {
-            MiningV1Data.PriceSheet memory _sheet = prices[indices[i]];
-            if (uint256(_sheet.miner) != uint256(msg.sender)) {
-                continue;
-            }
-            uint256 h = uint256(_sheet.height);
-            if (h + MiningV1Data.PRICE_DURATION_BLOCK < block.number) { // safe_math: untainted values
-                _ethAmount = _ethAmount.add(uint256(_sheet.ethNumBal).mul(1 ether));
-                _tokenAmount = _tokenAmount.add(uint256(_sheet.tokenNumBal).mul(_sheet.tokenAmountPerEth));
-                _nestAmount = _nestAmount.add(uint256(_sheet.nestNum1k).mul(1000 * 1e18));
-                _sheet.ethNumBal = 0;
-                _sheet.tokenNumBal = 0;
-                _sheet.nestNum1k = 0;
-
-                _sheet.state = MiningV1Data.PRICESHEET_STATE_CLOSED;
-                prices[indices[i]] = _sheet;
-
-                uint256 _ntokenH = uint256(state.minedAtHeight[token][h] >> 128);
-                uint256 _ethH = uint256(state.minedAtHeight[token][h] << 128 >> 128);
-                _reward = _reward.add(uint256(_sheet.ethNum).mul(_ntokenH).div(_ethH));
-                emit PriceClosed(address(msg.sender), token, indices[i]);
-            }
-        }
-        
-        INestPool _C_NestPool = INestPool(state.C_NestPool);
-
-        if (_ethAmount > 0 || _tokenAmount > 0) {
-            _C_NestPool.unfreezeEthAndToken(address(msg.sender), _ethAmount, token, _tokenAmount);
-        }
-        _C_NestPool.unfreezeNest(address(msg.sender), _nestAmount); 
-
-        {
-            uint256 _typ = prices[indices[0]].typ;
-            if  (_typ == MiningV1Data.PRICESHEET_TYPE_USD) {
-                _C_NestPool.addNest(address(msg.sender), _reward);
-            } else if (_typ == MiningV1Data.PRICESHEET_TYPE_TOKEN) {
-                address _ntoken = _C_NestPool.getNTokenFromToken(token);
-                _C_NestPool.addNToken(address(msg.sender), _ntoken, _reward);
-            }
-        }
+        state._closeList(token, indices);
     }
-
 
     /// @notice Call the function to buy TOKEN/NTOKEN from a posted price sheet
     /// @dev bite TOKEN(NTOKEN) by ETH,  (+ethNumBal, -tokenNumBal)
@@ -522,95 +457,11 @@ contract NestMiningV1 {
     /// @param biteNum The amount of bitting (in the unit of ETH), realAmount = biteNum * newTokenAmountPerEth
     /// @param newTokenAmountPerEth The new price of token (1 ETH : some TOKEN), here some means newTokenAmountPerEth
     function biteToken(address token, uint256 index, uint256 biteNum, uint256 newTokenAmountPerEth) 
-        public 
+        external 
         payable 
         noContract
     {
-        require(token != address(0x0), "Nest:Mine:(token)=0"); 
-        require(newTokenAmountPerEth > 0, "Nest:Mine:(price)=0");
-        require(biteNum >= state.miningEthUnit && biteNum % state.miningEthUnit == 0, "Nest:Mine:!(bite)");
-
-        MiningV1Data.PriceSheet memory _sheet = state.priceSheetList[token][index]; 
-        require(_sheet.height + MiningV1Data.PRICE_DURATION_BLOCK > block.number, "Nest:Mine:!EFF(sheet)");
-        require(_sheet.remainNum >= biteNum, "Nest:Mine:!(remain)");
-
-        INestPool _C_NestPool = INestPool(state.C_NestPool);
-
-        uint256 _state = uint256(_sheet.state);
-        require(_state == MiningV1Data.PRICESHEET_STATE_POSTED 
-             || _state == MiningV1Data.PRICESHEET_STATE_BITTEN,  "Nest:Mine:!(state)");
-
-        {
-            address nToken = token;
-            
-            if (_sheet.typ == MiningV1Data.PRICESHEET_TYPE_USD || _sheet.typ == MiningV1Data.PRICESHEET_TYPE_TOKEN) {
-                nToken = _C_NestPool.getNTokenFromToken(token);
-                require (nToken != address(0x0), "Nest:Mine:!(ntoken)");
-            } else if (_sheet.typ == MiningV1Data.PRICESHEET_TYPE_NEST || _sheet.typ == MiningV1Data.PRICESHEET_TYPE_NTOKEN) {
-                nToken = token;
-            }
-
-            uint256 _ethFee = biteNum.mul(1 ether).mul(state.biteFeeRate).div(1000);
-
-            // save the changes into miner's virtual account
-            _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
-            INestStaking(state.C_NestStaking).addETHReward{value:_ethFee}(nToken);
-        }
-
-        // post a new price sheet
-        { 
-            // check bitting conditions
-            uint256 _newEthNum;
-            uint256 _newNestNum1k;
-            {
-                uint256 _level = uint256(_sheet.level);
-                uint256 _newLevel;
-
-                if (_level > MiningV1Data.MAX_BITE_NESTED_LEVEL && _level < 127) { // bitten sheet, nest doubling
-                    _newEthNum = biteNum;
-                    _newNestNum1k = uint256(_sheet.nestNum1k).mul(_newEthNum).div(_sheet.ethNum).mul(2);
-                    _newLevel = _level + 1;
-                } else if (_level <= MiningV1Data.MAX_BITE_NESTED_LEVEL) {  // bitten sheet, eth doubling 
-                    _newEthNum = biteNum.mul(MiningV1Data.BITE_AMOUNT_INFLATE_FACTOR);
-                    _newNestNum1k = uint256(_sheet.nestNum1k).mul(_newEthNum).div(_sheet.ethNum).mul(2);
-                    _newLevel = _level + 1;
-                } else if (_level >= 127) {
-                    _newLevel = _level;
-                    _newNestNum1k = uint256(_sheet.nestNum1k);
-                }
-
-                MiningV1Data.PriceSheet[] storage _sheetOfToken = state.priceSheetList[token];
-                // append a new price sheet
-                _sheetOfToken.push(MiningV1Data.PriceSheet(
-                    uint160(msg.sender),             // miner 
-                    uint32(block.number),            // atHeight
-                    uint32(_newEthNum),                 // ethNum
-                    uint32(_newEthNum),                 // remainNum
-                    uint8(_newLevel),                // level
-                    uint8(_sheet.typ),               // typ
-                    uint8(MiningV1Data.PRICESHEET_STATE_POSTED),  // state 
-                    uint8(0),                        // _reserved
-                    uint32(_newEthNum),                 // ethNumBal
-                    uint32(_newEthNum),                 // tokenNumBal
-                    uint32(_newNestNum1k),           // nestNum1k
-                    uint128(newTokenAmountPerEth)    // tokenAmountPerEth
-                ));
-            }
-            _C_NestPool.freezeNest(address(msg.sender), _newNestNum1k.mul(1000 * 1e18));
-            _C_NestPool.freezeEthAndToken(msg.sender, _newEthNum.add(biteNum).mul(1 ether), 
-                token, _newEthNum.mul(newTokenAmountPerEth)
-                                    .sub(biteNum.mul(_sheet.tokenAmountPerEth)));
-            _sheet.state = MiningV1Data.PRICESHEET_STATE_BITTEN;
-            _sheet.ethNumBal = uint32(uint256(_sheet.ethNumBal).add(biteNum));
-            _sheet.tokenNumBal = uint32(uint256(_sheet.tokenNumBal).sub(biteNum));
-            _sheet.remainNum = uint32(uint256(_sheet.remainNum).sub(biteNum));
-            state.priceSheetList[token][index] = _sheet;
-            
-        }
-
-        emit TokenBought(address(msg.sender), address(token), index, biteNum.mul(1 ether), biteNum.mul(_sheet.tokenAmountPerEth));
-        return; 
-
+        state._biteToken(token, index, biteNum, newTokenAmountPerEth);
     }
 
     /// @notice Call the function to buy TOKEN/NTOKEN from a posted price sheet
@@ -620,91 +471,12 @@ contract NestMiningV1 {
     /// @param biteNum The amount of bitting (in the unit of ETH), realAmount = biteNum * newTokenAmountPerEth
     /// @param newTokenAmountPerEth The new price of token (1 ETH : some TOKEN), here some means newTokenAmountPerEth
     function biteEth(address token, uint256 index, uint256 biteNum, uint256 newTokenAmountPerEth)
-            public payable noContract
+        external
+        payable
+        noContract
     {
-        require(token != address(0x0), "Nest:Mine:(token)=0"); 
-        require(newTokenAmountPerEth > 0, "Nest:Mine:(price)=0");
-        require(biteNum >= state.miningEthUnit && biteNum % state.miningEthUnit == 0, "Nest:Mine:!(bite)");
+        state._biteEth(token, index, biteNum, newTokenAmountPerEth);
 
-        MiningV1Data.PriceSheet memory _sheet = state.priceSheetList[token][index]; 
-        require(block.number.sub(_sheet.height) < MiningV1Data.PRICE_DURATION_BLOCK, "Nest:Mine:!EFF(sheet)");
-        require(_sheet.remainNum >= biteNum, "Nest:Mine:!(remain)");
-
-        INestPool _C_NestPool = INestPool(state.C_NestPool);
-
-        uint256 _state = uint256(_sheet.state);
-        require(_state == MiningV1Data.PRICESHEET_STATE_POSTED 
-            || _state == MiningV1Data.PRICESHEET_STATE_BITTEN,  "Nest:Mine:!(state)");
-
-        {
-            address nToken = token;
-            
-            if (_sheet.typ == MiningV1Data.PRICESHEET_TYPE_USD 
-                    || _sheet.typ == MiningV1Data.PRICESHEET_TYPE_TOKEN) {
-                nToken = _C_NestPool.getNTokenFromToken(token);
-                require (nToken != address(0x0), "Nest:Mine:!(ntoken)");
-            } else if (_sheet.typ == MiningV1Data.PRICESHEET_TYPE_NEST || _sheet.typ == MiningV1Data.PRICESHEET_TYPE_NTOKEN) {
-                nToken = token;
-            }
-
-            uint256 _ethFee = biteNum.mul(1 ether).mul(state.biteFeeRate).div(1000);
-
-            // save the changes into miner's virtual account
-            _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
-            INestStaking(state.C_NestStaking).addETHReward{value:_ethFee}(nToken);
-        }
-        
-       // post a new price sheet
-        { 
-            // check bitting conditions
-            uint256 _newEthNum;
-            uint256 _newNestNum1k;
-            {
-                uint256 _level = uint256(_sheet.level);
-                uint256 _newLevel;
-
-                if (_level > MiningV1Data.MAX_BITE_NESTED_LEVEL && _level < 127) { // bitten sheet, nest doubling
-                    _newEthNum = biteNum;
-                    _newNestNum1k = uint256(_sheet.nestNum1k).mul(_newEthNum).div(_sheet.ethNum).mul(2);
-                    _newLevel = _level + 1;
-                } else if (_level <= MiningV1Data.MAX_BITE_NESTED_LEVEL) {  // bitten sheet, eth doubling 
-                    _newEthNum = biteNum.mul(MiningV1Data.BITE_AMOUNT_INFLATE_FACTOR);
-                    _newNestNum1k = uint256(_sheet.nestNum1k).mul(_newEthNum).div(_sheet.ethNum).mul(2);
-                    _newLevel = _level + 1;
-                } else if (_level >= 127) {
-                    _newLevel = _level;
-                    _newNestNum1k = uint256(_sheet.nestNum1k);
-                }
-
-                MiningV1Data.PriceSheet[] storage _sheetOfToken = state.priceSheetList[token];
-                // append a new price sheet
-                _sheetOfToken.push(MiningV1Data.PriceSheet(
-                    uint160(msg.sender),             // miner 
-                    uint32(block.number),            // atHeight
-                    uint32(_newEthNum),                 // ethNum
-                    uint32(_newEthNum),                 // remainNum
-                    uint8(_newLevel),                // level
-                    uint8(_sheet.typ),               // typ
-                    uint8(MiningV1Data.PRICESHEET_STATE_POSTED),  // state 
-                    uint8(0),                        // _reserved
-                    uint32(_newEthNum),                 // ethNumBal
-                    uint32(_newEthNum),                 // tokenNumBal
-                    uint32(_newNestNum1k),           // nestNum1k
-                    uint128(newTokenAmountPerEth)    // tokenAmountPerEth
-                ));
-            }
-            _C_NestPool.freezeNest(address(msg.sender), _newNestNum1k.mul(1000 * 1e18));
-            _C_NestPool.freezeEthAndToken(msg.sender, _newEthNum.sub(biteNum).mul(1 ether), 
-                token, _newEthNum.mul(newTokenAmountPerEth)
-                                    .add(biteNum.mul(_sheet.tokenAmountPerEth)));
-            _sheet.state = MiningV1Data.PRICESHEET_STATE_BITTEN;
-            _sheet.ethNumBal = uint32(uint256(_sheet.ethNumBal).sub(biteNum));
-            _sheet.tokenNumBal = uint32(uint256(_sheet.tokenNumBal).add(biteNum));
-            _sheet.remainNum = uint32(uint256(_sheet.remainNum).sub(biteNum));
-            state.priceSheetList[token][index] = _sheet;
-        }
-        emit TokenSold(address(msg.sender), address(token), index, biteNum.mul(1 ether), biteNum.mul(_sheet.tokenAmountPerEth));
-        return; 
     }
     
     /* ========== PRICE QUERIES ========== */
@@ -745,9 +517,9 @@ contract NestMiningV1 {
     }
 
     /// @dev It shouldn't be read from any contracts other than NestQuery
-    function priceOf(address token) 
-        public 
-        view 
+    function priceOf(address token)
+        public
+        view
         onlyGovOrBy(state.C_NestQuery)
         returns(uint256 ethAmount, uint256 tokenAmount, uint256 blockNum) 
     {
@@ -853,7 +625,8 @@ contract NestMiningV1 {
     /* ========== VIEWS ========== */
 
     function lengthOfPriceSheets(address token) 
-        view external 
+        view 
+        external 
         returns (uint256)
     {
         return state.priceSheetList[token].length;
@@ -861,28 +634,102 @@ contract NestMiningV1 {
 
     function priceSheet(address token, uint256 index) 
         view external 
-        returns (PriceSheetPub memory sheet) 
+        returns (MiningV1Data.PriceSheetPub memory sheet) 
     {
-        uint256 len = state.priceSheetList[token].length;
-        require (index < len, "Nest:Mine:!index");
-        MiningV1Data.PriceSheet memory _sheet = state.priceSheetList[token][index];
-        sheet.miner = _sheet.miner;
-        sheet.height = _sheet.height;
-        sheet.ethNum = _sheet.ethNum;
-        sheet.typ = _sheet.typ;
-        sheet.state = _sheet.state;
-        sheet.ethNumBal = _sheet.ethNumBal;
-        sheet.tokenNumBal = _sheet.tokenNumBal;
+        return state._priceSheet(token, index);
+        // uint256 len = state.priceSheetList[token].length;
+        // require (index < len, "Nest:Mine:!index");
+        // MiningV1Data.PriceSheet memory _sheet = state.priceSheetList[token][index];
+        // sheet.miner = _sheet.miner;
+        // sheet.height = _sheet.height;
+        // sheet.ethNum = _sheet.ethNum;
+        // sheet.typ = _sheet.typ;
+        // sheet.state = _sheet.state;
+        // sheet.ethNumBal = _sheet.ethNumBal;
+        // sheet.tokenNumBal = _sheet.tokenNumBal;
     }
 
-    function contentOfPriceSheet(address token, uint256 index) view public 
-        returns (MiningV1Data.PriceSheet memory ps) 
+    function fullPriceSheet(address token, uint256 index) 
+        view 
+        public
+        noContract
+        returns (MiningV1Data.PriceSheet memory sheet) 
     {
         uint256 len = state.priceSheetList[token].length;
         require (index < len, "Nest:Mine:>(len)");
         return state.priceSheetList[token][index];
     }
 
+    function unVerifiedSheetList(address token) 
+        view 
+        public
+        noContract
+        returns (MiningV1Data.PriceSheet[] memory sheets) 
+    {
+        return state.unVerifiedSheetList(token);
+        // MiningV1Data.PriceSheet[] storage _list = state.priceSheetList[token]; 
+        // uint256 len = _list.length;
+        // uint256 num;
+        // for (uint i = 0; i < len; i++) {
+        //     if (_list[len - 1 - i].height + MiningV1Data.PRICE_DURATION_BLOCK < block.number) {
+        //         break;
+        //     }
+        //     num += 1;
+        // }
+
+        // sheets = new MiningV1Data.PriceSheet[](num);
+        // for (uint i = 0; i < num; i++) {
+        //     MiningV1Data.PriceSheet memory _sheet = _list[len - 1 - i];
+        //     if (_sheet.height + MiningV1Data.PRICE_DURATION_BLOCK < block.number) {
+        //         break;
+        //     }
+        //     sheets[i] = _sheet;
+        // }
+    }
+
+    function unClosedSheetListOf(address miner, address token, uint256 fromIndex, uint256 num) 
+        view 
+        public
+        noContract
+        returns (MiningV1Data.PriceSheet[] memory sheets) 
+    {
+        return state.unClosedSheetListOf(miner, token, fromIndex, num);
+        // sheets = new MiningV1Data.PriceSheet[](num);
+        // MiningV1Data.PriceSheet[] storage _list = state.priceSheetList[token]; 
+        // uint256 len = _list.length;
+        // for (uint i = 0; i < num; i++) {
+        //     if (fromIndex < i) {
+        //         break;
+        //     }
+        //     MiningV1Data.PriceSheet memory _sheet = _list[i];
+        //     if (uint256(_sheet.miner) == uint256(miner)
+        //         && (_sheet.state == MiningV1Data.PRICESHEET_STATE_POSTED 
+        //             || _sheet.state == MiningV1Data.PRICESHEET_STATE_BITTEN)) {
+        //         sheets[i] = _sheet;
+        //     }
+        // }
+    }
+
+    function sheetListOf(address miner, address token, uint256 fromIndex, uint256 num) 
+        view 
+        public
+        noContract
+        returns (MiningV1Data.PriceSheet[] memory sheets) 
+    {
+        return state.sheetListOf(miner, token, fromIndex, num);
+        // sheets = new MiningV1Data.PriceSheet[](num);
+        // MiningV1Data.PriceSheet[] storage _list = state.priceSheetList[token]; 
+        // uint256 len = _list.length;
+        // for (uint i = 0; i < num; i++) {
+        //     if (fromIndex < i) {
+        //         break;
+        //     }
+        //     MiningV1Data.PriceSheet memory _sheet = _list[fromIndex - i];
+        //     if (uint256(_sheet.miner) == uint256(miner)) {
+        //         sheets[i] = _sheet;
+        //     }
+        // }
+    }
 
     /* ========== CALCULATION ========== */
 

@@ -100,6 +100,30 @@ library MiningV1Data {
         uint128 _reserved2;     
     }
 
+
+    /// @dev The struct is for public data in a price sheet, so as to protect prices from being read
+    struct PriceSheetPub {
+        uint160 miner;       //  miner who posted the price (most significant bits, or left-most)
+        uint32  height;
+        uint32  ethNum;   
+
+        uint8   typ;             // 1: USD | 2: NEST | 3: TOKEN | 4: NTOKEN(Not Available)
+        uint8   state;           // 0: closed | 1: posted | 2: bitten
+        uint32  ethNumBal;
+        uint32  tokenNumBal;
+    }
+
+    /* ========== EVENTS ========== */
+
+    event PricePosted(address miner, address token, uint256 index, uint256 ethAmount, uint256 tokenAmount);
+    event PriceClosed(address miner, address token, uint256 index);
+    event Deposit(address miner, address token, uint256 amount);
+    event Withdraw(address miner, address token, uint256 amount);
+    event TokenBought(address miner, address token, uint256 index, uint256 biteEthAmount, uint256 biteTokenAmount);
+    event TokenSold(address miner, address token, uint256 index, uint256 biteEthAmount, uint256 biteTokenAmount);
+
+    event VolaComputed(uint32 h, uint32 pos, uint32 ethA, uint128 tokenA, int128 sigma_sq, int128 ut_sq);
+    
     /* ========== STATE VARIABLES ========== */
 
     struct State {
