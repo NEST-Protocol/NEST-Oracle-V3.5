@@ -257,10 +257,12 @@ library MiningV1Op {
                 _sheet.state = MiningV1Data.PRICESHEET_STATE_CLOSED;
                 prices[indices[i]] = _sheet;
 
-                uint256 _ntokenH = uint256(state.minedAtHeight[token][h] >> 128);
-                uint256 _ethH = uint256(state.minedAtHeight[token][h] << 128 >> 128);
-                _reward = _reward.add(uint256(_sheet.ethNum).mul(_ntokenH).div(_ethH));
-                emit MiningV1Data.PriceClosed(address(msg.sender), token, indices[i]);
+                if(_sheet.level == 0) {
+                    uint256 _ntokenH = uint256(state.minedAtHeight[token][h] >> 128);
+                    uint256 _ethH = uint256(state.minedAtHeight[token][h] << 128 >> 128);
+                    _reward = _reward.add(uint256(_sheet.ethNum).mul(_ntokenH).div(_ethH));
+                    emit MiningV1Data.PriceClosed(address(msg.sender), token, indices[i]);
+                }
             }
         }
         

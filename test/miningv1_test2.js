@@ -115,7 +115,7 @@ const show_price_sheet_list = async function () {
     rs = await NestMiningContract.lengthOfPriceSheets(_C_USDT);
     let n = rs.toNumber();
     for (var i=0; i<n; i++) {
-        rs = await NestMiningContract.contentOfPriceSheet(_C_USDT, new BN(i));
+        rs = await NestMiningContract.fullPriceSheet(_C_USDT, new BN(i));
         records[i.toString()] = new Record(rs["miner"].toString(16), show_eth(rs["ethAmount"]), show_usdt(rs["tokenAmount"]), show_eth(rs["dealEthAmount"]), 
             show_usdt(rs["dealTokenAmount"]), rs["ethFee"].toString(10), rs["atHeight"].toString());
     }
@@ -313,12 +313,15 @@ describe("NestToken contract", function () {
         NestStakingContract = await ethers.getContractFactory("NestStaking");
         NestStaking = await NestStakingContract.deploy(NestToken.address);
 
-        MiningV1CalcContract = await ethers.getContractFactory("MiningV1Calc");
-        MiningV1Calc = await MiningV1CalcContract.deploy();
+        MiningV1CalcLibrary = await ethers.getContractFactory("MiningV1Calc");
+        MiningV1Calc = await MiningV1CalcLibrary.deploy();
+        MiningV1OpLibrary = await ethers.getContractFactory("MiningV1Op");
+        MiningV1Op = await MiningV1OpLibrary.deploy();
         NestMiningV1Contract = await ethers.getContractFactory("NestMiningV1",
         {
             libraries: {
-                MiningV1Calc: MiningV1Calc.address
+                MiningV1Calc: MiningV1Calc.address,
+                MiningV1Op: MiningV1Op.address
                 }
         });     
         NestMining = await NestMiningV1Contract.deploy();
@@ -478,7 +481,7 @@ describe("NestToken contract", function () {
 
             // post 
             await NestMining.connect(userA).post(token,ethNum,tokenAmountPerEth,{value: msgValue});
-            const postSheet = await NestMining.contentOfPriceSheet(token, 0);
+            const postSheet = await NestMining.fullPriceSheet(token, 0);
 
             // calculate fee
             const ethFee = ETH(BigN(ethNum).mul(miningFeeRate)).div(1000);
@@ -528,7 +531,7 @@ describe("NestToken contract", function () {
             const tokenAmountPerEth = MBTC(30);
             const h = await provider.getBlockNumber();
 
-            const postSheet = await NestMining.contentOfPriceSheet(token, 0);
+            const postSheet = await NestMining.fullPriceSheet(token, 0);
             expect(postSheet.miner).to.equal(userA.address);
             expect(postSheet.height).to.equal(h);
             expect(postSheet.ethNum).to.equal(ethNum);
@@ -572,7 +575,7 @@ describe("NestToken contract", function () {
             // post 
             await NestMining.connect(userA).post2(token, 10, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
 
-            const postSheet = await NestMining.contentOfPriceSheet(token, 0);
+            const postSheet = await NestMining.fullPriceSheet(token, 0);
  
             // calculate fee
             const ethFee = ETH(BigN(ethNum).mul(miningFeeRate)).div(1000);
@@ -638,7 +641,7 @@ describe("NestToken contract", function () {
 
            const NToken = await NestPool.getNTokenFromToken(token);
 
-           const postSheet = await NestMining.contentOfPriceSheet(token, 0);
+           const postSheet = await NestMining.fullPriceSheet(token, 0);
            
            // check the token priceSheet
            expect(postSheet.miner).to.equal(userA.address);
@@ -653,7 +656,7 @@ describe("NestToken contract", function () {
            expect(postSheet.tokenNumBal).to.equal(ethNum);
            expect(postSheet.tokenAmountPerEth).to.equal(tokenAmountPerEth);
 
-           const postSheet1 = await NestMining.contentOfPriceSheet(NToken, 0);
+           const postSheet1 = await NestMining.fullPriceSheet(NToken, 0);
            
            // check the token priceSheet
            expect(postSheet1.miner).to.equal(userA.address);
@@ -691,7 +694,7 @@ describe("NestToken contract", function () {
             const token_pool_pre = await NestPool.balanceOfTokenInPool(_C_NestPool,token);
             const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
 
-            const postSheet = await NestMining.contentOfPriceSheet(token, 0);
+            const postSheet = await NestMining.fullPriceSheet(token, 0);
 
             // close priceSheet 
             await NestMining.connect(userA).close(token,0);
@@ -739,7 +742,7 @@ describe("NestToken contract", function () {
             const msgValue = ETH(BigN(50));
             const NToken = await NestPool.getNTokenFromToken(token);
 
-            const postSheet = await NestMining.contentOfPriceSheet(token, 0);
+            const postSheet = await NestMining.fullPriceSheet(token, 0);
 
             // check the updated PriceSheet
             expect(postSheet.ethNumBal).to.equal(0);
@@ -766,12 +769,12 @@ describe("NestToken contract", function () {
          
             // post two priceSheet by the same user and token address
             await NestMining.connect(userA).post(token,ethNum1,tokenAmountPerEth1,{value: msgValue});
-            const postSheet1 = await NestMining.contentOfPriceSheet(token, 1);
+            const postSheet1 = await NestMining.fullPriceSheet(token, 1);
 
             await goBlocks(provider, 5);
 
             await NestMining.connect(userA).post(token,ethNum2,tokenAmountPerEth2,{value: msgValue});
-            const postSheet2 = await NestMining.contentOfPriceSheet(token, 2);
+            const postSheet2 = await NestMining.fullPriceSheet(token, 2);
 
             await goBlocks(provider, 25);
             //===================================//
@@ -839,8 +842,8 @@ describe("NestToken contract", function () {
             const msgValue = ETH(BigN(50));
             const NToken = await NestPool.getNTokenFromToken(token);
 
-            const postSheet1 = await NestMining.contentOfPriceSheet(token, 1);
-            const postSheet2 = await NestMining.contentOfPriceSheet(token, 2);
+            const postSheet1 = await NestMining.fullPriceSheet(token, 1);
+            const postSheet2 = await NestMining.fullPriceSheet(token, 2);
 
 
             // check the updated PriceSheet1
@@ -888,7 +891,7 @@ describe("NestToken contract", function () {
          
             // post priceSheet
             await NestMining.connect(userA).post(token,ethNum,tokenAmountPerEth,{value: msgValue});
-            const postSheet = await NestMining.contentOfPriceSheet(token, 3);
+            const postSheet = await NestMining.fullPriceSheet(token, 3);
             //=========================================//
             // record funds before biting token
             const userB_nest_in_exAddress_pre = await NestToken.balanceOf(userB.address); 
@@ -904,8 +907,8 @@ describe("NestToken contract", function () {
  
             // biteToken function
             await NestMining.connect(userB).biteToken(token,3,biteNum,newTokenAmountPerEth,{value: msgValue});
-            const newPostSheet = await NestMining.contentOfPriceSheet(token, 4);
-            const postSheet1 = await NestMining.contentOfPriceSheet(token, 3);
+            const newPostSheet = await NestMining.fullPriceSheet(token, 4);
+            const postSheet1 = await NestMining.fullPriceSheet(token, 3);
 
             // calculate fee
             const ethFee =  ETH(BigN(biteNum)).div(1000);
@@ -977,7 +980,7 @@ describe("NestToken contract", function () {
             const newTokenAmountPerEth = MBTC(20);
             const msgValue = ETH(BigN(50));
     
-            const postSheet = await NestMining.contentOfPriceSheet(token, 3);
+            const postSheet = await NestMining.fullPriceSheet(token, 3);
             //=========================================//
             // record funds before biting eth
             const userB_nest_in_exAddress_pre = await NestToken.balanceOf(userB.address); 
@@ -993,8 +996,8 @@ describe("NestToken contract", function () {
  
             // biteToken function
             await NestMining.connect(userB).biteEth(token,3,biteNum,newTokenAmountPerEth,{value: msgValue});
-            const newPostSheet = await NestMining.contentOfPriceSheet(token, 5);
-            const postSheet1 = await NestMining.contentOfPriceSheet(token, 3);
+            const newPostSheet = await NestMining.fullPriceSheet(token, 5);
+            const postSheet1 = await NestMining.fullPriceSheet(token, 3);
 
             // calculate fee
             const ethFee =  ETH(BigN(biteNum)).div(1000);
@@ -1058,6 +1061,184 @@ describe("NestToken contract", function () {
 
         });
 
+        //======================check the part of price queries==============================//
+        // check latestPriceOf function
+        it('should query latestPriceOf function correctly!', async () => {
+            //============preparation============//
+            const token = _C_WBTC;
+            const ethNum1 = 10;
+            const ethNum2 = 20;
+            const ethNum3 = 30;
+
+            const tokenAmountPerEth1 = MBTC(30);
+            const tokenAmountPerEth2 = MBTC(20);
+            const tokenAmountPerEth3 = MBTC(10);
+            
+            const msgValue = ETH(BigN(100));
+            const NToken = await NestPool.getNTokenFromToken(token);
+          
+            // post two priceSheet by the same user and token address
+            await NestMining.connect(userA).post(token,ethNum1,tokenAmountPerEth1,{value: msgValue});
+            const postSheet1 = await NestMining.fullPriceSheet(token, 6);
+            //console.log("postSheet1.height = ",postSheet1.height);
+ 
+            await NestMining.connect(userB).post(token,ethNum2,tokenAmountPerEth2,{value: msgValue});
+            const postSheet2 = await NestMining.fullPriceSheet(token, 7);
+            //console.log("postSheet2.height = ",postSheet2.height);
+
+ 
+            await NestMining.connect(userA).post(token,ethNum3,tokenAmountPerEth3,{value: msgValue});
+            const postSheet3 = await NestMining.fullPriceSheet(token, 8);
+            //console.log("postSheet3.height = ",postSheet3.height);
+
+
+            await goBlocks(provider, 26);
+            //===================================//
+
+            // latestPriceOf function
+            const price = await NestMining.latestPriceOf(token);
+
+            // check the result of query
+            expect(price.ethAmount).to.equal(ETH(BigN(postSheet3.remainNum)));
+
+            expect(price.tokenAmount).to.equal((postSheet3.tokenAmountPerEth).mul(postSheet3.remainNum));
+
+            expect(price.blockNum).to.equal(postSheet3.height);
+
+        });
+
+        // check priceOf function
+        it("should return correct query result", async () => {
+            const token = _C_WBTC;
+            const postSheet = await NestMining.fullPriceSheet(token, 8);
+
+            const ethAmount = ETH(postSheet.remainNum);
+            const tokenAmount = BigN(postSheet.remainNum).mul(postSheet.tokenAmountPerEth);
+            
+            // Storing data to a structure
+            await NestMining.stat(token);
+            
+            // priceOf function
+            const pi = await NestMining.connect(_C_NestQuery).priceOf(token);
+            
+            // check data
+            expect(pi.ethAmount).to.equal(ethAmount);
+            expect(pi.tokenAmount).to.equal(tokenAmount);
+            expect(pi.blockNum).to.equal(postSheet.height);
+        });
+        
+        // Given a block height and token address, query the data from the quotation table in the block 
+        // where the previous most recent price for this block was determined.
+        it("should return correct result!", async () => {
+            const token = _C_WBTC;
+            const h = provider.getBlockNumber();
+
+            const postSheet = await NestMining.fullPriceSheet(token, 8);
+            const ethAmount = ETH(BigN(postSheet.remainNum));
+            const tokenAmount = BigN(postSheet.remainNum).mul(postSheet.tokenAmountPerEth);
+            const blockNum = postSheet.height;
+
+            // priceOf function, in this case, the parameter of atHeight is big enough
+            const data = await NestMining.priceOfTokenAtHeight(token,h);
+
+            // check data 
+            expect(data.ethAmount).to.equal(ethAmount);
+            expect(data.tokenAmount).to.equal(tokenAmount);
+            expect(data.height).to.equal(blockNum);
+
+        });
+
+        // Given a block height and token address, query the data from the quotation table in the block 
+        // where the previous most recent price for this block was determined.
+        it("should return correct result!", async () => {
+            const token = _C_WBTC;
+
+            // postSheet.height =  70
+            const postSheet = await NestMining.fullPriceSheet(token, 2);
+
+            const ethAmount = ETH(BigN(postSheet.remainNum));
+            const tokenAmount = BigN(postSheet.remainNum).mul(postSheet.tokenAmountPerEth);
+            const blockNum = postSheet.height;
+
+            // priceOf function, the height of the block where the most recent quote is located is 70
+            const data = await NestMining.priceOfTokenAtHeight(token,100);
+
+            // check data 
+            expect(data.ethAmount).to.equal(ethAmount);
+            expect(data.tokenAmount).to.equal(tokenAmount);
+            expect(data.height).to.equal(blockNum);
+        });
+
+        // Return a consecutive price list for a token 
+        it("should read data correctly!", async () => {
+            const token = _C_WBTC;
+            const h = provider.getBlockNumber();
+
+            const postSheet1 = await NestMining.fullPriceSheet(token, 8);
+            const height1 = postSheet1.height;
+            const ethAmount1 = ETH(BigN(postSheet1.remainNum));
+            const tokenAmount1 = BigN(postSheet1.remainNum).mul(postSheet1.tokenAmountPerEth);
+            
+            const postSheet2 = await NestMining.fullPriceSheet(token, 7);
+            const height2 = postSheet2.height;
+            const ethAmount2 = ETH(BigN(postSheet2.remainNum));
+            const tokenAmount2 = BigN(postSheet2.remainNum).mul(postSheet2.tokenAmountPerEth);
+
+            // priceOf function, in this case, the parameter of atHeight is big enough
+            const re = await NestMining.priceListOfToken(token,2);
+
+            // check data 
+            expect(re.data[0]).to.equal(height1);
+            expect(re.data[1]).to.equal(ethAmount1);
+            expect(re.data[2]).to.equal(tokenAmount1);
+            
+            expect(re.data[3]).to.equal(height2);
+            expect(re.data[4]).to.equal(ethAmount2);
+            expect(re.data[5]).to.equal(tokenAmount2);
+
+            expect(re.atHeight).to.equal(height1);
+
+        });
+
+        // check priceAvgAndSigmaOf function
+        it("should return correct data!", async () => {
+            const token = _C_WBTC;
+            const postSheet = await NestMining.fullPriceSheet(token, 8);
+         
+            // Storing data to a structure
+            await NestMining.stat(token);
+            
+            // priceAvgAndSigmaOf function
+            const pi = await NestMining.connect(_C_NestQuery).priceAvgAndSigmaOf(token);
+            console.log(`p=${show_64x64(pi[0])} avg=${show_64x64(pi[1])}, sigma=${show_64x64(pi[2])}, height=${pi[3]}}`);
+
+            // observe changes of sigma and avg
+            // post and bit token to change state
+            const ethNum = 20;
+            const biteNum = 10;
+            const tokenAmountPerEth = MBTC(30);
+            const newTokenAmountPerEth = MBTC(20);
+            const msgValue = ETH(BigN(50));
+            
+            await goBlocks(provider, 5);
+         
+            // post priceSheet
+            await NestMining.connect(userA).post(token,ethNum,tokenAmountPerEth,{value: msgValue});
+            const postSheet1 = await NestMining.fullPriceSheet(token, 9);
+ 
+            // biteToken function, the new priceSheet is not closed
+            await NestMining.connect(userB).biteToken(token,9,biteNum,newTokenAmountPerEth,{value: msgValue});
+
+            await goBlocks(provider, 24);
+
+            // Storing data to a structure
+            await NestMining.stat(token);
+            
+            // priceAvgAndSigmaOf function
+            const p = await NestMining.connect(_C_NestQuery).priceAvgAndSigmaOf(token);
+            console.log(`p=${show_64x64(p[0])} avg=${show_64x64(p[1])}, sigma=${show_64x64(p[2])}, height=${p[3]}}`);
+
+        });
 
     });
 });
