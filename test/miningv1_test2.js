@@ -1240,5 +1240,34 @@ describe("NestToken contract", function () {
 
         });
 
+        // Starting with the most recent block containing a quotation, 
+        // find quotations for which the price has not yet been determined 
+        // in the direction of decreasing block height and record 
+        // check unVerifiedSheetList function
+        it('should search correctly!', async () => {
+            const token = _C_WBTC;           
+            //const length = await NestMining.lengthOfPriceSheets(token);
+            //console.log("length = ",length.toString());
+
+            const postSheet = await NestMining.fullPriceSheet(token, 10);
+
+            // Only one quotation price is not determined now
+            const sheet = await NestMining.unVerifiedSheetList(token);
+            
+            expect(sheet.length).to.equal(1);
+            expect(postSheet.height).to.equal(sheet[0].height);
+            expect(postSheet.miner).to.equal(sheet[0].miner);
+            expect(postSheet.tokenAmountPerEth).to.equal(sheet[0].tokenAmountPerEth);
+
+            await goBlocks(provider, 5);
+
+            // all prices have been set
+            const sheet1 = await NestMining.unVerifiedSheetList(token);
+
+            // the result of search is empty, there are no tables 
+            expect(sheet1.length).to.equal(0);
+
+        });
+
     });
 });
