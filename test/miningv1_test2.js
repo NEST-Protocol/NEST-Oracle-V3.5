@@ -1269,5 +1269,34 @@ describe("NestToken contract", function () {
 
         });
 
+        // unClosedSheetListOf function
+        it("should return correct result!", async () => {
+            const token = _C_WBTC;
+
+            // _sheet.miner == miner && 
+            // (_sheet.state == MiningV1Data.PRICESHEET_STATE_POSTED 
+            //   || _sheet.state == MiningV1Data.PRICESHEET_STATE_BITTEN)
+            const sheet = await NestMining.unClosedSheetListOf(userA.address, token, 10, 10);
+
+            const postSheet1 = await NestMining.fullPriceSheet(token, 3);
+            //console.log("postSheet1 = ",postSheet1);
+            
+            const postSheet2 = await NestMining.fullPriceSheet(token, 4);
+            console.log("postSheet2 = ",postSheet2);
+            
+            // check data
+
+            // priceSheet.state == 0(closed)
+            expect(sheet[0].height).to.equal(0);
+            expect(sheet[1].height).to.equal(0);
+            expect(sheet[2].height).to.equal(0);
+            
+            // meet the conditions 
+            expect(sheet[3].height).to.equal(postSheet1.height);
+
+            // _sheet.miner != miner (userB.address != userA.address)
+            expect(sheet[4].height).to.equal(0);
+        });
+
     });
 });
