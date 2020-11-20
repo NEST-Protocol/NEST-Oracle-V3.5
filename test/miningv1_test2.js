@@ -1282,7 +1282,7 @@ describe("NestToken contract", function () {
             //console.log("postSheet1 = ",postSheet1);
             
             const postSheet2 = await NestMining.fullPriceSheet(token, 4);
-            console.log("postSheet2 = ",postSheet2);
+            //console.log("postSheet2 = ",postSheet2);
             
             // check data
 
@@ -1298,5 +1298,31 @@ describe("NestToken contract", function () {
             expect(sheet[4].height).to.equal(0);
         });
 
+        // sheetListOf function
+        it("should show the result correctly!", async () => {
+            const token = _C_WBTC;
+
+            // _sheet.miner == miner 
+            const sheet = await NestMining.sheetListOf(userA.address, token, 10, 11);
+            
+            const postSheet0 = await NestMining.fullPriceSheet(token, 0);
+            //console.log("postSheet2 = ",postSheet2);
+            const postSheet1 = await NestMining.fullPriceSheet(token, 1);
+            const postSheet2 = await NestMining.fullPriceSheet(token, 2);
+            const postSheet3 = await NestMining.fullPriceSheet(token, 3);
+            const postSheet4 = await NestMining.fullPriceSheet(token, 4);
+
+            // check data
+
+            // meet the conditions 
+            expect(sheet[10].height).to.equal(postSheet0.height);
+            expect(sheet[9].height).to.equal(postSheet1.height);
+            expect(sheet[8].height).to.equal(postSheet2.height);
+            expect(sheet[7].height).to.equal(postSheet3.height);
+
+            // _sheet.miner != miner (userB.address != userA.address)
+            expect(sheet[6].height).to.equal(0);
+
+        });
     });
 });
