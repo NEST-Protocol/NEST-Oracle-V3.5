@@ -20,8 +20,8 @@ interface INestQuery {
     function query(address token, address payback) 
         external payable returns (uint256, uint256, uint256);
 
-    function queryAvgAndVola(address token, address payback) 
-        external payable returns (int128, int128, int128, uint256);
+    function queryPriceAvgVola(address token, address payback) 
+        external payable returns (uint256, uint256, int128, int128, uint256);
 
     function updateAndCheckPriceNow(address tokenAddress) 
         external payable returns (uint256, uint256, uint256);
