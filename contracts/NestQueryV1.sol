@@ -7,6 +7,8 @@ pragma experimental ABIEncoderV2;
 import "./lib/SafeMath.sol";
 import "./lib/SafeERC20.sol";
 import './lib/TransferHelper.sol';
+import "./lib/ReentrancyGuard.sol";
+
 
 import "./iface/INestPool.sol";
 import "./iface/INestStaking.sol";
@@ -17,7 +19,7 @@ import "./iface/INestMining.sol";
 /// @title NestQuery
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
 /// @author Paradox  - <paradox@nestprotocol.org>
-contract NestQuery is INestQuery {
+contract NestQuery is INestQuery, ReentrancyGuard {
 
     using SafeMath for uint256;
 
@@ -281,6 +283,7 @@ contract NestQuery is INestQuery {
         public 
         payable 
         whenQuryOpened
+        nonReentrant
         returns (uint256, uint256, uint256) 
     {
         // check parameters
@@ -314,6 +317,7 @@ contract NestQuery is INestQuery {
         external 
         payable 
         whenQuryOpened
+        nonReentrant
         returns (uint256 ethAmount, uint256 tokenAmount, int128 avgPrice, int128 vola, uint256 bn) 
     {
         // check parameters
@@ -336,7 +340,6 @@ contract NestQuery is INestQuery {
                 TransferHelper.safeTransferETH(payback, msg.value.sub(_ethFee));
             }
         }
-        return (ethAmount, tokenAmount, _avg, _vola, bn);
     }
     
     /// @notice The main function called by DeFi clients, compatible to Nest Protocol v3.0 
