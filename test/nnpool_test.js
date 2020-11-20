@@ -45,7 +45,7 @@ describe("NestToken contract", function () {
 
     before(async function () {
 
-        [owner, userA, userB, userC, userD] = await ethers.getSigners();
+        [owner, userA, userB, userC, userD, dev, NNodeA, NNodeB] = await ethers.getSigners();
 
         ERC20Contract = await ethers.getContractFactory("UERC20");
         const C_USDT = await ERC20Contract.deploy("10000000000000000", "USDT Test Token", "USDT", 6);
@@ -130,7 +130,7 @@ describe("NestToken contract", function () {
         await NNRewardPool.loadContracts(_C_NestToken, _C_NNToken, _C_NestPool, _C_NestMining);
         await NTokenController.setContracts(_C_NestToken, _C_NestPool);
         await NNToken.setContracts(_C_NNRewardPool);
-        await NestQuery.setContracts(_C_NestToken, _C_NestMining, _C_NestStaking, _C_NestPool);
+        await NestQuery.setContracts(_C_NestToken, _C_NestMining, _C_NestStaking, _C_NestPool, dev.address);
 
     });
 

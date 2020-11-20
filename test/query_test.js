@@ -80,7 +80,7 @@ describe("Nest Protocol", function () {
 
     before(async function () {
 
-        [owner, userA, userB, userC, userD] = await ethers.getSigners();
+        [owner, userA, userB, userC, userD, dev, NNodeA, NNodeB] = await ethers.getSigners();
 
         ERC20Contract = await ethers.getContractFactory("UERC20");
         CUSDT = await ERC20Contract.deploy("10000000000000000", "USDT Test Token", "USDT", 6);
@@ -173,7 +173,7 @@ describe("Nest Protocol", function () {
 
         await NTokenController.setContracts(_C_NestToken, _C_NestPool);
         
-        await NestQuery.setContracts(_C_NestToken, _C_NestMining, _C_NestStaking, _C_NestPool);
+        await NestQuery.setContracts(_C_NestToken, _C_NestMining, _C_NestStaking, _C_NestPool, dev.address);
 
     });
 
@@ -365,7 +365,7 @@ describe("Nest Protocol", function () {
 
         it("can activate a DeFi client", async () => {
             await NestToken.connect(userA).approve(_C_NestQuery, NEST(1000000));
-            await NestQuery.connect(userA).activatePPQ(_C_DeFi);
+            await NestQuery.connect(userA).activate(_C_DeFi);
 
         });
 
@@ -379,12 +379,6 @@ describe("Nest Protocol", function () {
             await advanceTime(provider, 10);
             await NestQuery.connect(userA).deactivate(_C_DeFi);
             expect(DeFiMock.query(_C_USDT)).to.be.reverted;
-        });
-
-        it("can activate a monthly-pay DeFi client", async () => {
-            await NestQuery.connect(userA).activatePPM(_C_DeFi, 1);
-            await NestQuery.connect(userA).renewalPPM(_C_DeFi, 2);
-            await DeFiMock.query(_C_USDT);
         });
 
         it("can remove a DeFi client by the governer", async () => {

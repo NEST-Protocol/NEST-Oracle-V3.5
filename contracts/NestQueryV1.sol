@@ -17,22 +17,21 @@ import "./iface/INestMining.sol";
 /// @title NestQuery
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
 /// @author Paradox  - <paradox@nestprotocol.org>
-
 contract NestQuery is INestQuery {
 
     using SafeMath for uint256;
 
     struct TokenPrice {
         uint32 singleFeeEth;     
-        uint32 monthlyFeeNest;   // unit: NestToken 
+        uint32 _reserved1;
         uint32 activationFeeNest;
-        uint32 _reserved;
+        uint32 _reserved2;
     }
 
-    uint8  public flag;     // 0: query allowed, client activation forbidden
-                            // 1: query forbidden, client activation allowed
-                            // 2: query allowed, client activation forbidden
-                            // 3: query forbidden, client activation allowed;
+    uint8  public flag;     // 0: query forbidden, client activation forbidden
+                            // 1: query allowed, client activation forbidden
+                            // 2: query forbidden, client activation allowed
+                            // 3: query allowed, client activation allowed;
 
     uint256 private priceOfQueryEncoded;
 
@@ -46,10 +45,11 @@ contract NestQuery is INestQuery {
         uint64 _reserved;
     }
 
-    address    private _C_NestToken;
-    address    private _C_NestMining;
-    address    private _C_NestPool;
-    address    private _C_NestStaking;
+    address    private C_NestToken;
+    address    private C_NestMining;
+    address    private C_NestPool;
+    address    private C_NestStaking;
+    address    private C_NestDAO;
 
     uint32 constant CLIENT_ACTIVATION_NEST_AMOUNT = 10_000;
     uint32 constant CLIENT_MONTHLY_FEE_NEST_AMOUNT = 1_000;
@@ -115,7 +115,7 @@ contract NestQuery is INestQuery {
 
     /// @notice Setup the price for queryings, one price for all token
     /// @dev    It should be called right after deployment
-    function setFee(uint256 single, uint256 monthly) 
+    function setFee(uint256 single) 
         public 
         onlyGovernance
     {
@@ -123,7 +123,7 @@ contract NestQuery is INestQuery {
 
         if (_single == 0 && _mon == 0 && _act == 0) {
             _single = ((0.01 ether) / 1e12);
-            _mon = CLIENT_MONTHLY_FEE_NEST_AMOUNT;
+            // _mon = CLIENT_MONTHLY_FEE_NEST_AMOUNT;
             _act = CLIENT_ACTIVATION_NEST_AMOUNT;
         }
         
@@ -131,32 +131,32 @@ contract NestQuery is INestQuery {
             _single = uint32(single);
         }
 
-        if (monthly != 0) {
-            _mon = uint32(monthly);
-        }
-
         priceOfQueryEncoded = encode_4x32_256(_single, _mon, _act, _res);
     }
 
-    function setContracts(address C_NestToken, address C_NestMining, address C_NestStaking, address C_NestPool) 
+    function setContracts(address NestToken, address NestMining, address NestStaking, address NestPool, address NestDAO) 
         external 
         onlyGovernance
     {
-        if (C_NestToken != address(0)) {
-            _C_NestToken = C_NestToken;
+        if (NestToken != address(0)) {
+            C_NestToken = NestToken;
         }
 
-        if (C_NestMining != address(0)) {
-            _C_NestMining = C_NestMining;
+        if (NestMining != address(0)) {
+            C_NestMining = NestMining;
         }
         
-        if (C_NestPool != address(0)) {
-            _C_NestPool = C_NestPool;
+        if (NestPool != address(0)) {
+            C_NestPool = NestPool;
         }
 
-        if (C_NestStaking != address(0)) {
-            _C_NestStaking = C_NestStaking;
+        if (NestStaking != address(0)) {
+            C_NestStaking = NestStaking;
         }
+
+        if (NestDAO != address(0)) {
+            C_NestDAO = NestDAO;
+        }    
     }
 
     function setFlag(uint8 newFlag) external onlyGovernance
@@ -169,7 +169,7 @@ contract NestQuery is INestQuery {
     /// @param amount  The amount of NEST tokens 
     function withdrawNest(address to, uint256 amount) override external onlyGovernance
     {
-       ERC20(_C_NestToken).transfer(to, amount);
+       ERC20(C_NestToken).transfer(to, amount);
     }
 
     /// @dev Withdraw ethers only when emergency or governance
@@ -184,7 +184,7 @@ contract NestQuery is INestQuery {
     /// @return  The amount of NEST tokens for this contract
     function balanceNest() override external view returns (uint256) 
     {
-        return ERC20(_C_NestToken).balanceOf(address(this));
+        return ERC20(C_NestToken).balanceOf(address(this));
     }
 
     /// @dev  The balance of NEST
@@ -198,7 +198,7 @@ contract NestQuery is INestQuery {
 
     /// @notice Activate a pay-per-query defi client with NEST tokens
     /// 
-    function activatePPQ(
+    function activate(
             address defi
         ) 
         override 
@@ -219,37 +219,13 @@ contract NestQuery is INestQuery {
         clientList[defi] = encodeClient(uint64(_start), uint64(_end), uint32(_mfee), 0x1);
         clientOp[defi] = address(msg.sender);
         emit ClientActivated(defi, _start, _end);
-        ERC20(_C_NestToken).transferFrom(address(msg.sender), address(this), _nestFee);
+        ERC20(C_NestToken).transferFrom(address(msg.sender), address(this), _nestFee);
     }
 
-    /// @notice Activate a pay-per-month client with NEST tokens
-    function activatePPM(
-            address defi, 
-            uint256 monthlyFee
-        ) 
+    function deactivate(address defi) 
         override 
         external 
-        noContract 
         whenClientOpened
-    {
-        if (defi == address(0)) {
-            defi = address(msg.sender);
-        }
-        Client memory _c = decodeClient(clientList[defi]);
-        require (_c.typ == 0, "Nest:Qury:EX(client)");
-        (, , uint256 _actFee, ) = decode_4x32_256(priceOfQueryEncoded);  
-        uint256 _nestFee = _actFee.mul(1 ether);
-
-        uint256 _start = block.timestamp.add(CLIENT_ACTIVATION_DURATION);
-        uint256 _end = _start;
-        clientList[defi] = encodeClient(uint64(_start), uint64(_end), uint32(monthlyFee), 0x2);
-        clientOp[defi] = address(msg.sender);
-
-        emit ClientActivated(defi, _start, _end);
-        ERC20(_C_NestToken).transferFrom(address(msg.sender), address(this), _nestFee);
-    }
-
-    function deactivate(address defi) override external whenClientOpened
     {
         if (defi == address(0)) {
             defi = address(msg.sender);
@@ -258,39 +234,13 @@ contract NestQuery is INestQuery {
         clientList[defi] = encodeClient(0, 0, 0, 0);
     }
 
-    function remove(address defi) external onlyGovernance noContract whenClientOpened
+    function remove(address defi) 
+        external 
+        onlyGovernance
+        whenClientOpened
     {
         clientList[defi] = encodeClient(0, 0, 0, 0);
         clientOp[defi] = address(0);
-    }
-
-    function renewalPPM(address defi, uint256 months) override external noContract whenClientOpened
-    {
-        if (defi == address(0)) {
-            defi = address(msg.sender);
-        }
-
-        require(clientOp[defi] == address(msg.sender), "Nest:Qury:!Op");
-
-        require(months > 0, "Nest:Qury:!(months)");
-        Client memory c = decodeClient(clientList[defi]);
-        // uint256 _monthlyFee = uint256(c.fee);
-        require(c.typ == CLIENT_TYPE_PAY_PER_MONTH, "Nest:Qury:!(client)"); 
-
-        uint256 _fee = uint256(c.fee).mul(1 ether).mul(months);
-
-        uint256 start_time;
-        if (c.endTime != 0) {
-            start_time = uint256(c.endTime);
-            c.endTime = uint64(uint256(c.endTime).add(uint256(months).mul(30 days))); 
-        } else { // per query fee ==> monthly fee
-            start_time = uint256(c.startTime);
-            c.endTime = uint64(uint256(c.startTime).add(uint256(months).mul(30 days))); 
-        }
-        clientList[defi] = encodeClient(c.startTime, c.endTime, uint32(0), c.typ);
-        
-        emit ClientRenewed(msg.sender, start_time, c.endTime, months);
-        ERC20(_C_NestToken).transferFrom(address(msg.sender), address(this), _fee);
     }
 
     /// @notice Query for PPQ (pay-per-query) clients
@@ -303,43 +253,58 @@ contract NestQuery is INestQuery {
     {
         // check parameters
         Client memory c = decodeClient(clientList[address(msg.sender)]);
-        require (c.typ == CLIENT_TYPE_PAY_PER_QUERY || c.typ == CLIENT_TYPE_PAY_PER_MONTH, "Nest:Qury:=!(client.typ)");
-        if (c.typ == CLIENT_TYPE_PAY_PER_QUERY) {
-            // require(c.monthlyFee == 0, "Nest:Qury:=0(monFee)");
-            require(c.startTime != 0 && uint256(c.startTime) < block.timestamp 
-                && uint256(c.endTime) == 0, "Nest:Qury:!(client.time)");
+        require (c.typ == CLIENT_TYPE_PAY_PER_QUERY, "Nest:Qury:=!(client.typ)");
+        require(c.startTime != 0 && uint256(c.startTime) < block.timestamp 
+            && uint256(c.endTime) == 0, "Nest:Qury:!(client.time)");
 
-            // lookup the latest effective price
-            (uint256 ethAmount, uint256 tokenAmount, uint256 bn) = INestMining(_C_NestMining).priceOf(token);
-            (uint256 _single, , , ) = decode_4x32_256(priceOfQueryEncoded);  
+        // lookup the latest effective price
+        (uint256 ethAmount, uint256 tokenAmount, uint256 bn) = INestMining(C_NestMining).latestPriceOf(token);
+        (uint256 _single, , , ) = decode_4x32_256(priceOfQueryEncoded);  
 
-            {
-                address _nToken = INestPool(_C_NestPool).getNTokenFromToken(token); 
-                uint256 _ethFee = _single;
-                INestStaking(_C_NestStaking).addETHReward{value:_ethFee}(address(_nToken));
+        {
+            address _nToken = INestPool(C_NestPool).getNTokenFromToken(token); 
+            uint256 _ethFee = _single;
+            INestStaking(C_NestStaking).addETHReward{value:_ethFee}(address(_nToken));
 
-                // charge back
-                if (payback != address(0)) {
-                    TransferHelper.safeTransferETH(payback, msg.value.sub(_ethFee));
-                }
+            // charge back
+            if (payback != address(0)) {
+                TransferHelper.safeTransferETH(payback, msg.value.sub(_ethFee));
             }
-        
-            // emit PriceQueried(address(msg.sender), token, ethAmount, tokenAmount, bn);
-            return (ethAmount, tokenAmount, uint256(bn));
-        
-        } else if (c.typ == CLIENT_TYPE_PAY_PER_MONTH) {
-            // require(c.monthlyFee > 0, "Nest:Qury:!(monFee)");
-            uint256 startTime = uint256(c.startTime);
-            uint256 endTime = uint256(c.endTime);
-            require(startTime != 0 && startTime < block.timestamp && endTime > block.timestamp, "Nest:Qury:!(client)");
-    
-            // get the newest EFFECTIVE price from NestMining
-            (uint256 ethAmount, uint256 tokenAmount, uint256 bn) = INestMining(_C_NestMining).priceOf(token);
-        
-            emit PriceQueried(address(msg.sender), token, ethAmount, tokenAmount, bn);
-            return (ethAmount, tokenAmount, uint64(bn));
         }
+    
+        emit PriceQueried(address(msg.sender), token, ethAmount, tokenAmount, bn);
+        return (ethAmount, tokenAmount, uint256(bn));
+    }
 
+    /// @notice Query for PPQ (pay-per-query) clients
+    function queryAvgAndVola(address token, address payback)
+        override 
+        external 
+        payable 
+        whenQuryOpened
+        returns (int128, int128, int128, uint256) 
+    {
+        // check parameters
+        Client memory c = decodeClient(clientList[address(msg.sender)]);
+        require (c.typ == CLIENT_TYPE_PAY_PER_QUERY, "Nest:Qury:=!(client.typ)");
+        require(c.startTime != 0 && uint256(c.startTime) < block.timestamp 
+            && uint256(c.endTime) == 0, "Nest:Qury:!(client.time)");
+
+        // lookup the latest effective price
+        (int128 _price, int128 _avg, int128 _vola, uint256 _bn) = INestMining(C_NestMining).priceAvgAndSigmaOf(token);
+        (uint256 _single, , , ) = decode_4x32_256(priceOfQueryEncoded);  
+
+        {
+            address _nToken = INestPool(C_NestPool).getNTokenFromToken(token); 
+            uint256 _ethFee = _single;
+            INestStaking(C_NestStaking).addETHReward{value:_ethFee}(address(_nToken));
+
+            // charge back
+            if (payback != address(0)) {
+                TransferHelper.safeTransferETH(payback, msg.value.sub(_ethFee));
+            }
+        }
+        return (_price, _avg, _vola, _bn);
     }
     
     /// @notice The main function called by DeFi clients, compatible to Nest Protocol v3.0 
@@ -347,6 +312,7 @@ contract NestQuery is INestQuery {
     function updateAndCheckPriceNow(
             address tokenAddress
         ) 
+        override
         public 
         payable 
         whenQuryOpened

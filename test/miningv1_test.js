@@ -2,10 +2,13 @@ const { expect } = require('chai');
 const { WeiPerEther, BigNumber } = require("ethers");
 const { BN } = require('@openzeppelin/test-helpers');
 
-const usdtdec = BigNumber.from(10).pow(6);
-const wbtcdec = BigNumber.from(10).pow(8);
-const ethdec = ethers.constants.WeiPerEther;
-const nestdec = ethdec;
+const {usdtdec, wbtcdec, nestdec, ethdec, 
+        ETH, USDT, WBTC, MBTC, NEST, BigNum, 
+        show_eth, show_usdt, show_64x64} = require("./utils.js");
+// const usdtdec = BigNumber.from(10).pow(6);
+// const wbtcdec = BigNumber.from(10).pow(8);
+// const ethdec = ethers.constants.WeiPerEther;
+// const nestdec = ethdec;
 
 const ethTwei = BigNumber.from(10).pow(12);
 
@@ -23,33 +26,7 @@ function timeConverter(UNIX_timestamp){
   }
 
 
-const ETH = function (amount) {
-    return BigNumber.from(amount).mul(ethdec);
-};
 
-const USDT = function (amount) {
-    return BigNumber.from(amount).mul(usdtdec);
-};
-
-const WBTC = function (amount) {
-    return BigNumber.from(amount).mul(wbtcdec);
-};
-
-const MBTC = function (amount) {
-    return BigNumber.from(amount).mul(BigNumber.from(10).pow(5));
-};
-
-const NEST = function (amount) {
-    return BigNumber.from(amount).mul(ethdec);
-};
-
-const BigN = function (n) {
-    return BigNumber.from(n);
-};
-
-const BigNum = function (n) {
-    return BigNumber.from(n);
-};
 
 
 const advanceTime = async (provider, seconds) => {
@@ -69,34 +46,7 @@ const goBlocks = async function (provider, num) {
     console.log(`>> [INFO] block mined +${num}, height=${h}`);
 };
 
-const show_eth = function (amount){
-    const ethskip = (new BN('10')).pow(new BN('13'));
-    const ethdec = (new BN('10')).pow(new BN('18'));
-    return (amount.div(ethdec).toString(10) + '.' + amount.mod(ethdec).div(ethskip).toString(10, 5));
-};
 
-const show_usdt = function (amount){
-    const usdtskip = (new BN('10')).pow(new BN('3'));
-    const usdtdec = (new BN('10')).pow(new BN('6'));
-    return (amount.div(usdtdec).toString(10) + '.' + amount.mod(usdtdec).div(usdtskip).toString(10, 5));
-};
-
-function toBN(value) {
-    const hex = BigNumber.from(value).toHexString();
-    if (hex[0] === "-") {
-        return (new BN("-" + hex.substring(3), 16));
-    }
-    return new BN(hex.substring(2), 16);
-}
-
-const show_64x64 = function (s) {
-    const sep = BigNum(2).pow(BigNum(64));
-    const prec = BigNum(10).pow(BigNum(8));
-    const s1 = BigNum(s).div(sep);
-    const s2 = BigNum(s).mod(sep);
-    const s3 = s2.mul(prec).div(sep);
-    return (s1 + '.' + toBN(s3).toString(10, 8));
-}
 
 const show_price_sheet_list = async function () {
 
@@ -374,7 +324,7 @@ describe("NestToken contract", function () {
 
         await NTokenController.setContracts(_C_NestToken, _C_NestPool);
 
-        await NestQuery.setContracts(_C_NestToken, _C_NestMining, _C_NestStaking, _C_NestPool);
+        await NestQuery.setContracts(_C_NestToken, _C_NestMining, _C_NestStaking, _C_NestPool, dev.address);
 
     });
 

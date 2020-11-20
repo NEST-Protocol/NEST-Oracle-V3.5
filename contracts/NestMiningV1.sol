@@ -107,12 +107,18 @@ contract NestMiningV1 {
     }
 
     function _noContract() private view {
-        require(address(msg.sender) == address(tx.origin), "Nest::Mine:contract!");
+        require(address(msg.sender) == address(tx.origin), "Nest:Mine:contract!");
     }
 
     modifier noContract() 
     {
         _noContract();
+        _;
+    }
+
+    modifier noContractExcept(address _contract) 
+    {
+        require(address(msg.sender) == address(tx.origin) || address(msg.sender) == _contract, "Nest:Mine:contract!");
         _;
     }
 
@@ -486,7 +492,7 @@ contract NestMiningV1 {
     function latestPriceOf(address token) 
         public 
         view 
-        noContract
+        noContractExcept(state.C_NestQuery)
         returns(uint256 ethAmount, uint256 tokenAmount, uint256 blockNum) 
     {
         MiningV1Data.PriceSheet[] storage _plist = state.priceSheetList[token];
@@ -520,7 +526,7 @@ contract NestMiningV1 {
     function priceOf(address token)
         public
         view
-        onlyGovOrBy(state.C_NestQuery)
+        noContractExcept(state.C_NestQuery)
         returns(uint256 ethAmount, uint256 tokenAmount, uint256 blockNum) 
     {
         MiningV1Data.PriceInfo memory pi = state.priceInfo[token];
@@ -532,7 +538,7 @@ contract NestMiningV1 {
     function priceAvgAndSigmaOf(address token) 
         public 
         view 
-        onlyGovOrBy(state.C_NestQuery)
+        noContractExcept(state.C_NestQuery)
         returns (int128, int128, int128, uint256) 
     {
         MiningV1Data.PriceInfo memory pi = state.priceInfo[token];
@@ -545,6 +551,7 @@ contract NestMiningV1 {
     function priceOfTokenAtHeight(address token, uint64 atHeight) 
         public 
         view 
+        noContractExcept(state.C_NestQuery)
         returns(uint256 ethAmount, uint256 tokenAmount, uint256 height) 
     {
         return state._priceOfTokenAtHeight(token, atHeight);
@@ -557,6 +564,7 @@ contract NestMiningV1 {
     function priceListOfToken(address token, uint8 num) 
         public
         view 
+        noContractExcept(state.C_NestQuery)
         returns (uint128[] memory data, uint256 atHeight) 
     {
         return state._priceListOfToken(token, num);

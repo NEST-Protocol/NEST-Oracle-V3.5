@@ -115,7 +115,7 @@ describe("NestStaking contract", function () {
 
         await NNRewardPool.loadContracts(_C_NestToken, _C_NNToken, _C_NestPool, _C_NestMining);
         await NTokenController.setContracts(_C_NestToken, _C_NestPool);
-        await NestQuery.setContracts(_C_NestToken, _C_NestMining, _C_NestStaking, _C_NestPool);
+        await NestQuery.setContracts(_C_NestToken, _C_NestMining, _C_NestStaking, _C_NestPool, dev.address);
 
 
     });

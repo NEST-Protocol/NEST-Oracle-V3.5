@@ -13,15 +13,19 @@ interface INestQuery {
  
     // function setFee(uint256 min, uint256 max, uint256 single, uint256 monthly) external;
 
-    function activatePPQ(address defi) external;
-
-    function activatePPM(address defi, uint256 monthlyFee) external;
+    function activate(address defi) external;
 
     function deactivate(address defi) external;
 
-    function renewalPPM(address defi, uint256 months) external; 
+    function query(address token, address payback) 
+        external payable returns (uint256, uint256, uint256);
 
-    function query(address token, address payback) external payable returns (uint256, uint256, uint256);
+    function queryAvgAndVola(address token, address payback) 
+        external payable returns (int128, int128, int128, uint256);
+
+    function updateAndCheckPriceNow(address tokenAddress) 
+        external payable returns (uint256, uint256, uint256);
+
 
     /// @dev Withdraw NEST only when emergency or governance
     /// @param to  The address of recipient
