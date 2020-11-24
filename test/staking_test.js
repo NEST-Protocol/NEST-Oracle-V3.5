@@ -307,6 +307,41 @@ describe("NestStaking contract", function () {
             expect(total).to.equal(total1);
         });
         
+        // check claim function when there have two users (userA and userB)
+        it("should claim correctly", async () => {
+            const ntoken = _C_NestToken;
+            const amountA = NEST(100);
+            const amountB = NEST(50);
+
+            const total_pre = await NestStaking.totalStaked(ntoken);
+            await NestStaking.connect(userA).stake(ntoken, amountA);
+            await NestStaking.connect(userB).stake(ntoken, amountB);
+            const blncsA = await NestStaking.stakedBalanceOf(ntoken, userA.address);
+            const blncsB = await NestStaking.stakedBalanceOf(ntoken, userB.address);
+
+            const ethFee = ETH(100);
+            const rewardA = ETH(BigN(150).mul(100).mul(dividend_share_percentage).div(100).div(200));
+            const rewardB = ETH(BigN(50).mul(100).mul(dividend_share_percentage).div(100).div(200));
+            const total_pos = await NestStaking.totalStaked(ntoken);
+
+            // add ethFee to change accured
+            await NestStaking.addETHReward(_C_NestToken, {value: ethFee});
+
+            // claim to transfer funds (userA)
+            const txA = await NestStaking.connect(userA).claim(ntoken);
+            let evA = (await txA.wait()).events.find(v => v.event == 'RewardClaimed');
+            expect(evA.args["reward"]).to.equal(rewardA);
+
+            // check dataA
+            expect(total_pre.add(amountA).add(amountB)).to.equal(total_pos);
+            expect(blncsA.add(blncsB)).to.equal(total_pos);
+
+            // claim to transfer funds (userB)
+            const txB = await NestStaking.connect(userB).claim(ntoken);
+            let evB = (await txB.wait()).events.find(v => v.event == 'RewardClaimed');
+            expect(evB.args["reward"]).to.equal(rewardB);
+
+        });
     });
 
 });
