@@ -342,6 +342,29 @@ describe("NestStaking contract", function () {
             expect(evB.args["reward"]).to.equal(rewardB);
 
         });
+
+        // transfer funds from the saving 
+        it("should transfer correctly", async () => {
+            const ntoken = _C_NestToken;
+            const amount = ETH(30);
+            const totalSaving = await NestStaking.totalSaving(ntoken);
+            console.log("totalSaving = ",totalSaving.toString());
+
+            // record funds before transfer
+            const fund_pre = await provider.getBalance(userB.address);
+            const rewardsTotal_pre = await NestStaking.totalRewards(ntoken);
+
+            await NestStaking.connect(owner).withdrawSavingByGov(ntoken,userB.address,amount);
+
+            // record funds after transfer
+            const fund_pos = await provider.getBalance(userB.address);
+            const rewardsTotal_pos = await NestStaking.totalRewards(ntoken);
+
+            // check data
+            expect(rewardsTotal_pre.sub(amount)).to.equal(rewardsTotal_pos);
+            expect(fund_pre.add(amount)).to.equal(fund_pos);
+            
+        });
     });
 
 });
