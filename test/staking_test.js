@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { WeiPerEther, BigNumber } = require("ethers");
-// const { time, balance, constants, expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
+const { time, balance, constants, expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
 
 const usdtdec = BigNumber.from(10).pow(6);
 const ethdec = ethers.constants.WeiPerEther;
@@ -348,7 +348,7 @@ describe("NestStaking contract", function () {
             const ntoken = _C_NestToken;
             const amount = ETH(30);
             const totalSaving = await NestStaking.totalSaving(ntoken);
-            console.log("totalSaving = ",totalSaving.toString());
+            //console.log("totalSaving = ",totalSaving.toString());
 
             // record funds before transfer
             const fund_pre = await provider.getBalance(userB.address);
@@ -364,6 +364,19 @@ describe("NestStaking contract", function () {
             expect(rewardsTotal_pre.sub(amount)).to.equal(rewardsTotal_pos);
             expect(fund_pre.add(amount)).to.equal(fund_pos);
             
+        });
+
+        // check boundary conditions about stake function
+        it("should stake failed!", async () => {
+            const ntoken = _C_NestToken;
+            const amount = BigN(0);
+
+            await expect(NestStaking.connect(userA).stake(ntoken, amount)).to.be.reverted;
+            await expectRevert.unspecified(NestStaking.connect(userA).stake(ntoken, amount));
+
+            const amount1 = NEST(6).div(BigN(4));
+
+            await NestStaking.connect(userA).stake(ntoken, amount1);
         });
     });
 
