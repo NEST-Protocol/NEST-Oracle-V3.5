@@ -366,7 +366,7 @@ describe("NestStaking contract", function () {
             
         });
 
-        // check boundary conditions about stake function
+        // check boundary conditions of stake function
         it("should stake failed!", async () => {
             const ntoken = _C_NestToken;
             const amount = BigN(0);
@@ -377,6 +377,19 @@ describe("NestStaking contract", function () {
             const amount1 = NEST(6).div(BigN(4));
 
             await NestStaking.connect(userA).stake(ntoken, amount1);
+        });
+
+        // check boundary conditions of unstake function
+        it("should unstake failed!", async () => {
+            const ntoken = _C_NestToken;
+            const amount = BigN(0);
+
+            await expect(NestStaking.connect(userA).unstake(ntoken, amount)).to.be.reverted;
+            await expectRevert.unspecified(NestStaking.connect(userA).unstake(ntoken, amount));
+
+            const amount1 = NEST(6).div(BigN(4));
+
+            await NestStaking.connect(userA).unstake(ntoken, amount1);
         });
     });
 
