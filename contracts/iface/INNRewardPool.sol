@@ -11,9 +11,7 @@ pragma solidity ^0.6.12;
 // import "./NestMining.sol";
 
 interface INNRewardPool {
- 
-    function addNNReward(uint256 _amount) external ;
-
+    
     function claimNNReward() external ;  
 
     function nodeCount(address fromAdd, address toAdd) external;
