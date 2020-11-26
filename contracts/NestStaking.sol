@@ -121,7 +121,18 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     }
 
     /* ========== VIEWS ========== */
-    // 
+    function totalSaving(address ntoken)
+    external view returns (uint256) 
+    {
+       return  _pending_saving_amount[ntoken];
+    }
+
+    function totalRewards(address ntoken)
+    external view returns (uint256) 
+    {
+       return  rewardsTotal[ntoken];
+    }
+    
     function totalStaked(address ntoken) 
         external override view returns (uint256) 
     {
@@ -190,7 +201,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         uint256 _accrued = accrued(ntoken);
         uint256 _rewardPerToken = _reward_per_ntoken_stored[ntoken].add(
                 _accrued.mul(1e18).mul(_dividend_share).div(_total).div(100) 
-            ); // 50% of accrued to CoFi holders as dividend
+            ); // 80% of accrued to CoFi holders as dividend
         return (_rewardPerToken, _accrued);
     }
 
@@ -207,14 +218,14 @@ contract NestStaking is INestStaking, ReentrancyGuard {
             // if not the new accrued amount will never be distributed to anyone
             _rewardPerToken = _reward_per_ntoken_stored[ntoken];
         } else {
-            // 50% of accrued to CoFi holders as dividend
+            // 80% of accrued to CoFi holders as dividend
             _rewardPerToken = _reward_per_ntoken_stored[ntoken].add(
                 _accrued.mul(1e18).mul(_dividend_share).div(_total).div(100) 
             );
             // update _reward_per_ntoken_stored
             _reward_per_ntoken_stored[ntoken] = _rewardPerToken;
             lastRewardsTotal[ntoken] = rewardsTotal[ntoken];
-            uint256 _newSaving = _accrued.sub(_accrued.mul(_dividend_share).div(100)); // left 50%
+            uint256 _newSaving = _accrued.sub(_accrued.mul(_dividend_share).div(100)); // left 20%
             _pending_saving_amount[ntoken] = _pending_saving_amount[ntoken].add(_newSaving);
         }
 
