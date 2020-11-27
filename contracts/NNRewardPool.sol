@@ -181,11 +181,11 @@ contract NNRewardPool is INNRewardPool {
         uint256 reward = sum.sub(NN_reward_sum_checkpoint[address(msg.sender)]);
         uint256 share = reward.mul(blnc).div(total);
 
-        INestPool(C_NestPool).withdrawNest(address(this), share);
-        ERC20(C_NestToken).transfer(address(msg.sender), share);
         NN_reward_sum_checkpoint[address(msg.sender)] = sum;
-
         emit NNRewardClaimed(address(msg.sender), share);
+     
+        INestPool(C_NestPool).withdrawNest(address(this), share);
+        require(ERC20(C_NestToken).transfer(address(msg.sender), share), "transfer fail!");
         
         return;
     }
@@ -199,25 +199,22 @@ contract NNRewardPool is INNRewardPool {
         uint256 sum = NN_reward_sum;
         uint256 total = NN_total_supply;
 
-        uint256 fromReward = sum.sub(NN_reward_sum_checkpoint[from]).mul(fromBlnc).div(total);
-        if (fromReward > 0) {
-            INestPool(C_NestPool).withdrawNest(address(this), fromReward);
-            ERC20(C_NestToken).transfer(from, fromReward);
-        }
-
-        //NN_reward_sum_checkpoint[from] = NN_reward_sum_checkpoint[from].add(sum);
-        NN_reward_sum_checkpoint[from] = sum;
-
+        uint256 fromReward = sum.sub(NN_reward_sum_checkpoint[from]).mul(fromBlnc).div(total);      
+        NN_reward_sum_checkpoint[from] = sum;      
+       
         uint256 toBlnc = ERC20(C_NNToken).balanceOf(address(to));
         uint256 toReward = sum.sub(NN_reward_sum_checkpoint[to]).mul(toBlnc).div(total);
+        NN_reward_sum_checkpoint[to] = sum;
+        
+        if (fromReward > 0) {
+            INestPool(C_NestPool).withdrawNest(address(this), fromReward);
+            require(ERC20(C_NestToken).transfer(from, fromReward), "transfer fail!");
+        }
 
         if (toReward > 0) { 
             INestPool(C_NestPool).withdrawNest(address(this), toReward);
-            ERC20(C_NestToken).transfer(to, toReward);
+            require(ERC20(C_NestToken).transfer(to, toReward), "transfer fail!");
         }
-
-        // NN_reward_sum_checkpoint[to] = NN_reward_sum_checkpoint[to].add(sum);
-        NN_reward_sum_checkpoint[to] = sum;
 
         emit NNRewardClaimed(from, uint128(fromReward));
         emit NNRewardClaimed(to, uint128(toReward));
