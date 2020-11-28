@@ -473,6 +473,17 @@ contract NestPool is INestPool {
 
 
     /* ========== HELPERS ========== */
+        
+    function assetsList(uint256 len, address[] memory tokenList) public view returns (uint256[] memory) 
+    {
+        uint256[] memory list = new uint256[](len);
+        list[0] = _eth_ledger[address(msg.sender)];
+        for (uint i = 0; i < len; i++) {
+            address _token = tokenList[i];
+            list[i+1] = _token_ledger[_token][address(msg.sender)];
+        }
+        return list;
+    }
 
     function addrOfNestMining() override public view returns (address) 
     {
