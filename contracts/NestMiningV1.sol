@@ -420,7 +420,7 @@ contract NestMiningV1 {
     /// @param token The address of TOKEN contract
     /// @param index The index of the price sheet w.r.t. `token`
     function close(address token, uint256 index) 
-        external 
+        public 
         noContract 
     {
         MiningV1Data.PriceSheet memory _sheet = state.priceSheetList[token][index];
@@ -466,6 +466,59 @@ contract NestMiningV1 {
         emit MiningV1Data.PriceClosed(address(msg.sender), token, index);
     }
 
+ 
+    /// @notice Close a price sheet and withdraw assets
+    /// @param token The address of TOKEN contract
+    /// @param index The index of the price sheet w.r.t. `token`
+    function closeAndWithdraw(address token, uint256 index) 
+        external 
+        noContract
+    {
+        MiningV1Data.PriceSheet memory _sheet = state.priceSheetList[token][index];
+        require(_sheet.height + state.priceDurationBlock < block.number // safe_math
+            || _sheet.remainNum == 0, "Nest:Mine:!(height)");
+
+        require(address(_sheet.miner) == address(msg.sender), "Nest:Mine:!(miner)");
+
+        INestPool _C_NestPool = INestPool(state.C_NestPool);
+        address _ntoken = _C_NestPool.getNTokenFromToken(token);
+
+        {
+            uint256 h = _sheet.height;
+            if (_sheet.typ == MiningV1Data.PRICESHEET_TYPE_USD && _sheet.level == 0) {
+                uint256 _nestH = uint256(state.minedAtHeight[token][h] / (1 << 128));
+                uint256 _ethH = uint256(state.minedAtHeight[token][h] % (1 << 128));
+                uint256 _reward = uint256(_sheet.ethNum).mul(_nestH).div(_ethH);
+                _C_NestPool.addNest(address(msg.sender), _reward);
+            } else if (_sheet.typ == MiningV1Data.PRICESHEET_TYPE_TOKEN && _sheet.level == 0) {
+                uint256 _ntokenH = uint256(state.minedAtHeight[token][h] / (1 << 128));
+                uint256 _ethH = uint256(state.minedAtHeight[token][h] % (1 << 128));
+                uint256 _reward = uint256(_sheet.ethNum).mul(_ntokenH).div(_ethH);
+                _C_NestPool.addNToken(address(msg.sender), _ntoken, _reward);
+            }
+        }
+
+        {
+            uint256 _ethAmount = uint256(_sheet.ethNumBal).mul(1 ether);
+            uint256 _tokenAmount = uint256(_sheet.tokenNumBal).mul(_sheet.tokenAmountPerEth);
+            uint256 _nestAmount = uint256(_sheet.nestNum1k).mul(1000 * 1e18);
+            _sheet.ethNumBal = 0;
+            _sheet.tokenNumBal = 0;
+            _sheet.nestNum1k = 0;
+
+            _C_NestPool.unfreezeEthAndToken(address(msg.sender), _ethAmount, token, _tokenAmount);
+            _C_NestPool.unfreezeNest(address(msg.sender), _nestAmount); 
+            _C_NestPool.withdrawEthAndToken(address(msg.sender), _ethAmount, token, _tokenAmount);
+            _C_NestPool.withdrawNest(address(msg.sender), _nestAmount);
+        }
+
+        _sheet.state = MiningV1Data.PRICESHEET_STATE_CLOSED;
+
+        state.priceSheetList[token][index] = _sheet;
+
+        emit MiningV1Data.PriceClosed(address(msg.sender), token, index);    
+    }
+
     /// @notice Close a batch of price sheets passed VERIFICATION-PHASE
     /// @dev Empty sheets but in VERIFICATION-PHASE aren't allowed
     /// @param token The address of TOKEN contract
@@ -474,8 +527,9 @@ contract NestMiningV1 {
         external 
         noContract
     {
-        state._closeList(token, indices);
+        state.closeList(token, indices);
     }
+
 
     /// @notice Call the function to buy TOKEN/NTOKEN from a posted price sheet
     /// @dev bite TOKEN(NTOKEN) by ETH,  (+ethNumBal, -tokenNumBal)
@@ -647,7 +701,7 @@ contract NestMiningV1 {
         return yieldAmount;
     }
 
-    /* ========== MINING ========== */
+    /* ========== WITHDRAW ========== */
 
 
     function withdrawEthAndToken(uint256 ethAmount, address token, uint256 tokenAmount) public noContract
