@@ -44,6 +44,7 @@ contract NestPool is INestPool {
     ERC20   public C_NestToken;
     address public C_NTokenController;
     address public C_NNRewardPool;
+    address public C_NestStaking;
 
     constructor() public 
     {
@@ -75,6 +76,15 @@ contract NestPool is INestPool {
     modifier onlyGovOrBy2(address _contract, address _contract2) 
     {
         require(msg.sender == governance || msg.sender == _contract || msg.sender == _contract2, "Nest:Mine:!sender");
+        _;
+    }
+
+    modifier onlyGovOrBy3(address _contract, address _contract2, address _contract3) 
+    {
+        require(msg.sender == governance 
+            || msg.sender == _contract 
+            || msg.sender == _contract2 
+            || msg.sender == _contract3, "Nest:Mine:!sender");
         _;
     }
 
@@ -140,7 +150,7 @@ contract NestPool is INestPool {
         governance = _gov;
     }
 
-    function setContracts(address NestMining, address NestToken, address NTokenController, address NNRewardPool) 
+    function setContracts(address NestMining, address NestToken, address NTokenController, address NNRewardPool, address NestStaking) 
         external onlyGovernance
     {
         if (NestToken != address(0)) {
@@ -154,6 +164,9 @@ contract NestPool is INestPool {
         }
         if (NNRewardPool != address(0)) {
             C_NNRewardPool = NNRewardPool;
+        }
+        if (NestStaking != address(0)) {
+            C_NestStaking = NestStaking;
         }
     }
 
@@ -215,12 +228,10 @@ contract NestPool is INestPool {
 
         if (blncs < nestAmount) {
             _nest_ledger[miner] = 0; 
-            require(C_NestToken.transferFrom(miner,  address(this), nestAmount - blncs), "transferFrom fail!"); //safe math
-            //_nest_ledger[miner] = 0; 
+            require(C_NestToken.transferFrom(miner,  address(this), nestAmount - blncs), "Nest:Pool:!transfer"); //safe math
         } else {
             _nest_ledger[miner] = blncs - nestAmount;  //safe math
         }
-        //_nest_ledger[address(this)] =  _nest_ledger[address(this)].add(nestAmount);
     }
 
     function unfreezeNest(address miner, uint256 nestAmount) 
@@ -242,12 +253,9 @@ contract NestPool is INestPool {
         if (blncs < tokenAmount) {
             _token_ledger[token][miner] = 0; 
             ERC20(token).safeTransferFrom(address(miner),  address(this), tokenAmount - blncs); //safe math
-            //_token_ledger[token][miner] = 0; 
         } else {
             _token_ledger[token][miner] = blncs - tokenAmount;  //safe math
         }
-        //_token_ledger[token][address(this)] =  _token_ledger[token][address(this)].add(tokenAmount);
-
     }
 
     function unfreezeToken(address miner, address token, uint256 tokenAmount) 
@@ -272,12 +280,9 @@ contract NestPool is INestPool {
         if (blncs < tokenAmount) {
             _token_ledger[token][miner] = 0;
             ERC20(token).safeTransferFrom(address(miner),  address(this), tokenAmount - blncs); //safe math
-            //_token_ledger[token][miner] = 0; 
         } else {
             _token_ledger[token][miner] = blncs - tokenAmount;  //safe math
         }
-        //_token_ledger[token][address(this)] =  _token_ledger[token][address(this)].add(tokenAmount);
-
     }
 
     function unfreezeEthAndToken(address miner, uint256 ethAmount, address token, uint256 tokenAmount) 
@@ -432,9 +437,8 @@ contract NestPool is INestPool {
         require(amount > 0, "Nest:Pool:=0(ntokenAmount)");
         uint256 blncs = _token_ledger[ntoken][miner];
         require(amount <= blncs, "Nest:Pool:(ntokenAmount)<BAL");
-        _token_ledger[ntoken][miner]=0;
-        require(ERC20(ntoken).transfer(miner, amount), "transfer fail!");
-        //_token_ledger[ntoken][miner]=0;
+        _token_ledger[ntoken][miner]= blncs - amount;
+        require(ERC20(ntoken).transfer(miner, amount), "Nest:Pool:!transfer");
     }
 
     function withdrawNest(address miner, uint256 amount) 
@@ -446,7 +450,17 @@ contract NestPool is INestPool {
         uint256 blncs = _nest_ledger[miner];
         require(amount <= blncs, "Nest:Pool:(nestAmount)<BAL");
         _nest_ledger[miner] = blncs - amount;  // safe math
-        require(C_NestToken.transfer(miner, amount),"transfer fail!");
+        require(C_NestToken.transfer(miner, amount),"Nest:Pool:!transfer");
+    }
+
+    function withdrawNTokenAndTransfer(address miner, address ntoken, uint256 amount, address to) 
+        override public onlyGovOrBy(C_NestStaking)
+    {
+        require(amount > 0, "Nest:Pool:=0(nestAmount)");
+        uint256 blncs = _token_ledger[ntoken][miner];
+        require(amount <= blncs, "Nest:Pool:(nestAmount)<BAL");
+        _token_ledger[ntoken][miner] = blncs - amount;  // safe math
+        require(ERC20(ntoken).transfer(to, amount),"Nest:Pool:!transfer");
     }
 
     // function clearNest(address miner) public //onlyMiningOrNNRewardContract 
@@ -459,18 +473,6 @@ contract NestPool is INestPool {
     //         ERC20(_C_NestToken).transfer(miner, uint256(amount));
     //     }
     // }
-
-    // function withdrawToken(address token, address miner) 
-    //     public onlyMiningContract returns (uint128)
-    // {
-    //     uint128 blncs = uint128(_token_ledger[token][miner]);
-    //     if (blncs > 0) {
-    //         ERC20(token).safeTransfer(miner, uint256(blncs));
-    //         _token_ledger[token][miner] = 0;
-    //     }
-    //     return blncs;
-    // }
-
 
     /* ========== HELPERS ========== */
         
@@ -503,6 +505,11 @@ contract NestPool is INestPool {
     function addrOfNNRewardPool() override public view returns (address) 
     {
         return C_NNRewardPool;
+    }
+
+    function addrOfNestStaking() override public view returns (address) 
+    {
+        return C_NestStaking;
     }
 
     function addressOfBurnedNest() override public view returns (address) 

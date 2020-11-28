@@ -4,9 +4,11 @@ pragma solidity ^0.6.12;
 
 import "./lib/SafeMath.sol";
 import "./lib/AddressPayable.sol";
-import "./iface/IBonusPool.sol";
-import "./lib/SafeERC20.sol";
+
+import "./iface/INestPool.sol";
 import "./iface/INestStaking.sol";
+
+import "./lib/SafeERC20.sol";
 import "./lib/ReentrancyGuard.sol";
 import './lib/TransferHelper.sol';
 import "hardhat/console.sol";
@@ -33,6 +35,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     uint8 private _dividend_share = 80;
 
     address private _C_NestToken;
+    address private _C_NestPool;
 
     address public governance;
 
@@ -72,9 +75,10 @@ contract NestStaking is INestStaking, ReentrancyGuard {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(address _nestToken) public 
+    constructor(address _nestToken, address NestPool) public 
     {
         _C_NestToken = _nestToken;
+        _C_NestPool = NestPool;
         governance = msg.sender;
         _state = 0;
     }
@@ -233,7 +237,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
                 _rewardPerToken.sub(_reward_per_ntoken_claimed[ntoken][account])
             ).div(1e18);
 
-        if (account != address(0)) { // Q: redundant condition?
+        if (account != address(0)) { // Q: redundant
             rewardBalances[ntoken][account] = rewardBalances[ntoken][account].add(_newEarned);
             _reward_per_ntoken_claimed[ntoken][account] = _reward_per_ntoken_stored[ntoken];
         }
@@ -252,6 +256,21 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         _ntoken_staked_total[ntoken] = _ntoken_staked_total[ntoken].add(amount);
         _staked_balances[ntoken][msg.sender] = _staked_balances[ntoken][msg.sender].add(amount);
         TransferHelper.safeTransferFrom(ntoken, msg.sender, address(this), amount);
+        emit NTokenStaked(ntoken, msg.sender, amount);
+    }
+
+    /// @notice Stake NTokens to get the dividends
+    function stakeFromNestPool(address ntoken, uint256 amount) 
+        external 
+        override 
+        nonReentrant 
+        updateReward(ntoken, msg.sender) 
+    {
+        require(_state & 0x02 == 0, "Nest:Stak:!state");
+        require(amount > 0, "Nest:Stak:!amount");
+        _ntoken_staked_total[ntoken] = _ntoken_staked_total[ntoken].add(amount);
+        _staked_balances[ntoken][msg.sender] = _staked_balances[ntoken][msg.sender].add(amount);
+        INestPool(_C_NestPool).withdrawNTokenAndTransfer(msg.sender, ntoken, amount, address(this));
         emit NTokenStaked(ntoken, msg.sender, amount);
     }
 

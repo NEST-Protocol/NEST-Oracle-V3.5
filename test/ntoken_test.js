@@ -66,7 +66,7 @@ describe("NestToken contract", function () {
         NestPool = await NestPoolContract.deploy(); 
 
         NestStakingContract = await ethers.getContractFactory("NestStaking");
-        NestStaking = await NestStakingContract.deploy(NestToken.address);
+        NestStaking = await NestStakingContract.deploy(NestToken.address, NestPool.address);
 
         MiningV1CalcLibrary = await ethers.getContractFactory("MiningV1Calc");
         MiningV1Calc = await MiningV1CalcLibrary.deploy();
@@ -106,7 +106,7 @@ describe("NestToken contract", function () {
 
         await NestMining.init();
 
-        await NestPool.setContracts(_C_NestMining, _C_NestToken, _C_NTokenController, _C_NNRewardPool);
+        await NestPool.setContracts(_C_NestMining, _C_NestToken, _C_NTokenController, _C_NNRewardPool, _C_NestStaking);
         await NestPool.setNTokenToToken(_C_USDT, _C_NestToken);
         await NestMining.setContracts(_C_NestToken, _C_NestPool, _C_NestStaking, _C_NestQuery);
         await NNRewardPool.loadContracts(_C_NestToken, _C_NNToken, _C_NestPool, _C_NestMining);

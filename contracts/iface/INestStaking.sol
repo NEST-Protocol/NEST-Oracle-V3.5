@@ -24,6 +24,8 @@ interface INestStaking {
     /// @param  amount The target amount
     function stake(address ntoken, uint256 amount) external;
 
+    function stakeFromNestPool(address ntoken, uint256 amount) external;
+
     /// @dev Withdraw from the reward pool (staking pool), get the original tokens back
     /// @param  ntoken The address of NToken
     /// @param  amount The target amount
