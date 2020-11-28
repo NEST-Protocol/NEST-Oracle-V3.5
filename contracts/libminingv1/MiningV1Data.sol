@@ -17,9 +17,8 @@ library MiningV1Data {
 
     /* ========== CONSTANTS ========== */
 
-    uint256 constant PRICE_DURATION_BLOCK = 25;
+    // uint256 constant PRICE_DURATION_BLOCK = 25;
 
-    uint256 constant BITE_AMOUNT_INFLATE_FACTOR  = 2;
 
 
     // uint256 constant MINING_NEST_GENESIS_BLOCK_HEIGHT = 6236588;
@@ -29,9 +28,9 @@ library MiningV1Data {
     uint256 constant MINING_NEST_YIELD_CUTBACK_RATE = 80;     // percentage = 80%
 
     // yield amount (per block) after the first ten years
-    uint256 constant MINING_NEST_YIELD_OFF_PERIOD_AMOUNT = 40 ether;  
+    uint256 constant MINING_NEST_YIELD_OFF_PERIOD_AMOUNT = 40 ether;
     // yield amount (per block) in the first year, it drops to 80% in the following nine years
-    uint256 constant MINING_NEST_YIELD_PER_BLOCK_BASE = 400 ether;  
+    uint256 constant MINING_NEST_YIELD_PER_BLOCK_BASE = 400 ether;
 
     uint256 constant MINING_NTOKEN_YIELD_CUTBACK_RATE = 80;
     uint256 constant MINING_NTOKEN_YIELD_OFF_PERIOD_AMOUNT = 0.4 ether;
@@ -43,7 +42,7 @@ library MiningV1Data {
 
     uint256 constant c_mining_eth_unit = 10;  // 10 ether
     // uint256 constant c_mining_price_deviateion_factor = 10; // removed
-    uint256 constant c_mining_fee_thousandth = 10; 
+    uint256 constant c_mining_fee_thousandth = 10;
 
     uint256 constant DEV_REWARD_PERCENTAGE = 5;
     uint256 constant NN_REWARD_PERCENTAGE = 15;
@@ -61,7 +60,6 @@ library MiningV1Data {
     uint8 constant PRICESHEET_TYPE_NTOKEN  = 4;
     uint8 constant PRICESHEET_TYPE_BITTING = 8;
 
-    uint8 constant MAX_BITE_NESTED_LEVEL  = 3;
 
     uint8 constant STATE_FLAG_UNINITIALIZED    = 0;
     uint8 constant STATE_FLAG_ACTIVE           = 1;
@@ -138,11 +136,17 @@ library MiningV1Data {
                                     // =5: stop price querying
                                     // =127: shutdown completely
         
-        uint8    version;           // = 2
-        uint8    miningEthUnit;     // = 10;
-        uint32   nestStakedNum1k;   // = 1;
-        uint8    biteFeeRate;       // = 1; 
-        uint8    miningFeeRate;     // = 10;
+        uint8   version;            // = 1
+        uint8   miningEthUnit;      // = 10;
+        uint32  nestStakedNum1k;    // = 100;
+        uint8   biteFeeRate;        // = 1; 
+        uint8   miningFeeRate;      // = 10;
+        uint8   priceDurationBlock; // = 25;
+        uint8   maxBiteNestedLevel; // = 3;
+        uint8   biteInflateFactor;  // = 2;
+        uint8   biteNestInflateFactor; // = 2;
+
+        uint32  genesisBlock;       // = 6236588;
 
 
         uint128  latestMiningHeight;

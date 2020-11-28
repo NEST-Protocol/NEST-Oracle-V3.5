@@ -41,7 +41,7 @@ library MiningV1Op {
         require(biteNum >= state.miningEthUnit && biteNum % state.miningEthUnit == 0, "Nest:Mine:!(bite)");
 
         MiningV1Data.PriceSheet memory _sheet = state.priceSheetList[token][index]; 
-        require(_sheet.height + MiningV1Data.PRICE_DURATION_BLOCK > block.number, "Nest:Mine:!EFF(sheet)");
+        require(_sheet.height + state.priceDurationBlock > block.number, "Nest:Mine:!EFF(sheet)");
         require(_sheet.remainNum >= biteNum, "Nest:Mine:!(remain)");
 
         INestPool _C_NestPool = INestPool(state.C_NestPool);
@@ -76,12 +76,12 @@ library MiningV1Op {
                 uint256 _level = uint256(_sheet.level);
                 uint256 _newLevel;
 
-                if (_level > MiningV1Data.MAX_BITE_NESTED_LEVEL && _level < 127) { // bitten sheet, nest doubling
+                if (_level > state.maxBiteNestedLevel && _level < 127) { // bitten sheet, nest doubling
                     _newEthNum = biteNum;
                     _newNestNum1k = uint256(_sheet.nestNum1k).mul(_newEthNum).div(_sheet.ethNum).mul(2);
                     _newLevel = _level + 1;
-                } else if (_level <= MiningV1Data.MAX_BITE_NESTED_LEVEL) {  // bitten sheet, eth doubling 
-                    _newEthNum = biteNum.mul(MiningV1Data.BITE_AMOUNT_INFLATE_FACTOR);
+                } else if (_level <= state.maxBiteNestedLevel) {  // bitten sheet, eth doubling 
+                    _newEthNum = biteNum.mul(state.biteInflateFactor);
                     _newNestNum1k = uint256(_sheet.nestNum1k).mul(_newEthNum).div(_sheet.ethNum).mul(2);
                     _newLevel = _level + 1;
                 } else if (_level >= 127) {
@@ -143,7 +143,7 @@ library MiningV1Op {
         require(biteNum >= state.miningEthUnit && biteNum % state.miningEthUnit == 0, "Nest:Mine:!(bite)");
 
         MiningV1Data.PriceSheet memory _sheet = state.priceSheetList[token][index]; 
-        require(block.number.sub(_sheet.height) < MiningV1Data.PRICE_DURATION_BLOCK, "Nest:Mine:!EFF(sheet)");
+        require(block.number.sub(_sheet.height) < state.priceDurationBlock, "Nest:Mine:!EFF(sheet)");
         require(_sheet.remainNum >= biteNum, "Nest:Mine:!(remain)");
 
         INestPool _C_NestPool = INestPool(state.C_NestPool);
@@ -179,13 +179,13 @@ library MiningV1Op {
                 uint256 _level = uint256(_sheet.level);
                 uint256 _newLevel;
 
-                if (_level > MiningV1Data.MAX_BITE_NESTED_LEVEL && _level < 127) { // bitten sheet, nest doubling
+                if (_level > state.maxBiteNestedLevel && _level < 127) { // bitten sheet, nest doubling
                     _newEthNum = biteNum;
-                    _newNestNum1k = uint256(_sheet.nestNum1k).mul(_newEthNum).div(_sheet.ethNum).mul(2);
+                    _newNestNum1k = uint256(_sheet.nestNum1k).mul(_newEthNum).div(_sheet.ethNum).mul(state.biteNestInflateFactor);
                     _newLevel = _level + 1;
-                } else if (_level <= MiningV1Data.MAX_BITE_NESTED_LEVEL) {  // bitten sheet, eth doubling 
-                    _newEthNum = biteNum.mul(MiningV1Data.BITE_AMOUNT_INFLATE_FACTOR);
-                    _newNestNum1k = uint256(_sheet.nestNum1k).mul(_newEthNum).div(_sheet.ethNum).mul(2);
+                } else if (_level <= state.maxBiteNestedLevel) {  // bitten sheet, eth doubling 
+                    _newEthNum = biteNum.mul(state.biteInflateFactor);
+                    _newNestNum1k = uint256(_sheet.nestNum1k).mul(_newEthNum).div(_sheet.ethNum).mul(state.biteNestInflateFactor);
                     _newLevel = _level + 1;
                 } else if (_level >= 127) {
                     _newLevel = _level;
@@ -246,7 +246,7 @@ library MiningV1Op {
                 continue;
             }
             uint256 h = uint256(_sheet.height);
-            if (h + MiningV1Data.PRICE_DURATION_BLOCK < block.number) { // safe_math: untainted values
+            if (h + state.priceDurationBlock < block.number) { // safe_math: untainted values
                 _ethAmount = _ethAmount.add(uint256(_sheet.ethNumBal).mul(1 ether));
                 _tokenAmount = _tokenAmount.add(uint256(_sheet.tokenNumBal).mul(_sheet.tokenAmountPerEth));
                 _nestAmount = _nestAmount.add(uint256(_sheet.nestNum1k).mul(1000 * 1e18));

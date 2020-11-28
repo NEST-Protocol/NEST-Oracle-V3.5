@@ -23,10 +23,10 @@ library MiningV1Calc {
 
     using SafeMath for uint256;
 
-    function _calcEWMA(
-            uint256 ethA0, 
+    function _calcVola(
+            // uint256 ethA0, 
             uint256 tokenA0, 
-            uint256 ethA1, 
+            // uint256 ethA1, 
             uint256 tokenA1, 
             int128 _sigma_sq, 
             int128 _ut_sq,
@@ -44,17 +44,11 @@ library MiningV1Calc {
             ABDKMath64x64.mul(ABDKMath64x64.divu(95, 100), _sigma_sq), 
             ABDKMath64x64.mul(ABDKMath64x64.divu(5,100), _ut_sq_2));
 
-        // console.log("_calcEWMA, tokenA0=%s, ethA0=%s",tokenA0, ethA0 );
-        // console.log("_calcEWMA, tokenA1=%s, ethA1=%s",tokenA1, ethA1 );
         int128 _new_ut_sq;
-        if (ethA0 == 0 || tokenA0 == 0) {
-            _new_ut_sq = int128(0);
-        } else {
-            _new_ut_sq = ABDKMath64x64.pow(ABDKMath64x64.sub(ABDKMath64x64.divu(
-                    tokenA1 * ethA0, 
-                    tokenA0 * ethA1 
-                ), ABDKMath64x64.fromUInt(1)), 2);
-        }
+        _new_ut_sq = ABDKMath64x64.pow(ABDKMath64x64.sub(
+                    ABDKMath64x64.divu(tokenA1, tokenA0), 
+                    ABDKMath64x64.fromUInt(1)), 
+                2);
         
         return (_new_sigma_sq, _new_ut_sq);
     }
@@ -64,7 +58,7 @@ library MiningV1Calc {
         pure
         returns(int128)
     {
-        int128 _newP = ABDKMath64x64.div(ABDKMath64x64.fromUInt(tokenA), 
+        int128 _newP = ABDKMath64x64.div(ABDKMath64x64.fromUInt(tokenA),
                                         ABDKMath64x64.fromUInt(ethA));
         int128 _newAvg;
 
@@ -72,7 +66,7 @@ library MiningV1Calc {
             _newAvg = _newP;
         } else {
             _newAvg = ABDKMath64x64.add(
-                ABDKMath64x64.mul(ABDKMath64x64.divu(95, 100), _avg), 
+                ABDKMath64x64.mul(ABDKMath64x64.divu(95, 100), _avg),
                 ABDKMath64x64.mul(ABDKMath64x64.divu(5,100), _newP));
         }
 
@@ -81,22 +75,23 @@ library MiningV1Calc {
 
     function _moveAndCalc(
             MiningV1Data.PriceInfo memory p0,
-            MiningV1Data.PriceSheet[] storage pL
-        ) 
+            MiningV1Data.PriceSheet[] storage pL,
+            uint256 priceDurationBlock
+        )
         private
-        view 
-        returns (MiningV1Data.PriceInfo memory p1)
-    {   
+        view
+        returns (MiningV1Data.PriceInfo memory)
+    {
         uint256 i = p0.index + 1;
         if (i >= pL.length) {
             return (MiningV1Data.PriceInfo(0,0,0,0,0,int128(0),int128(0), int128(0), 0));
         }
 
         uint256 h = uint256(pL[i].height);
-        if (h + MiningV1Data.PRICE_DURATION_BLOCK >= block.number) {
+        if (h + priceDurationBlock >= block.number) {
             return (MiningV1Data.PriceInfo(0,0,0,0,0,int128(0),int128(0), int128(0), 0));
         }
-        
+
         uint256 ethA1 = 0;
         uint256 tokenA1 = 0;
         while (i < pL.length && pL[i].height == h) { 
@@ -124,12 +119,17 @@ library MiningV1Calc {
                     0           // _reserved2
             ));
         }
-
-        (int128 new_sigma_sq, int128 new_ut_sq) = _calcEWMA(
-            p0.ethNum, p0.tokenAmount, 
-            ethA1, tokenA1, 
-            p0.volatility_sigma_sq, p0.volatility_ut_sq, 
-            i - p0.index);
+        int128 new_sigma_sq;
+        int128 new_ut_sq;
+        {
+            if (uint256(p0.ethNum) != 0) {
+                (new_sigma_sq, new_ut_sq) = _calcVola(
+                    uint256(p0.tokenAmount).div(uint256(p0.ethNum)), 
+                    uint256(tokenA1).div(uint256(ethA1)),
+                p0.volatility_sigma_sq, p0.volatility_ut_sq, 
+                i - p0.index);
+            }
+        }
         int128 _newAvg = _calcAvg(ethA1, tokenA1, p0.avgTokenAmount); 
 
         return(MiningV1Data.PriceInfo(
@@ -168,8 +168,8 @@ library MiningV1Calc {
 
         MiningV1Data.PriceInfo memory p1;
 
-        while (uint256(p0.index) < pL.length && uint256(p0.height) + MiningV1Data.PRICE_DURATION_BLOCK < block.number){
-            p1 = _moveAndCalc(p0, pL);
+        while (uint256(p0.index) < pL.length && uint256(p0.height) + state.priceDurationBlock < block.number){
+            p1 = _moveAndCalc(p0, pL, state.priceDurationBlock);
             if (p1.index <= p0.index) {    // bootstraping
                 break;
             } else if (p1.ethNum == 0) {   // jump cross a block with bitten prices
@@ -188,14 +188,14 @@ library MiningV1Calc {
 
 
     function _statOneBlock(MiningV1Data.State storage state, address token) 
-        public 
+        external 
     {
         MiningV1Data.PriceInfo memory p0 = state.priceInfo[token];
         MiningV1Data.PriceSheet[] storage pL = state.priceSheetList[token];
         if (pL.length < 2) {
             return;
         }
-        (MiningV1Data.PriceInfo memory p1) = _moveAndCalc(p0, state.priceSheetList[token]);
+        (MiningV1Data.PriceInfo memory p1) = _moveAndCalc(p0, state.priceSheetList[token], state.priceDurationBlock);
         if (p1.index > p0.index && p1.ethNum != 0) {
             state.priceInfo[token] = p1;
         } else if (p1.index > p0.index && p1.ethNum == 0) {
@@ -232,7 +232,7 @@ library MiningV1Calc {
             _sheet = _list[len - i];
             _curr = uint256(_sheet.height);
             if (_prev == 0) {
-                if (_curr + MiningV1Data.PRICE_DURATION_BLOCK < block.number) {
+                if (_curr + state.priceDurationBlock < block.number) {
                     data[_index] = uint128(_curr);
                     _ethNum = uint256(_sheet.remainNum);
                     data[_index + 1] = uint128(_ethNum.mul(1 ether));
@@ -285,7 +285,7 @@ library MiningV1Calc {
             _sheet = _list[len - i];
             _first = uint256(_sheet.height);
             if (_prev == 0) {
-                if (_first <= uint256(atHeight) && _first + MiningV1Data.PRICE_DURATION_BLOCK < block.number) {
+                if (_first <= uint256(atHeight) && _first + state.priceDurationBlock < block.number) {
                     _ethNum = uint256(_sheet.remainNum);
                     ethAmount = _ethNum.mul(1 ether);
                     tokenAmount = _ethNum.mul(_sheet.tokenAmountPerEth);
@@ -335,7 +335,7 @@ library MiningV1Calc {
         uint256 len = _list.length;
         uint256 num;
         for (uint i = 0; i < len; i++) {
-            if (_list[len - 1 - i].height + MiningV1Data.PRICE_DURATION_BLOCK < block.number) {
+            if (_list[len - 1 - i].height + state.priceDurationBlock < block.number) {
                 break;
             }
             num += 1;
@@ -344,7 +344,7 @@ library MiningV1Calc {
         sheets = new MiningV1Data.PriceSheet[](num);
         for (uint i = 0; i < num; i++) {
             MiningV1Data.PriceSheet memory _sheet = _list[len - 1 - i];
-            if (_sheet.height + MiningV1Data.PRICE_DURATION_BLOCK < block.number) {
+            if (_sheet.height + state.priceDurationBlock < block.number) {
                 break;
             }
             sheets[i] = _sheet;

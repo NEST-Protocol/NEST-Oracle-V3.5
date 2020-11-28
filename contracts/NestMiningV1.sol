@@ -85,10 +85,23 @@ contract NestMiningV1 {
         state.version = 1;
         state.miningEthUnit = 10;
         state.nestStakedNum1k = 1;
-        state.biteFeeRate = 1;
-        state.miningFeeRate = 10;
+        state.biteFeeRate = 1;    // 0.1%
+        state.miningFeeRate = 10;  // change => 0.3% in mainnet
+        state.priceDurationBlock = 25;
+        state.maxBiteNestedLevel = 3;
+        state.biteInflateFactor = 2;
+        state.biteNestInflateFactor = 2;
+
+        state.genesisBlock = 1;  // for testing
+
         state.latestMiningHeight = uint128(block.number);
         state.flag = MiningV1Data.STATE_FLAG_ACTIVE;
+    }
+
+    function initUpgrade(uint128 _minedNestAmount) external onlyGovernance
+    {
+        state.genesisBlock = 6236588;
+        state.minedNestAmount = _minedNestAmount;
     }
 
     receive() external payable { }
@@ -411,7 +424,7 @@ contract NestMiningV1 {
         noContract 
     {
         MiningV1Data.PriceSheet memory _sheet = state.priceSheetList[token][index];
-        require(_sheet.height + MiningV1Data.PRICE_DURATION_BLOCK < block.number // safe_math
+        require(_sheet.height + state.priceDurationBlock < block.number // safe_math
             || _sheet.remainNum == 0, "Nest:Mine:!(height)");
 
         require(address(_sheet.miner) == address(msg.sender), "Nest:Mine:!(miner)");
@@ -514,7 +527,7 @@ contract NestMiningV1 {
         uint256 _first = 0;
         for (uint i = 1; i <= len; i++) {
             _sheet = _plist[len-i];
-            if (_first == 0 && _sheet.height + MiningV1Data.PRICE_DURATION_BLOCK < block.number) {
+            if (_first == 0 && _sheet.height + state.priceDurationBlock < block.number) {
                 _first = uint256(_sheet.height);
                 _ethNum = uint256(_sheet.remainNum);
                 tokenAmount = uint256(_sheet.tokenAmountPerEth).mul(_ethNum);
@@ -691,7 +704,7 @@ contract NestMiningV1 {
         // uint256 len = _list.length;
         // uint256 num;
         // for (uint i = 0; i < len; i++) {
-        //     if (_list[len - 1 - i].height + MiningV1Data.PRICE_DURATION_BLOCK < block.number) {
+        //     if (_list[len - 1 - i].height + state.priceDurationBlock < block.number) {
         //         break;
         //     }
         //     num += 1;
@@ -700,7 +713,7 @@ contract NestMiningV1 {
         // sheets = new MiningV1Data.PriceSheet[](num);
         // for (uint i = 0; i < num; i++) {
         //     MiningV1Data.PriceSheet memory _sheet = _list[len - 1 - i];
-        //     if (_sheet.height + MiningV1Data.PRICE_DURATION_BLOCK < block.number) {
+        //     if (_sheet.height + state.priceDurationBlock < block.number) {
         //         break;
         //     }
         //     sheets[i] = _sheet;
