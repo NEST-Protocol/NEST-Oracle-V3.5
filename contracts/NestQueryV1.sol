@@ -203,7 +203,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     /// @param amount  The amount of NEST tokens 
     function withdrawNest(address to, uint256 amount) override external onlyGovernance
     {
-       ERC20(C_NestToken).transfer(to, amount);
+       require(ERC20(C_NestToken).transfer(to, amount), "transfer fail!");
     }
 
     /// @dev Withdraw ethers only when emergency or governance
@@ -253,7 +253,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         clientList[defi] = encodeClient(uint64(_start), uint64(_end), uint32(_mfee), 0x1);
         clientOp[defi] = address(msg.sender);
         emit ClientActivated(defi, _start, _end);
-        ERC20(C_NestToken).transferFrom(address(msg.sender), address(this), _nestFee);
+        require(ERC20(C_NestToken).transferFrom(address(msg.sender), address(this), _nestFee), "transfer fail!");
     }
 
     function deactivate(address defi) 
@@ -327,7 +327,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
             && uint256(c.endTime) == 0, "Nest:Qury:!(client.time)");
 
         (ethAmount, tokenAmount, bn) = INestMining(C_NestMining).latestPriceOf(token);
-        (, int128 avgPrice, int128 vola,) = INestMining(C_NestMining).priceAvgAndSigmaOf(token);
+        (, avgPrice, vola,) = INestMining(C_NestMining).priceAvgAndSigmaOf(token);
 
         {
             (uint256 _single, , , ) = decode_4x32_256(paramsEncoded);  
