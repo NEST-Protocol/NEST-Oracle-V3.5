@@ -45,7 +45,7 @@ describe("NestToken contract", function () {
 
     before(async function () {
 
-        [owner, userA, userB, userC, userD] = await ethers.getSigners();
+        [owner, userA, userB, userC, userD, dev, NNodeA, NNodeB] = await ethers.getSigners();
 
         ERC20Contract = await ethers.getContractFactory("UERC20");
         CUSDT = await ERC20Contract.deploy("10000000000000000", "USDT Test Token", "USDT", 6);
@@ -68,22 +68,6 @@ describe("NestToken contract", function () {
         NestStakingContract = await ethers.getContractFactory("NestStaking");
         NestStaking = await NestStakingContract.deploy(NestToken.address);
 
-        // MiningCalcPriceContract = await ethers.getContractFactory("MiningCalcPrice");
-        // MiningCalcPrice = await MiningCalcPriceContract.deploy();
-        // MiningLookupPriceContract = await ethers.getContractFactory("MiningLookupPrice");
-        // MiningLookupPrice = await MiningLookupPriceContract.deploy();
-        // MiningOpContract = await ethers.getContractFactory("MiningOp");
-        // MiningOp = await MiningOpContract.deploy();
-        // NestMiningContract = await ethers.getContractFactory("NestMining",
-        //     {
-        //         libraries: {
-        //             MiningCalcPrice: MiningCalcPrice.address,
-        //             MiningLookupPrice: MiningLookupPrice.address,
-        //             MiningOp: MiningOp.address
-        //         }
-        //     }
-        // );
-        
         MiningV1CalcLibrary = await ethers.getContractFactory("MiningV1Calc");
         MiningV1Calc = await MiningV1CalcLibrary.deploy();
         MiningV1OpLibrary = await ethers.getContractFactory("MiningV1Op");
@@ -127,7 +111,7 @@ describe("NestToken contract", function () {
         await NestMining.setContracts(_C_NestToken, _C_NestPool, _C_NestStaking, _C_NestQuery);
         await NNRewardPool.loadContracts(_C_NestToken, _C_NNToken, _C_NestPool, _C_NestMining);
         await NTokenController.setContracts(_C_NestToken, _C_NestPool);
-        await NestQuery.setContracts(_C_NestToken, _C_NestMining, _C_NestStaking, _C_NestPool);
+        await NestQuery.setContracts(_C_NestToken, _C_NestMining, _C_NestStaking, _C_NestPool, dev.address);
 
     });
 

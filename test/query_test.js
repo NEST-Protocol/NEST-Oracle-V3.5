@@ -103,22 +103,6 @@ describe("Nest Protocol", function () {
         NestStakingContract = await ethers.getContractFactory("NestStaking");
         NestStaking = await NestStakingContract.deploy(NestToken.address);
 
-        // MiningCalcPriceContract = await ethers.getContractFactory("MiningCalcPrice");
-        // MiningCalcPrice = await MiningCalcPriceContract.deploy();
-        // MiningLookupPriceContract = await ethers.getContractFactory("MiningLookupPrice");
-        // MiningLookupPrice = await MiningLookupPriceContract.deploy();
-        // MiningOpContract = await ethers.getContractFactory("MiningOp");
-        // MiningOp = await MiningOpContract.deploy();
-        // NestMiningContract = await ethers.getContractFactory("NestMining",
-        //     {
-        //         libraries: {
-        //             MiningCalcPrice: MiningCalcPrice.address,
-        //             MiningLookupPrice: MiningLookupPrice.address,
-        //             MiningOp: MiningOp.address
-        //         }
-        //     }
-        // );        
-
         MiningV1CalcLibrary = await ethers.getContractFactory("MiningV1Calc");
         MiningV1Calc = await MiningV1CalcLibrary.deploy();
         MiningV1OpLibrary = await ethers.getContractFactory("MiningV1Op");

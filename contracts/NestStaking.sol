@@ -201,7 +201,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         uint256 _accrued = accrued(ntoken);
         uint256 _rewardPerToken = _reward_per_ntoken_stored[ntoken].add(
                 _accrued.mul(1e18).mul(_dividend_share).div(_total).div(100) 
-            ); // 80% of accrued to CoFi holders as dividend
+            ); // 80% of accrued to NEST holders as dividend
         return (_rewardPerToken, _accrued);
     }
 
@@ -218,7 +218,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
             // if not the new accrued amount will never be distributed to anyone
             _rewardPerToken = _reward_per_ntoken_stored[ntoken];
         } else {
-            // 80% of accrued to CoFi holders as dividend
+            // 80% of accrued to NEST holders as dividend
             _rewardPerToken = _reward_per_ntoken_stored[ntoken].add(
                 _accrued.mul(1e18).mul(_dividend_share).div(_total).div(100) 
             );
@@ -233,7 +233,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
                 _rewardPerToken.sub(_reward_per_ntoken_claimed[ntoken][account])
             ).div(1e18);
 
-        if (account != address(0)) { // 问题：为何要判断 address 为 0 的情况？
+        if (account != address(0)) { // Q: redundant condition?
             rewardBalances[ntoken][account] = rewardBalances[ntoken][account].add(_newEarned);
             _reward_per_ntoken_claimed[ntoken][account] = _reward_per_ntoken_stored[ntoken];
         }

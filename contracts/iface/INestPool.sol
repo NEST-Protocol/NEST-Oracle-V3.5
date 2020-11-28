@@ -38,6 +38,13 @@ interface INestPool {
     function balanceOfNestInPool(address miner) external view returns (uint256);
     // function transferNestInPool(address from, address to, uint256 amount) external;
 
+    function addrOfNestMining() external view returns (address);
+
+    function addrOfNestToken() external view returns (address);
+
+    function addrOfNTokenController() external view returns (address);
+    
+    function addrOfNNRewardPool() external view returns (address);
 
     function addressOfBurnedNest() external view returns (address);
 

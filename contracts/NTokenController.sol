@@ -12,7 +12,7 @@ import "./lib/ReentrancyGuard.sol";
 import "./iface/INestPool.sol";
 import "./iface/INToken.sol";
 import "./iface/IBonusPool.sol";
-import "./legacy/NestNToken.sol";
+import "./NToken.sol";
 
 // import "./NestMining.sol";
 // import "./iface/INNRewardPool.sol";
@@ -179,7 +179,14 @@ contract NTokenController is  ReentrancyGuard {
         );
         
         //  create ntoken
-        NestNToken nToken = new NestNToken(strConcat("NToken", getAddressStr(ntokenCounter)), strConcat("N", getAddressStr(ntokenCounter)), address(governance), address(msg.sender));
+        NToken nToken = new NToken(strConcat("NToken", 
+                getAddressStr(ntokenCounter)), 
+                strConcat("N", getAddressStr(ntokenCounter)), 
+                address(governance),
+                // NOTE: here `bidder`, we use `_C_NestPool` to separate new NTokens 
+                //   from old ones, whose bidders are the miners creating NTokens
+                address(_C_NestPool)
+        );
 
         ntokenCounter = ntokenCounter + 1;  // safe math
         INestPool(_C_NestPool).setNTokenToToken(token, address(nToken));

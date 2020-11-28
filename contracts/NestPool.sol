@@ -39,12 +39,11 @@ contract NestPool is INestPool {
     address private _x_nest_burning_address = address(0x1);
 
     // Contracts 
-    address C_DAO;
-    address C_NestMining;
-    ERC20   C_NestToken;
-    address C_NTokenController;
-    address C_NNRewardPool;
-    // address _C_NNReward;
+    address public C_DAO;
+    address public C_NestMining;
+    ERC20   public C_NestToken;
+    address public C_NTokenController;
+    address public C_NNRewardPool;
 
     constructor() public 
     {
@@ -58,6 +57,12 @@ contract NestPool is INestPool {
     modifier onlyGovernance() 
     {
         require(msg.sender == governance, "Nest:NTC:!governance");
+        _;
+    }
+
+    modifier onlyBy(address _contract) 
+    {
+        require(msg.sender == _contract, "Nest:Mine:!sender");
         _;
     }
 
@@ -324,7 +329,7 @@ contract NestPool is INestPool {
 
 
     function addNest(address miner, uint256 amount) 
-        override public // onlyMiningContract 
+        override public onlyGovOrBy(C_NestMining)
     {
         mapping(address => uint256) storage _nest_ledger = _token_ledger[address(C_NestToken)];
 
@@ -333,7 +338,7 @@ contract NestPool is INestPool {
     }
 
     function addNToken(address miner, address ntoken, uint256 amount) 
-        override public onlyMiningContract 
+        override public onlyGovOrBy(C_NestMining)
     {
         require (amount > 0, "Reward amount should be greater than zero");
         _token_ledger[ntoken][miner] = _token_ledger[ntoken][miner].add(amount);
@@ -469,6 +474,25 @@ contract NestPool is INestPool {
 
     /* ========== HELPERS ========== */
 
+    function addrOfNestMining() override public view returns (address) 
+    {
+        return C_NestMining;
+    }
+
+    function addrOfNestToken() override public view returns (address) 
+    {
+        return address(C_NestToken);
+    }
+
+    function addrOfNTokenController() override public view returns (address) 
+    {
+        return C_NTokenController;
+    }
+    
+    function addrOfNNRewardPool() override public view returns (address) 
+    {
+        return C_NNRewardPool;
+    }
 
     function addressOfBurnedNest() override public view returns (address) 
     {

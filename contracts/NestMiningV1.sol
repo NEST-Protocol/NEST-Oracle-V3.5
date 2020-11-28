@@ -14,6 +14,7 @@ import "./lib/ABDKMath64x64.sol";
 
 import "./iface/INestPool.sol";
 import "./iface/INestStaking.sol";
+import "./iface/INTokenLegacy.sol";
 
 // import "hardhat/console.sol";
 
@@ -263,7 +264,7 @@ contract NestMiningV1 {
                 uint256 _ntokenAmount = _mineNToken(_ntoken);  
                 state.latestMiningHeight = uint32(block.number); 
                 _ntokenH = _ntokenAmount;
-                INToken(_ntoken).increaseTotal2(_ntokenAmount, address(state.C_NestPool));
+                INToken(_ntoken).mint(_ntokenAmount, address(state.C_NestPool));
             }
             _ethH = _ethH.add(ethNum);
             // require(_nestH < (1 << 128) && _ethH < (1 << 128), "nestAtHeight/ethAtHeight error");
@@ -382,8 +383,16 @@ contract NestMiningV1 {
                 if (_ntokenH == 0) {
                     uint256 _ntokenAmount = _mineNToken(_ntoken);  
                     state.latestMiningHeight = uint32(block.number); 
-                    _ntokenH = _ntokenAmount;
-                    INToken(_ntoken).increaseTotal2(_ntokenAmount, address(state.C_NestPool));
+                    address _bidder = INToken(_ntoken).checkBidder();
+                    if (_bidder == state.C_NestPool) { // for new NTokens, 100% to miners
+                        _ntokenH = _ntokenAmount;
+                        INToken(_ntoken).mint(_ntokenAmount, address(state.C_NestPool));
+                    } else {                           // for old NTokens, 95% to miners, 5% to the bidder
+                       _ntokenH = _ntokenAmount.mul(MiningV1Data.MINER_NTOKEN_REWARD_PERCENTAGE).div(100);
+                        INTokenLegacy(_ntoken).increaseTotal(_ntokenAmount);
+                        INTokenLegacy(_ntoken).transfer(_bidder, _ntokenAmount.sub(_ntokenH));
+                        INTokenLegacy(_ntoken).transfer(state.C_NestPool, _ntokenH);
+                    }
                 }
                 _ethH = _ethH.add(ethNum);
                 state.minedAtHeight[token][block.number] = (_ntokenH * (1<< 128) + _ethH);

@@ -74,7 +74,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     event PriceQueried(address client, address token, uint256 atHeight);
     event PriceListQueried(address client, address token, uint256 atHeight, uint8 num);
     event ParamsSetup(address gov, uint256 oldParams, uint256 newParams);
-    event FlagSetup(address gov, uint256 flag);
+    event FlagSet(address gov, uint256 flag);
     event GovSet(address gov, address oldGov, address newGov);
 
     receive() external payable { }
@@ -194,7 +194,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     {
         flag = newFlag;
                 
-        emit FlagSetup(address(msg.sender), uint256(newFlag));
+        emit FlagSet(address(msg.sender), uint256(newFlag));
 
     }
 
@@ -203,7 +203,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     /// @param amount  The amount of NEST tokens 
     function withdrawNest(address to, uint256 amount) override external onlyGovernance
     {
-       require(ERC20(C_NestToken).transfer(to, amount), "transfer fail!");
+       require(ERC20(C_NestToken).transfer(to, amount), "Nest:Qury:!transfer");
     }
 
     /// @dev Withdraw ethers only when emergency or governance
@@ -253,7 +253,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         clientList[defi] = encodeClient(uint64(_start), uint64(_end), uint32(_mfee), 0x1);
         clientOp[defi] = address(msg.sender);
         emit ClientActivated(defi, _start, _end);
-        require(ERC20(C_NestToken).transferFrom(address(msg.sender), address(this), _nestFee), "transfer fail!");
+        require(ERC20(C_NestToken).transferFrom(address(msg.sender), address(this), _nestFee), "Nest:Qury:!transfer");
     }
 
     function deactivate(address defi) 

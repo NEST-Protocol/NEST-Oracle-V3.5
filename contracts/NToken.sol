@@ -2,12 +2,11 @@
 
 pragma solidity ^0.6.12;
 
-import "../lib/SafeMath.sol";
-import "../iface/INToken.sol";
-import "../iface/INTokenLegacy.sol";
+import "./lib/SafeMath.sol";
+import "./iface/INToken.sol";
+import "./iface/INestPool.sol";
 
-
-contract NestNToken is INTokenLegacy {
+contract NToken is INToken {
     using SafeMath for uint256;
     
     mapping (address => uint256) private _balances;                                 //  账本
@@ -18,56 +17,42 @@ contract NestNToken is INTokenLegacy {
     uint8 public decimals = 18;                                                     //  精度
     uint256 public _createBlock;                                                    //  创建区块
     uint256 public _recentlyUsedBlock;                                              //  最近使用区块
-    address _voteFactory;                                                //  投票合约
-    // Nest_3_VoteFactory _voteFactory;                                                //  投票合约
-    address _bidder;                                                                //  拥有者
+    address governance;                                                             //  投票合约
+    address C_NestPool;                                                             // 
     
-    /**
-    * @dev 初始化方法
-    * @param _name token名称
-    * @param _symbol token简称
-    * @param voteFactory 投票合约地址
-    * @param bidder 中标者地址
-    */
-    constructor (string memory _name, string memory _symbol, address voteFactory, address bidder) public {
+    /// @notice Constructor
+    /// @dev Given the address of NestPool, NToken can get other contracts by calling addrOfxxx()
+    /// @param _name The name of NToken
+    /// @param _symbol The symbol of NToken
+    /// @param gov The address of admin
+    /// @param NestPool The address of NestPool
+    constructor (string memory _name, string memory _symbol, address gov, address NestPool) public {
     	name = _name;                                                               
     	symbol = _symbol;
     	_createBlock = block.number;
     	_recentlyUsedBlock = block.number;
-    	_voteFactory = address(voteFactory);
-    	// _voteFactory = Nest_3_VoteFactory(address(voteFactory));
-    	_bidder = bidder;
+    	governance = gov;
+    	C_NestPool = NestPool;
     }
     
-    /**
-    * @dev 重置投票合约方法
-    * @param voteFactory 投票合约地址
-    */
-    function changeMapping (address voteFactory) public onlyOwner {
-    	_voteFactory = address(voteFactory);
-    	// _voteFactory = Nest_3_VoteFactory(address(voteFactory));
-    }
-    
-    /**
-    * @dev 增发
-    * @param value 增发数量
-    */
-    function increaseTotal(uint256 value) override public {
-        // address offerMain = address(_voteFactory.checkAddress("nest.nToken.offerMain"));
-        // require(address(msg.sender) == offerMain, "No authority");
-        // _balances[offerMain] = _balances[offerMain].add(value);
-        _totalSupply = _totalSupply.add(value);
+    /// @dev Mint 
+    /// @param amount The amount of NToken to add
+    /// @param account The account of NToken to add
+    function mint(uint256 amount, address account) override public {
+        require(address(msg.sender) == INestPool(C_NestPool).addrOfNestMining(), "Nest:NTK:!Auth");
+        _balances[account] = _balances[account].add(amount);
+        _totalSupply = _totalSupply.add(amount);
         _recentlyUsedBlock = block.number;
     }
 
-    // TODO: only for debugging
-    function increaseTotal2(uint256 value, address offerMain) public {
-        // address offerMain = address(_voteFactory.checkAddress("nest.nToken.offerMain"));
-        // require(address(msg.sender) == offerMain, "No authority");
-        _balances[offerMain] = _balances[offerMain].add(value);
-        _totalSupply = _totalSupply.add(value);
-        _recentlyUsedBlock = block.number;
-    }
+    // // TODO: only for debugging
+    // function increaseTotal2(uint256 value, address offerMain) override public {
+    //     // address offerMain = address(_voteFactory.checkAddress("nest.nToken.offerMain"));
+    //     // require(address(msg.sender) == offerMain, "No authority");
+    //     _balances[offerMain] = _balances[offerMain].add(value);
+    //     _totalSupply = _totalSupply.add(value);
+    //     _recentlyUsedBlock = block.number;
+    // }
 
     /**
     * @dev 查询token总量
@@ -124,7 +109,6 @@ contract NestNToken is INTokenLegacy {
      */
     function approve(address spender, uint256 value) override public returns (bool) {
         require(spender != address(0));
-
         _allowed[msg.sender][spender] = value;
         emit Approval(msg.sender, spender, value);
         return true;
@@ -183,23 +167,12 @@ contract NestNToken is INTokenLegacy {
         emit Transfer(from, to, value);
     }
     
-    /**
-    * @dev 查询创建者
-    * @return 创建者地址
-    */
+    /// @dev The ABI is same with old NTokens, so that to support two NToken-mining approaches
+    /// @return The address of bidder
     function checkBidder() override public view returns(address) {
-        return _bidder;
+        return C_NestPool;
     }
-    
-    /**
-    * @dev 转让创建者
-    * @param bidder 新创建者地址
-    */
-    function changeBidder(address bidder) public {
-        require(address(msg.sender) == _bidder);
-        _bidder = bidder; 
-    }
-    
+
     // 仅限管理员操作
     modifier onlyOwner(){
         // require(_voteFactory.checkOwners(msg.sender));

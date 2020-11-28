@@ -48,6 +48,8 @@ library MiningV1Data {
     uint256 constant DEV_REWARD_PERCENTAGE = 5;
     uint256 constant NN_REWARD_PERCENTAGE = 15;
     uint256 constant MINER_NEST_REWARD_PERCENTAGE = 80;
+    uint256 constant BIDDER_NTOKEN_REWARD_PERCENTAGE = 5;
+    uint256 constant MINER_NTOKEN_REWARD_PERCENTAGE = 95;
 
     uint8 constant PRICESHEET_STATE_CLOSED = 0;
     uint8 constant PRICESHEET_STATE_POSTED = 1;
@@ -123,7 +125,7 @@ library MiningV1Data {
     event TokenSold(address miner, address token, uint256 index, uint256 biteEthAmount, uint256 biteTokenAmount);
 
     event VolaComputed(uint32 h, uint32 pos, uint32 ethA, uint128 tokenA, int128 sigma_sq, int128 ut_sq);
-    
+
     /* ========== STATE VARIABLES ========== */
 
     struct State {

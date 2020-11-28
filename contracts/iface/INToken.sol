@@ -4,9 +4,8 @@ pragma solidity ^0.6.12;
 
 interface INToken {
     // mint ntoken for value
-    function increaseTotal(uint256 value) external;
-    // only for debugging
-    function increaseTotal2(uint256 value, address c) external;
+    function mint(uint256 amount, address account) external;
+
     // the block height where the ntoken was created
     function checkBlockInfo() external view returns(uint256 createBlock, uint256 recentlyUsedBlock);
     // the owner (auction winner) of the ntoken
@@ -17,6 +16,7 @@ interface INToken {
     function allowance(address owner, address spender) external view returns (uint256);
     function approve(address spender, uint256 amount) external returns (bool);
     function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+    
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
