@@ -99,7 +99,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         _state = _newSt;
     }
     
-    function state() external onlyGovernance returns (uint8)
+    function state() external view onlyGovernance returns (uint8)
     {
         return _state;
     }
@@ -122,17 +122,17 @@ contract NestStaking is INestStaking, ReentrancyGuard {
 
     /* ========== VIEWS ========== */
     function totalSaving(address ntoken)
-    external view returns (uint256) 
+        external view returns (uint256) 
     {
        return  _pending_saving_amount[ntoken];
     }
 
     function totalRewards(address ntoken)
-    external view returns (uint256) 
+        external view returns (uint256) 
     {
        return  rewardsTotal[ntoken];
     }
-    
+
     function totalStaked(address ntoken) 
         external override view returns (uint256) 
     {
