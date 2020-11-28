@@ -14,7 +14,6 @@ import "./lib/ABDKMath64x64.sol";
 
 import "./iface/INestPool.sol";
 import "./iface/INestStaking.sol";
-import "hardhat/console.sol";
 
 // import "hardhat/console.sol";
 
@@ -227,7 +226,7 @@ contract NestMiningV1 {
             // save the changes into miner's virtual account
             _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
 
-            INestStaking(state.C_NestStaking).addETHReward{value:_ethFee}(_ntoken);       
+           INestStaking(state.C_NestStaking).addETHReward{value:_ethFee}(_ntoken);       
 
             // freeze eths and tokens in the nest pool
             _C_NestPool.freezeEthAndToken(msg.sender, ethNum.mul(1 ether), 
@@ -296,7 +295,7 @@ contract NestMiningV1 {
         address _ntoken = INestPool(state.C_NestPool).getNTokenFromToken(token);
 
         // NOTE: only allow dual-posting for USDx/NEST pair 
-        require(_ntoken == address(state.C_NestToken), "Nest:Mine:!(ntoken)");
+        //require(_ntoken == address(state.C_NestToken), "Nest:Mine:!(ntoken)");
 
         // calculate eth fee
         uint256 _ethFee = ethNum.mul(state.miningFeeRate).mul(1e18).div(1000);
@@ -306,8 +305,8 @@ contract NestMiningV1 {
             // save the changes into miner's virtual account
             _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
 
-            INestStaking(state.C_NestStaking).addETHReward{value:_ethFee}(_ntoken);       
-
+           INestStaking(state.C_NestStaking).addETHReward{value:_ethFee}(_ntoken);       
+           
             // freeze eths and tokens in the nest pool
             _C_NestPool.freezeEthAndToken(msg.sender, ethNum.mul(1 ether), 
                 token, tokenAmountPerEth.mul(ethNum));
@@ -369,7 +368,7 @@ contract NestMiningV1 {
                 uint256 _nestH = uint256(_minedH >> 128);
                 uint256 _ethH = uint256(_minedH % (1 << 128));
                 if (_nestH == 0) {
-                    uint256 _nestAmount = _mineNest();  
+                    uint256 _nestAmount = _mineNest(); 
                     state.latestMiningHeight = uint32(block.number); 
                     state.minedNestAmount += uint128(_nestAmount);
                     _nestH = _nestAmount.mul(MiningV1Data.MINER_NEST_REWARD_PERCENTAGE).div(100); 
@@ -598,11 +597,15 @@ contract NestMiningV1 {
     }
     */
 
+    function minedNestAmount() external view returns (uint256) {
+       return uint256(state.minedNestAmount);
+    }
+
     function latestMinedHeight() external view returns (uint64) {
        return uint64(state.latestMiningHeight);
     }
 
-    function _mineNToken(address ntoken) private returns (uint256) {
+    function _mineNToken(address ntoken) private view returns (uint256) {
         (uint256 _genesis, uint256 _last) = INToken(ntoken).checkBlockInfo();
 
         uint256 _period = block.number.sub(_genesis).div(MiningV1Data.MINING_NEST_YIELD_CUTBACK_PERIOD);

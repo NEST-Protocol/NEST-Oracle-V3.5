@@ -134,7 +134,7 @@ contract NTokenController is  ReentrancyGuard {
     /// @param amount  The amount of NEST tokens 
     function withdrawNest(address to, uint256 amount) external onlyGovernance
     {
-       ERC20(_C_NestToken).transfer(to, amount);
+       require(ERC20(_C_NestToken).transfer(to, amount), "transfer");
     }
 
     /// @dev  The balance of NEST
@@ -161,7 +161,7 @@ contract NTokenController is  ReentrancyGuard {
 
         // is token not a ntoken?
         bool isNToken = false;
-        try INToken(token).checkBidder() returns(address bidder) {
+        try INToken(token).checkBidder() returns(address) {
             isNToken = true;
         } catch {
             isNToken = false;
@@ -169,34 +169,33 @@ contract NTokenController is  ReentrancyGuard {
 
         // is token valid ?
         ERC20 tokenERC20 = ERC20(token);
-        tokenERC20.safeTransferFrom(address(msg.sender), address(this), 1);
-        require(tokenERC20.balanceOf(address(this)) >= 1, 
-            "Nest:NTC:!TEST(token)");
-        tokenERC20.safeTransfer(address(msg.sender), 1);
-
-        require(isNToken == false, "Nest:NTC:(ntoken)!");
-
         uint256 _nestAmount = NTOKEN_NEST_STAKED_AMOUNT.mul(1 ether);
 
-        require(ERC20(_C_NestToken).transferFrom(address(msg.sender), address(this), _nestAmount), 
-            "Nest:NTC:!DEPO(nest)");
-
-        nTokenTagList[token] = NTokenTag(address(msg.sender),   // owner
+         nTokenTagList[token] = NTokenTag(address(msg.sender),   // owner
             uint128(_nestAmount),                               // nestStaked
             uint64(block.timestamp),                            // startTime
             0,                                                  // state
             0                                                   // _reserved
         );
-
+        
         //  create ntoken
         NestNToken nToken = new NestNToken(strConcat("NToken", getAddressStr(ntokenCounter)), strConcat("N", getAddressStr(ntokenCounter)), address(governance), address(msg.sender));
-        // NestNToken nToken = new NestNToken(strConcat("NToken", getAddressStr(_x_ntoken_counter)), strConcat("N", getAddressStr(_x_ntoken_counter)), address(_C_DAO), address(auction.winner));
-        //  set the mapping of token => ntoken
-        INestPool(_C_NestPool).setNTokenToToken(token, address(nToken));
 
         ntokenCounter = ntokenCounter + 1;  // safe math
+        INestPool(_C_NestPool).setNTokenToToken(token, address(nToken));
+
+        tokenERC20.safeTransferFrom(address(msg.sender), address(this), 1);
+        require(tokenERC20.balanceOf(address(this)) >= 1, 
+            "Nest:NTC:!TEST(token)");
+        tokenERC20.safeTransfer(address(msg.sender), 1);
+        require(isNToken == false, "Nest:NTC:(ntoken)!");
+
+        require(ERC20(_C_NestToken).transferFrom(address(msg.sender), address(this), _nestAmount), 
+            "Nest:NTC:!DEPO(nest)");
+
         // raise an event
         emit NTokenOpened(token, address(nToken), address(msg.sender));
+
     }
 
     /* ========== VIEWS ========== */
