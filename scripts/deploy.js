@@ -1,42 +1,60 @@
 
-async function main() {
+async function main(contracts) {
 
+    let ERC20Contract;
+    let CUSDT;
+    let CWBTC;
     [owner] = await ethers.getSigners();
 
     ERC20Contract = await ethers.getContractFactory("UERC20");
-    CUSDT = await ERC20Contract.deploy("10000000000000000", "USDT Test Token", "USDT", 6);
-    CWBTC = await ERC20Contract.deploy("2100000000000000", "WBTC Test Token", "WBTC", 6);
+
+    if (contracts.USDT == undefined) {
+        CUSDT = await ERC20Contract.deploy("10000000000000000", "USDT Test Token", "USDT", 6);
+    } else {
+        CUSDT = contracts.USDT;
+    }
+    if (contracts.USDT == undefined) {
+        CWBTC = await ERC20Contract.deploy("2100000000000000", "WBTC Test Token", "WBTC", 6);
+    } else {
+        CWBTC = contracts.WBTC;
+    }
     console.log("> [INIT]: CUSDT, CWBTC deployed");
 
-    IterableMappingContract = await ethers.getContractFactory("IterableMapping");
-    IterableMapping = await IterableMappingContract.deploy();
-    console.log("> [INIT]: IterableMapping deployed");
-
-    NestToken = await ethers.getContractFactory("IBNEST",
-        {
-            libraries: {
-                IterableMapping: IterableMapping.address
-            }
-        });
-
-    NestToken = await NestToken.deploy();
-    console.log("> [INIT]: NestToken deployed");
+    if (contracts.NestToken == undefined) {
+        IterableMappingContract = await ethers.getContractFactory("IterableMapping");
+        IterableMapping = await IterableMappingContract.deploy();
+        console.log("> [INIT]: IterableMapping deployed");
+    
+        NestToken = await ethers.getContractFactory("IBNEST",
+            {
+                libraries: {
+                    IterableMapping: IterableMapping.address
+                }
+            });
+    
+        NestToken = await NestToken.deploy();
+        console.log(`> [INIT]: NestToken deployed, address=${NestToken}`);
+    } else {
+        NestToken = contracts.NestToken;
+        console.log(`> [INIT]: NestToken is assigned to ${NestToken}`);
+    }
+    
 
     NestPoolContract = await ethers.getContractFactory("NestPool");
     NestPool = await NestPoolContract.deploy(); // TODO: arg should be DAOContract
-    console.log("> [INIT]: NestPool deployed");
+    console.log(`> [INIT]: NestPool deployed, address = ${NestPool}`);
 
     NestStakingContract = await ethers.getContractFactory("NestStaking");
     NestStaking = await NestStakingContract.deploy(NestToken.address);
-    console.log("> [INIT]: NestStaking deployed");
+    console.log(`> [INIT]: NestStaking deployed, address = ${NestStaking}`);
 
     MiningV1CalcLibrary = await ethers.getContractFactory("MiningV1Calc");
     MiningV1Calc = await MiningV1CalcLibrary.deploy();
-    console.log("> [INIT]: MiningV1Calc deployed");
+    console.log(`> [INIT]: MiningV1Calc deployed, address = ${MiningV1Calc}`);
 
     MiningV1OpLibrary = await ethers.getContractFactory("MiningV1Op");
     MiningV1Op = await MiningV1OpLibrary.deploy();
-    console.log("> [INIT]: MiningV1Op deployed");
+    console.log(`> [INIT]: MiningV1Op deployed, address = ${MiningV1Op}`);
 
     NestMiningV1Contract = await ethers.getContractFactory("NestMiningV1",
     {
@@ -46,7 +64,7 @@ async function main() {
             }
     });
     NestMining = await NestMiningV1Contract.deploy();
-    console.log("> [INIT]: NestMining deployed");
+    console.log(`> [INIT]: NestMining deployed, address = ${NestMining}`);
 
     NNTokenContract = await ethers.getContractFactory("NNToken");
     NNToken = await NNTokenContract.deploy(1500, "NNT");
@@ -105,6 +123,16 @@ async function main() {
 
     await NestQuery.setContracts(_C_NestToken, _C_NestMining, _C_NestStaking, _C_NestPool, owner.address);
     console.log(`> [INIT] NestQuery.setContracts()`);
+
+    return {
+        NestToken: NestToken.address,
+        NestPool: NestPool.address,
+        NestMining: NestMining.address,
+        NNRewardPool: NNRewardPool.address,
+        NestStaking: NestStaking.address,
+        NTokenController: NTokenController.address,
+        NestQuery: NestQuery.address
+    }
 
 }
 
