@@ -2,7 +2,7 @@ require("@nomiclabs/hardhat-waffle");
 require('hardhat-contract-sizer');
 require("hardhat-deploy-ethers");
 require("hardhat-gas-reporter");
-// require('@openzeppelin/hardhat-upgrades');
+require('@openzeppelin/hardhat-upgrades');
 
 
 const config = require('./.private.json');
@@ -47,8 +47,11 @@ module.exports = {
       gas: 100000
     },
     kovan: {
-      url: `https://kovan.infura.io/v3/${config.infura.kovan.apiKey}`,
-      accounts: [config.account.kovan.key]
+      url: `https://eth-kovan.alchemyapi.io/v2/${config.alchemy.kovan.apiKey}`,
+      accounts: [config.account.kovan.key],
+      gasPrice:21e9
     },
   },
 }
+
+//  url: `https://kovan.infura.io/v3/${config.infura.kovan.apiKey}`

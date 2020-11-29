@@ -32,7 +32,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     /// @dev The percentage of dividends 
     ///      - 80% to Nest/NToken holders as dividend
     ///      - 20% to saving for buying back (future)
-    uint8 private _dividend_share = 80;
+    uint8 private _dividend_share; // = 80;
 
     address private _C_NestToken;
     address private _C_NestPool;
@@ -75,17 +75,35 @@ contract NestStaking is INestStaking, ReentrancyGuard {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(address _nestToken, address NestPool) public 
-    {
-        _C_NestToken = _nestToken;
-        _C_NestPool = NestPool;
-        governance = msg.sender;
-        _state = 0;
-    }
+    // constructor(address _nestToken, address NestPool) public 
+    // {
+    //     _C_NestToken = _nestToken;
+    //     _C_NestPool = NestPool;
+    //     governance = msg.sender;
+    //     _state = 0;
+    // }
 
     receive() external payable {}
 
+    function initialize() external {
+        governance = msg.sender;
+        _dividend_share = 80;
+        _state = 0;
+    }
+
     /* ========== GOVERNANCE ========== */
+
+    function setContracts(address NestToken, address NestPool) 
+        public onlyGovernance 
+    {
+        if (NestToken != address(0)) {
+            _C_NestToken = NestToken;
+        }
+        if (NestPool != address(0)) {
+            _C_NestPool  = NestPool;
+
+        }
+    }
 
     modifier onlyGovernance() 
     {

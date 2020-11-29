@@ -2,6 +2,8 @@
 
 pragma solidity ^0.6.0;
 
+/// @dev The non-empty constructor is conflict with upgrades-openzeppelin. 
+
 /**
  * @dev Contract module that helps prevent reentrant calls to a function.
  *
@@ -30,14 +32,16 @@ contract ReentrancyGuard {
     // amount. Since refunds are capped to a percentage of the total
     // transaction's gas, it is best to keep them low in cases like this one, to
     // increase the likelihood of the full refund coming into effect.
-    uint256 private constant _NOT_ENTERED = 1;
-    uint256 private constant _ENTERED = 2;
+
+    // NOTE: _NOT_ENTERED is set to ZERO such that it needn't constructor
+    uint256 private constant _NOT_ENTERED = 0;
+    uint256 private constant _ENTERED = 1;
 
     uint256 private _status;
 
-    constructor () internal {
-        _status = _NOT_ENTERED;
-    }
+    // constructor () internal {
+    //     _status = _NOT_ENTERED;
+    // }
 
     /**
      * @dev Prevents a contract from calling itself, directly or indirectly.

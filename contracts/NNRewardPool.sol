@@ -101,7 +101,7 @@ contract NNRewardPool is INNRewardPool {
     }
 
     /// @notice 
-    function loadContracts(address NestToken, address NNToken, address NestPool, address NestMining) 
+    function setContracts(address NestToken, address NNToken, address NestPool, address NestMining) 
         public onlyBy(governance)
     {
         if (NestToken != address(0)) {

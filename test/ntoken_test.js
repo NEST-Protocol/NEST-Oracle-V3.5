@@ -2,117 +2,82 @@ const { expect } = require("chai");
 const { WeiPerEther, BigNumber } = require("ethers");
 // const { time, balance, constants, expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
 
-const usdtdec = BigNumber.from(10).pow(6);
-const ethdec = ethers.constants.WeiPerEther;
+const {usdtdec, wbtcdec, nestdec, ethdec, 
+    ETH, USDT, WBTC, MBTC, NEST, BigNum, BigN,
+    show_eth, show_usdt, show_64x64} = require("../scripts/utils.js");
 
-const ETH = function (amount) {
-    return BigNumber.from(amount).mul(ethdec);
-};
-
-const USDT = function (amount) {
-    return BigNumber.from(amount).mul(usdtdec);
-};
-
-const WBTC = function (amount) {
-    return BigNumber.from(amount).mul(BigNumber.from(10).pow(8));
-};
-
-const NEST = function (amount) {
-    return BigNumber.from(amount).mul(ethdec);
-};
-
-const BigN = function (n) {
-    return BigNumber.from(n);
-};
-
+const {deployUSDT, deployWBTC, deployNN, 
+    deployNEST, 
+    deployNestProtocol, 
+    setupNest} = require("../scripts/deploy.js");
 
 describe("NestToken contract", function () {
     // Mocha has four functions that let you hook into the the test runner's
     // lifecyle. These are: `before`, `beforeEach`, `after`, `afterEach`.
 
-    let NestToken;
     let owner;
     let userA;
     let userB;
     let userC;
     let userD;
-    let _C_NestStaking;
-    let _C_NestToken;
-    let _C_NestPool;
-    let _C_USDT;
-    let _C_NNRewardPool;
-    let provider = ethers.provider;
+    let dev;
+    let NNodeA;
+    let NNodeB;
 
     before(async function () {
 
         [owner, userA, userB, userC, userD, dev, NNodeA, NNodeB] = await ethers.getSigners();
 
-        ERC20Contract = await ethers.getContractFactory("UERC20");
-        CUSDT = await ERC20Contract.deploy("10000000000000000", "USDT Test Token", "USDT", 6);
-        CWBTC = await ERC20Contract.deploy("2100000000000000", "WBTC Test Token", "WBTC", 8);
+        CUSDT = await deployUSDT();
+        CWBTC = await deployWBTC();
+        [NestToken, IterableMapping] = await deployNEST();
+        NNToken = await deployNN();
+        let contracts = {
+            CUSDT: CUSDT, 
+            CWBTC: CWBTC, 
+            NEST: NestToken, 
+            IterableMapping: IterableMapping,
+            NN: NNToken}; 
+        let CNest = await deployNestProtocol(owner, contracts);
+        
+        NestPool = CNest.NestPool;
+        MiningV1Calc = CNest.MiningV1Calc;
+        MiningV1Op = CNest.MiningV1Op;
+        NestMining = CNest.NestMining;
+        NestStaking = CNest.NestStaking;
+        NNRewardPool = CNest.NNRewardPool;
+        NTokenController = CNest.NTokenController;
+        NestQuery = CNest.NestQuery;
+    
+        let contractsOfNest = {
+            USDT: CUSDT.address,
+            WBTC: CWBTC.address,
+            NEST: NestToken.address, 
+            IterableMapping: IterableMapping.address,
+            NN: NNToken.address,
+            NestPool: NestPool.address,
+            MiningV1Calc: MiningV1Calc.address,
+            MiningV1Op: MiningV1Op.address,
+            NestMining: NestMining.address,
+            NestStaking: NestStaking.address, 
+            NNRewardPool: NNRewardPool.address,
+            NTokenController: NTokenController.address,
+            NestQuery: NestQuery.address
+        }
 
-        IterableMappingContract = await ethers.getContractFactory("IterableMapping");
-        IterableMapping = await IterableMappingContract.deploy();
-        NestTokenContract = await ethers.getContractFactory("IBNEST",
-            {
-                libraries: {
-                    IterableMapping: IterableMapping.address
-                }
-            });
+        await setupNest(owner, contractsOfNest);
 
-        NestToken = await NestTokenContract.deploy();
 
-        NestPoolContract = await ethers.getContractFactory("NestPool");
-        NestPool = await NestPoolContract.deploy(); 
-
-        NestStakingContract = await ethers.getContractFactory("NestStaking");
-        NestStaking = await NestStakingContract.deploy(NestToken.address, NestPool.address);
-
-        MiningV1CalcLibrary = await ethers.getContractFactory("MiningV1Calc");
-        MiningV1Calc = await MiningV1CalcLibrary.deploy();
-        MiningV1OpLibrary = await ethers.getContractFactory("MiningV1Op");
-        MiningV1Op = await MiningV1OpLibrary.deploy();
-        NestMiningV1Contract = await ethers.getContractFactory("NestMiningV1",
-        {
-            libraries: {
-                MiningV1Calc: MiningV1Calc.address,
-                MiningV1Op: MiningV1Op.address
-                }
-        });     
-        NestMining = await NestMiningV1Contract.deploy();
-
-        NNTokenContract = await ethers.getContractFactory("NNToken");
-        NNToken = await NNTokenContract.deploy(1500, "NNT");
-
-        NNRewardPoolContract = await ethers.getContractFactory("NNRewardPool");
-        NNRewardPool = await NNRewardPoolContract.deploy(NestToken.address, NNToken.address);
-
-        NTokenControllerContract = await ethers.getContractFactory("NTokenController");
-        NTokenController = await NTokenControllerContract.deploy();
-
-        NestQueryContract = await ethers.getContractFactory("NestQuery");
-        NestQuery = await NestQueryContract.deploy();
-
-        _C_NestStaking = NestStaking.address;
+        _C_USDT = CUSDT.address;
+        _C_WBTC = CWBTC.address;
         _C_NestToken = NestToken.address;
         _C_NestPool = NestPool.address;
         _C_NestMining = NestMining.address;
-        _C_USDT = CUSDT.address;
-        _C_WBTC = CWBTC.address;
+        _C_NestStaking = NestStaking.address;
         _C_NNRewardPool = NNRewardPool.address;
         _C_NNToken = NNToken.address;
         _C_NTokenController = NTokenController.address;
         _C_NestQuery = NestQuery.address;
-
-        await NestMining.init();
-
-        await NestPool.setContracts(_C_NestMining, _C_NestToken, _C_NTokenController, _C_NNRewardPool, _C_NestStaking);
-        await NestPool.setNTokenToToken(_C_USDT, _C_NestToken);
-        await NestMining.setContracts(_C_NestToken, _C_NestPool, _C_NestStaking, _C_NestQuery);
-        await NNRewardPool.loadContracts(_C_NestToken, _C_NNToken, _C_NestPool, _C_NestMining);
-        await NTokenController.setContracts(_C_NestToken, _C_NestPool);
-        await NestQuery.setContracts(_C_NestToken, _C_NestMining, _C_NestStaking, _C_NestPool, dev.address);
-
     });
 
     describe("Deployment", function () {

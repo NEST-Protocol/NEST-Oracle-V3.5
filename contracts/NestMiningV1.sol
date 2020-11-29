@@ -60,14 +60,10 @@ contract NestMiningV1 {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor() public 
-    {
-        // state.governance = msg.sender;
-    }
+    constructor() public { }
 
-    function init() external 
+    function initialize() external 
     {
-        require(state.flag == MiningV1Data.STATE_FLAG_UNINITIALIZED);
         uint256 amount = MiningV1Data.MINING_NEST_YIELD_PER_BLOCK_BASE;
         for (uint i =0; i < 10; i++) {
             state._mining_nest_yield_per_block_amount[i] = amount;
@@ -79,10 +75,16 @@ contract NestMiningV1 {
             state._mining_ntoken_yield_per_block_amount[i] = amount;
             amount = amount.mul(MiningV1Data.MINING_NTOKEN_YIELD_CUTBACK_RATE).div(100);
         }
-
+        
         state.governance = msg.sender;
 
         state.version = 1;
+    }
+
+    function init() external 
+    {
+        // require(state.flag == MiningV1Data.STATE_FLAG_UNINITIALIZED);
+
         state.miningEthUnit = 10;
         state.nestStakedNum1k = 1;
         state.biteFeeRate = 1;    // 0.1%
@@ -527,7 +529,7 @@ contract NestMiningV1 {
         external 
         noContract
     {
-        state.closeList(token, indices);
+        state._closeList(token, indices);
     }
 
 

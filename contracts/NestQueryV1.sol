@@ -79,13 +79,11 @@ contract NestQuery is INestQuery, ReentrancyGuard {
 
     receive() external payable { }
 
-    constructor() public 
-    {
-        governance = address(msg.sender); 
-        flag = FLAG_QUERY_ACTIVATION;
-    }
+    constructor() public { }
 
-    function init() external {
+    function initialize() external 
+    { 
+        governance = address(msg.sender); 
         flag = FLAG_QUERY_ACTIVATION;
     }
 
