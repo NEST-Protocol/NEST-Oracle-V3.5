@@ -301,7 +301,9 @@ describe("NestStaking contract", function () {
             const fund_pre = await provider.getBalance(userB.address);
             const rewardsTotal_pre = await NestStaking.totalRewards(ntoken);
 
+            await NestStaking.pause();
             await NestStaking.connect(owner).withdrawSavingByGov(ntoken,userB.address,amount);
+            await NestStaking.resume();
 
             // record funds after transfer
             const fund_pos = await provider.getBalance(userB.address);
