@@ -363,7 +363,7 @@ describe("NNRewardPool contract", function () {
 
             expect(amountC).to.equal(NEST(1680));
             
-            expect(amountA).to.equal(0);
+            expect(amountD).to.equal(0);
 
         });
 

@@ -151,7 +151,7 @@ library MiningV1Data {
 
         uint128  latestMiningHeight;
         uint128  minedNestAmount;   
-
+        
         address governance;
 
         address  _developer_address;
