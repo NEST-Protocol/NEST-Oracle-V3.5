@@ -5,7 +5,7 @@ require("hardhat-gas-reporter");
 require('@openzeppelin/hardhat-upgrades');
 
 
-//const config = require('./.private.json');
+const config = require('./.private.json');
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -40,7 +40,7 @@ module.exports = {
     gasPrice: 21,
     enabled: (process.env.REPORT_GAS) ? true : false
   },
-  /*networks: {
+  networks: {
     goerli: {
       url: `https://goerli.infura.io/v3/${config.infura.goerli.apiKey}`,
       accounts: [config.account.goerli.key],
@@ -51,5 +51,7 @@ module.exports = {
       accounts: [config.account.kovan.key],
       gasPrice:21e9
     },
-  },*/
+  },
 }
+
+//  url: `https://kovan.infura.io/v3/${config.infura.kovan.apiKey}`

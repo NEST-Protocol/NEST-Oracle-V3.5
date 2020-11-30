@@ -11,7 +11,7 @@ import "./iface/INestStaking.sol";
 import "./lib/SafeERC20.sol";
 import "./lib/ReentrancyGuard.sol";
 import './lib/TransferHelper.sol';
-//import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 /// @title NNRewardPool
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
@@ -121,7 +121,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         _state = _newSt;
     }
     
-    function state() view external onlyGovernance returns (uint8)
+    function state() external view onlyGovernance returns (uint8)
     {
         return _state;
     }
@@ -132,7 +132,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         onlyGovernance 
     {
         _pending_saving_amount[ntoken] = _pending_saving_amount[ntoken].sub(amount);
-        //TransferHelper.safeTransferETH(to, amount);
+        TransferHelper.safeTransferETH(to, amount);
 
         // must refresh WETH balance record after updating WETH balance
         // or lastRewardsTotal could be less than the newest WETH balance in the next update
@@ -140,7 +140,6 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         lastRewardsTotal[ntoken] = _newTotal;
         rewardsTotal[ntoken] = _newTotal;
         emit SavingWithdrawn(ntoken, to, amount);
-        TransferHelper.safeTransferETH(to, amount);      
     }
 
     /* ========== VIEWS ========== */
@@ -274,10 +273,8 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         require(amount > 0, "Nest:Stak:!amount");
         _ntoken_staked_total[ntoken] = _ntoken_staked_total[ntoken].add(amount);
         _staked_balances[ntoken][msg.sender] = _staked_balances[ntoken][msg.sender].add(amount);
-        //TransferHelper.safeTransferFrom(ntoken, msg.sender, address(this), amount);
-        emit NTokenStaked(ntoken, msg.sender, amount);
         TransferHelper.safeTransferFrom(ntoken, msg.sender, address(this), amount);
-
+        emit NTokenStaked(ntoken, msg.sender, amount);
     }
 
     /// @notice Stake NTokens to get the dividends
@@ -306,10 +303,8 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         require(amount > 0, "Nest:Stak:!amount");
         _ntoken_staked_total[ntoken] = _ntoken_staked_total[ntoken].sub(amount);
         _staked_balances[ntoken][msg.sender] = _staked_balances[ntoken][msg.sender].sub(amount);
-        //TransferHelper.safeTransfer(ntoken, msg.sender, amount);
-        emit NTokenUnstaked(ntoken, msg.sender, amount);
         TransferHelper.safeTransfer(ntoken, msg.sender, amount);
-
+        emit NTokenUnstaked(ntoken, msg.sender, amount);
     }
 
     /// @notice Claim rewards
@@ -324,16 +319,13 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         if (_reward > 0) {
             rewardBalances[ntoken][msg.sender] = 0;
             // WETH balance decreased after this
-            //TransferHelper.safeTransferETH(msg.sender, _reward);
+            TransferHelper.safeTransferETH(msg.sender, _reward);
             // must refresh WETH balance record after updating WETH balance
             // or lastRewardsTotal could be less than the newest WETH balance in the next update
             uint256 _newTotal = rewardsTotal[ntoken].sub(_reward);
             lastRewardsTotal[ntoken] = _newTotal;
-            rewardsTotal[ntoken] = _newTotal;         
-           
+            rewardsTotal[ntoken] = _newTotal;
             emit RewardClaimed(ntoken, msg.sender, _reward);
-
-             TransferHelper.safeTransferETH(msg.sender, _reward);
         }
     }
 
