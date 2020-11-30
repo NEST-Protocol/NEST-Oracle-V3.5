@@ -13,7 +13,7 @@ import "../iface/INestStaking.sol";
 import "../iface/INToken.sol";
 import "../iface/INNRewardPool.sol";
 import "../libminingv1/MiningV1Data.sol";
-import "hardhat/console.sol";
+//import "hardhat/console.sol";
 
 
 /// @title  NestMiningV1/MiningV1Calc
@@ -33,7 +33,7 @@ library MiningV1Calc {
             uint256 _interval
         ) 
         private 
-        view
+        pure
         // pure 
         returns (int128, int128)
     {
@@ -363,7 +363,7 @@ library MiningV1Calc {
     {
         sheets = new MiningV1Data.PriceSheet[](num);
         MiningV1Data.PriceSheet[] storage _list = state.priceSheetList[token]; 
-        uint256 len = _list.length;
+        //uint256 len = _list.length;
         for (uint i = 0; i < num; i++) {
             if (fromIndex < i) {
                 break;
@@ -390,7 +390,7 @@ library MiningV1Calc {
     {
         sheets = new MiningV1Data.PriceSheet[](num);
         MiningV1Data.PriceSheet[] storage _list = state.priceSheetList[token]; 
-        uint256 len = _list.length;
+        //uint256 len = _list.length;
         for (uint i = 0; i < num; i++) {
             if (fromIndex < i) {
                 break;
