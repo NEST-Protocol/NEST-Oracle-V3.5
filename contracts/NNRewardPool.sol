@@ -59,11 +59,11 @@ contract NNRewardPool is INNRewardPool {
 
     /// @notice Constructor of NNRewardPool contract
     /// @dev The NNToken contract was created on the Ethereum mainnet 
-    /// @param NestToken The address of Nest Token Contract
+    /// @param NestPool The address of NestPool Contract
     /// @param NNToken The address of NestNode Token Contract
-    constructor(address NestToken, address NNToken) public
+    constructor(address NestPool, address NNToken) public
     {
-        C_NestToken = NestToken;
+        C_NestPool = NestPool;
         C_NNToken = NNToken;
         NN_total_supply = uint128(ERC20(C_NNToken).totalSupply());
         governance = msg.sender;
@@ -101,21 +101,11 @@ contract NNRewardPool is INNRewardPool {
     }
 
     /// @notice 
-    function setContracts(address NestToken, address NNToken, address NestPool, address NestMining) 
-        public onlyBy(governance)
+    function loadContracts() override external onlyBy(C_NestPool)
     {
-        if (NestToken != address(0)) {
-            C_NestToken = NestToken;
-        } 
-        if (NNToken != address(0)) {
-            C_NNToken = NNToken;
-        }
-        if (NestPool != address(0)) {
-            C_NestPool = NestPool;
-        }
-        if (NestMining != address(0)) {
-            C_NestMining = NestMining;
-        }
+        C_NestToken = INestPool(C_NestPool).addrOfNestToken();
+        C_NNToken = INestPool(C_NestPool).addrOfNNToken();
+        C_NestMining = INestPool(C_NestPool).addrOfNestMining();
     }
 
     function setNNRewardSum(uint128 sum) external onlyGovernance

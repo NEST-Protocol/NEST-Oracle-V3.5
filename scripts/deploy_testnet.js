@@ -13,13 +13,8 @@ async function main(network) {
     CWBTC = await deployWBTC();
     [NestToken, IterableMapping] = await deployNEST();
     NNToken = await deployNN();
-    let contracts = {CUSDT: CUSDT, CWBTC: CWBTC, NEST: NestToken, NN: NNToken, IterableMapping: IterableMapping}; 
-    let CNest = await deployNestProtocolWithProxy(owner, contracts);
-    CNest.CUSDT = CUSDT;
-    CNest.CWBTC = CWBTC;
-    CNest.NestToken = NestToken;
-    CNest.NNToken = NNToken;
-    CNest.IterableMapping = IterableMapping;
+    let contracts = {USDT: CUSDT, WBTC: CWBTC, NEST: NestToken, NN: NNToken, IterableMapping: IterableMapping}; 
+    let addrOfNest = await deployNestProtocolWithProxy(owner, contracts);
     // await setupNest(owner, CNest);
 }
 

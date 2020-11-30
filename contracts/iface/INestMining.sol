@@ -18,4 +18,7 @@ interface INestMining {
         external view returns (int128, int128, int128, uint256);
 
     function minedNestAmount() external view returns (uint256);
+
+    /// @dev Only for governance
+    function loadContracts() external; 
 }

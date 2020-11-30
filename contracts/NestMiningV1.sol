@@ -30,6 +30,7 @@ contract NestMiningV1 {
     using MiningV1Calc for MiningV1Data.State;
     using MiningV1Op for MiningV1Data.State;
 
+    address private C_NestPool;
 
     struct Params {
         uint8    miningEthUnit;     // = 10;
@@ -62,8 +63,10 @@ contract NestMiningV1 {
 
     constructor() public { }
 
-    function initialize() external 
+    function initialize(address NestPool) external 
     {
+        require(state.flag == MiningV1Data.STATE_FLAG_UNINITIALIZED);
+
         uint256 amount = MiningV1Data.MINING_NEST_YIELD_PER_BLOCK_BASE;
         for (uint i =0; i < 10; i++) {
             state._mining_nest_yield_per_block_amount[i] = amount;
@@ -79,12 +82,12 @@ contract NestMiningV1 {
         state.governance = msg.sender;
 
         state.version = 1;
+        state.flag = MiningV1Data.STATE_FLAG_ACTIVE;
+        C_NestPool = NestPool;
     }
 
-    function init() external 
+    function init() external onlyGovernance
     {
-        // require(state.flag == MiningV1Data.STATE_FLAG_UNINITIALIZED);
-
         state.miningEthUnit = 10;
         state.nestStakedNum1k = 1;
         state.biteFeeRate = 1;    // 0.1%
@@ -100,7 +103,7 @@ contract NestMiningV1 {
         state.flag = MiningV1Data.STATE_FLAG_ACTIVE;
     }
 
-    function initUpgrade(uint128 _minedNestAmount) external onlyGovernance
+    function initOnMainnet(uint128 _minedNestAmount) external onlyGovernance
     {
         state.genesisBlock = 6236588;
         state.minedNestAmount = _minedNestAmount;
@@ -145,21 +148,20 @@ contract NestMiningV1 {
 
     /* ========== GOVERNANCE ========== */
 
-    function setAddresses(address developer_address, address NN_address) public onlyGovernance 
-    {
-        state._developer_address = developer_address;
-        state._NN_address = NN_address;
-    }
+    // function setAddresses(address developer_address, address NN_address) public onlyGovernance 
+    // {
+    //     state._developer_address = developer_address;
+    //     state._NN_address = NN_address;
+    // }
 
-    function setContracts(address NestToken, address NestPool, address NestStaking, address NestQuery) 
-        public onlyGovernance 
+    function loadContracts() external onlyGovOrBy(C_NestPool)
     {
-        state.C_NestToken = NestToken;
-        state.C_NestPool  = NestPool;
-        state.C_NestQuery = NestQuery;
-        state.C_NestStaking = NestStaking;
+        state.C_NestPool = C_NestPool;
+        state.C_NestToken = INestPool(state.C_NestPool).addrOfNestToken();
+        state.C_NestStaking = INestPool(state.C_NestPool).addrOfNestStaking();
+        state.C_NestQuery = INestPool(state.C_NestPool).addrOfNestQuery();
+        // state.C_NestDAO = INestPool(state.C_NestPool).addrOfNestDAO();
     }
-
 
     function setParameters(Params calldata newParams) external 
         onlyGovernance

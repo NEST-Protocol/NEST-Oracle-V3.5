@@ -44,4 +44,7 @@ interface INestQuery {
     /// @dev  The balance of NEST
     /// @return  The amount of ethers withheld by this contract
     function balanceEth() external view returns (uint256);
+
+    /// @dev Only for governance
+    function loadContracts() external; 
 }

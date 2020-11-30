@@ -17,5 +17,8 @@ interface INNRewardPool {
     function nodeCount(address fromAdd, address toAdd) external;
 
     function unclaimedNNReward() external view returns (uint256 reward);
+
+    /// @dev Only for governance
+    function loadContracts() external; 
     
 }

@@ -7,6 +7,12 @@ import "./lib/AddressPayable.sol";
 import "./lib/SafeERC20.sol";
 import './lib/TransferHelper.sol';
 import "./iface/INestPool.sol";
+import "./iface/INestDAO.sol";
+import "./iface/INestMining.sol";
+import "./iface/INestQuery.sol";
+import "./iface/INestStaking.sol";
+import "./iface/INNRewardPool.sol";
+import "./iface/INTokenController.sol";
 
 //import "hardhat/console.sol";
 
@@ -39,12 +45,14 @@ contract NestPool is INestPool {
     address private _x_nest_burning_address = address(0x1);
 
     // Contracts 
-    address public C_DAO;
+    address public C_NestDAO;
     address public C_NestMining;
     ERC20   public C_NestToken;
     address public C_NTokenController;
+    address public C_NNToken;
     address public C_NNRewardPool;
     address public C_NestStaking;
+    address public C_NestQuery;
 
     constructor() public 
     {
@@ -94,6 +102,61 @@ contract NestPool is INestPool {
         _;
     }
 
+
+    /* ========== GOVERNANCE ========== */
+
+    function setGovernance(address _gov) external onlyGovernance 
+    { 
+        governance = _gov;
+    }
+
+    function setContracts(address NestToken, address NestMining, address NestStaking, address NTokenController, address NNToken, address NNRewardPool, address NestQuery, address NestDAO) 
+        external onlyGovernance
+    {
+        if (NestToken != address(0)) {
+            C_NestToken = ERC20(NestToken);
+        }
+        if (NestMining != address(0)) {
+            C_NestMining = NestMining;
+        }
+        if (NTokenController != address(0)) {
+            C_NTokenController = NTokenController;
+        }
+        if (NNToken != address(0)) {
+            C_NNToken = NNToken;
+        }
+        if (NNRewardPool != address(0)) {
+            C_NNRewardPool = NNRewardPool;
+        }
+        if (NestStaking != address(0)) {
+            C_NestStaking = NestStaking;
+        }
+        if (NestQuery != address(0)) {
+            C_NestQuery = NestQuery;
+        }
+        if (NestDAO != address(0)) {
+            C_NestDAO = NestDAO;
+        }
+
+        INestMining(C_NestMining).loadContracts();
+        INestStaking(C_NestStaking).loadContracts();
+        INNRewardPool(C_NNRewardPool).loadContracts();
+        INTokenController(C_NTokenController).loadContracts();
+        INestQuery(C_NestQuery).loadContracts();
+        INestDAO(C_NestDAO).loadContracts();
+    }
+
+    function getNTokenFromToken(address token) override view public returns (address) {
+        return _token_ntoken_mapping[token];
+    }
+
+    function setNTokenToToken(address token, address ntoken) 
+        override 
+        public
+        onlyGovOrBy(C_NTokenController) 
+    {
+        _token_ntoken_mapping[token] = ntoken;
+    }    
     /* ========== ONLY FOR EMERGENCY ========== */
 
     function drainEth(address to, uint256 amount) 
@@ -142,53 +205,7 @@ contract NestPool is INestPool {
         _eth_ledger[to] = _eth_ledger[to].add(amount);
     }
 */
-    /* ========== GOVERNANCE ========== */
 
-
-    function setGovernance(address _gov) external onlyGovernance 
-    { 
-        governance = _gov;
-    }
-
-    function setContracts(address NestMining, address NestToken, address NTokenController, address NNRewardPool, address NestStaking) 
-        external onlyGovernance
-    {
-        if (NestToken != address(0)) {
-            C_NestToken = ERC20(NestToken);
-        }
-        if (NestMining != address(0)) {
-            C_NestMining = NestMining;
-        }
-        if (NTokenController != address(0)) {
-            C_NTokenController = NTokenController;
-        }
-        if (NNRewardPool != address(0)) {
-            C_NNRewardPool = NNRewardPool;
-        }
-        if (NestStaking != address(0)) {
-            C_NestStaking = NestStaking;
-        }
-    }
-
-    function setDAO(address DAO) external onlyGovernance
-    {
-        if (DAO != address(0)) {
-            C_DAO = DAO;
-        }
-    }
-
-
-    function getNTokenFromToken(address token) override view public returns (address) {
-        return _token_ntoken_mapping[token];
-    }
-
-    function setNTokenToToken(address token, address ntoken) 
-        override 
-        public
-        onlyGovOrBy(C_NTokenController) 
-    {
-        _token_ntoken_mapping[token] = ntoken;
-    }    
 
     /* ========== FREEZING/UNFREEZING ========== */
 
@@ -507,9 +524,24 @@ contract NestPool is INestPool {
         return C_NNRewardPool;
     }
 
+    function addrOfNNToken() override public view returns (address) 
+    {
+        return C_NNToken;
+    }
+
     function addrOfNestStaking() override public view returns (address) 
     {
         return C_NestStaking;
+    }
+
+    function addrOfNestQuery() override public view returns (address) 
+    {
+        return C_NestQuery;
+    }
+
+    function addrOfNestDAO() override public view returns (address) 
+    {
+        return C_NestDAO;
     }
 
     function addressOfBurnedNest() override public view returns (address) 
