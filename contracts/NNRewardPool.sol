@@ -22,9 +22,9 @@ import "./iface/INNRewardPool.sol";
 contract NNRewardPool is INNRewardPool {
     using SafeMath for uint256;
 
-    uint8   public flag;    // | 1: active 
-                            // | 2: only claims are allowed
-                            // | 3: shutdown
+    int8   public flag;     // | 1: active 
+                            // | 0: uninitialized
+                            // | -1: shutdown
 
     uint256 public NN_reward_sum;
     uint256 public NN_total_supply;
@@ -39,6 +39,10 @@ contract NNRewardPool is INNRewardPool {
     uint256 constant DEV_REWARD_PERCENTAGE   = 5;
     uint256 constant NN_REWARD_PERCENTAGE    = 15;
     uint256 constant MINER_REWARD_PERCENTAGE = 80;
+
+    int8   constant NNREWARD_FLAG_UNINITIALIZED    = 0;
+    int8   constant NNREWARD_FLAG_ACTIVE           = 1;
+    int8   constant NNREWARD_FLAG_SHUTDOWN         = -1;
 
     /// @dev From nest-node address to checkpoints of reward-sum
     mapping(address => uint256) public NN_reward_sum_checkpoint;
@@ -67,8 +71,10 @@ contract NNRewardPool is INNRewardPool {
         C_NNToken = NNToken;
         NN_total_supply = uint128(ERC20(C_NNToken).totalSupply());
         governance = msg.sender;
-        flag = 0;
+        flag = NNREWARD_FLAG_UNINITIALIZED;
     }
+
+    /* ========== MODIFIERS ========== */
 
     modifier onlyBy(address _account)
     {
@@ -81,9 +87,6 @@ contract NNRewardPool is INNRewardPool {
         require(address(msg.sender) == address(tx.origin), "Nest:NN:BAN(contract)");
         _;
     }
-
-
-    /* ========== GOVERNANCE ========== */
 
     modifier onlyGovernance() 
     {
@@ -100,19 +103,28 @@ contract NNRewardPool is INNRewardPool {
         _;
     }
 
-    /// @notice 
-    function loadContracts() override external onlyBy(C_NestPool)
+    /* ========== GOVERNANCE ========== */
+
+    /// @dev The function loads all nest-contracts, it is supposed to be called by NestPool
+    function loadContracts() override external onlyGovOrBy(C_NestPool)
     {
         C_NestToken = INestPool(C_NestPool).addrOfNestToken();
         C_NNToken = INestPool(C_NestPool).addrOfNNToken();
         C_NestMining = INestPool(C_NestPool).addrOfNestMining();
+        
+        flag = NNREWARD_FLAG_ACTIVE;
+
     }
 
+    /// @notice Set the snapshot of NN total rewards
+    /// @dev The function should be called by admin when upgrading
     function setNNRewardSum(uint128 sum) external onlyGovernance
     {
         NN_reward_sum = uint128(sum);
     }
 
+    /// @notice Set the snapshot of NN holders
+    /// @dev The function should be called by admin when upgrading
     function setNNRewardSumCheckpoint(address node, uint256 sum) external onlyGovernance 
     {
         if (sum > 0) {
@@ -120,18 +132,24 @@ contract NNRewardPool is INNRewardPool {
         }
     }
 
-    function setFlag(uint8 newFlag) external onlyGovernance
+    /// @dev Set the flag of this contract
+    function setFlag(int8 newFlag) external onlyGovernance
     {
         flag = newFlag;
+    }
+
+    /// @dev Shutdown this contract
+    function shutdown() external onlyGovernance
+    {
+        flag = NNREWARD_FLAG_SHUTDOWN;
     }
 
     /* ========== ADDING REWARDS ========== */
 
     /// @dev The updator is to update the sum of NEST tokens mined in NestMining
-   
     function updateNNReward() external
     {
-        require(flag < 2, "Nest:NN:!flag");
+        require(flag == NNREWARD_FLAG_ACTIVE, "Nest:NN:!flag");
 
         uint256 _allMined = INestMining(C_NestMining).minedNestAmount();
         if (_allMined > NN_reward_sum) {
@@ -144,7 +162,7 @@ contract NNRewardPool is INNRewardPool {
 
     modifier updateNNReward1()
     {
-        require(flag < 2, "Nest:NN:!flag");
+        require(flag == NNREWARD_FLAG_ACTIVE, "Nest:NN:!flag");
 
         uint256 _allMined = INestMining(C_NestMining).minedNestAmount();
         if (_allMined > NN_reward_sum) {
@@ -162,7 +180,7 @@ contract NNRewardPool is INNRewardPool {
     /// @dev The rewards need to pull from NestPool
     function claimNNReward() override external noContract updateNNReward1
     {
-        require(flag < 3, "Nest:NN:!flag");
+        require(flag == NNREWARD_FLAG_ACTIVE, "Nest:NN:!flag");
 
         uint256 blnc =  ERC20(C_NNToken).balanceOf(address(msg.sender));
         require(blnc > 0, "Nest:NN:!(NNToken)");
@@ -180,9 +198,13 @@ contract NNRewardPool is INNRewardPool {
         return;
     }
 
-    function settleNNReward(address from, address to) internal 
+    /// @notice Settle rewards for two NN holders
+    /// @dev The function is for callback from NNToken. It is banned for contracts.
+    /// @param from The address of the NN sender 
+    /// @param to The address of the NN receiver 
+    function settleNNReward(address from, address to) internal
     {
-        require(flag < 3, "Nest:NN:!flag");
+        require(flag == NNREWARD_FLAG_ACTIVE, "Nest:NN:!flag");
 
         uint256 fromBlnc = ERC20(C_NNToken).balanceOf(address(from));
         require (fromBlnc > 0, "Nest:NN:!(fromBlnc)");
@@ -199,28 +221,35 @@ contract NNRewardPool is INNRewardPool {
         if (fromReward > 0) {
             INestPool(C_NestPool).withdrawNest(address(this), fromReward);
             require(ERC20(C_NestToken).transfer(from, fromReward), "transfer fail!");
+            emit NNRewardClaimed(from, uint128(fromReward));
         }
 
         if (toReward > 0) { 
             INestPool(C_NestPool).withdrawNest(address(this), toReward);
             require(ERC20(C_NestToken).transfer(to, toReward), "transfer fail!");
+            emit NNRewardClaimed(to, uint128(toReward));
         }
 
-        emit NNRewardClaimed(from, uint128(fromReward));
-        emit NNRewardClaimed(to, uint128(toReward));
         return;
     }
 
     /// @dev The callback function called by NNToken.transfer()
     /// @param fromAdd The address of 'from' to transfer
     /// @param toAdd The address of 'to' to transfer
-    function nodeCount(address fromAdd, address toAdd) override external updateNNReward1 onlyBy(address(C_NNToken)) {
+    function nodeCount(address fromAdd, address toAdd) 
+        override
+        external
+        updateNNReward1
+        onlyBy(address(C_NNToken)) 
+    {
         settleNNReward(fromAdd, toAdd);
         return;
     }
 
     /// @notice Show the amount of rewards unclaimed
-    function unclaimedNNReward() override external view returns (uint256 reward) {
+    /// @return reward The reward of a NN holder
+    function unclaimedNNReward() override external view returns (uint256 reward) 
+    {
         uint256 blnc = ERC20(C_NNToken).balanceOf(address(msg.sender));
         uint256 sum = uint256(NN_reward_sum);
         uint256 total = uint256(NN_total_supply);
