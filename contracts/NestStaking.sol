@@ -34,8 +34,8 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     ///      - 20% to saving for buying back (future)
     uint8 private _dividend_share; // = 80;
 
-    address private _C_NestToken;
-    address private _C_NestPool;
+    address private C_NestToken;
+    address private C_NestPool;
 
     address public governance;
 
@@ -77,32 +77,32 @@ contract NestStaking is INestStaking, ReentrancyGuard {
 
     // constructor(address _nestToken, address NestPool) public 
     // {
-    //     _C_NestToken = _nestToken;
-    //     _C_NestPool = NestPool;
+    //     C_NestToken = _nestToken;
+    //     C_NestPool = NestPool;
     //     governance = msg.sender;
     //     _state = 0;
     // }
 
     receive() external payable {}
 
-    function initialize() external {
+    function initialize(address NestPool) external {
         governance = msg.sender;
         _dividend_share = 80;
         _state = 0;
+        C_NestPool = NestPool;
+    }
+
+    modifier onlyGovOrBy(address _contract) 
+    {
+        require(msg.sender == governance || msg.sender == _contract, "Nest:Stak:!sender");
+        _;
     }
 
     /* ========== GOVERNANCE ========== */
 
-    function setContracts(address NestToken, address NestPool) 
-        public onlyGovernance 
+    function loadContracts() override external onlyGovOrBy(C_NestPool)
     {
-        if (NestToken != address(0)) {
-            _C_NestToken = NestToken;
-        }
-        if (NestPool != address(0)) {
-            _C_NestPool  = NestPool;
-
-        }
+        C_NestToken = INestPool(C_NestPool).addrOfNestToken();
     }
 
     modifier onlyGovernance() 
@@ -288,7 +288,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         require(amount > 0, "Nest:Stak:!amount");
         _ntoken_staked_total[ntoken] = _ntoken_staked_total[ntoken].add(amount);
         _staked_balances[ntoken][msg.sender] = _staked_balances[ntoken][msg.sender].add(amount);
-        INestPool(_C_NestPool).withdrawNTokenAndTransfer(msg.sender, ntoken, amount, address(this));
+        INestPool(C_NestPool).withdrawNTokenAndTransfer(msg.sender, ntoken, amount, address(this));
         emit NTokenStaked(ntoken, msg.sender, amount);
     }
 

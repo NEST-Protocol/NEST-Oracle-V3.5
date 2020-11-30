@@ -81,9 +81,10 @@ contract NestQuery is INestQuery, ReentrancyGuard {
 
     constructor() public { }
 
-    function initialize() external 
+    function initialize(address NestPool) external 
     { 
         governance = address(msg.sender); 
+        C_NestPool = NestPool;
         flag = FLAG_QUERY_ACTIVATION;
     }
 
@@ -107,7 +108,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         _;
     }
 
-    modifier onlyGovernanceOrBy(address _account)
+    modifier onlyGovOrBy(address _account)
     {
         if (msg.sender != governance) { 
             require(msg.sender == _account,
@@ -163,29 +164,12 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         emit ParamsSetup(address(msg.sender), oldParamsEncoded, paramsEncoded);
     }
 
-    function setContracts(address NestToken, address NestMining, address NestStaking, address NestPool, address NestDAO) 
-        external 
-        onlyGovernance
+    function loadContracts() override external onlyGovOrBy(C_NestPool)
     {
-        if (NestToken != address(0)) {
-            C_NestToken = NestToken;
-        }
-
-        if (NestMining != address(0)) {
-            C_NestMining = NestMining;
-        }
-        
-        if (NestPool != address(0)) {
-            C_NestPool = NestPool;
-        }
-
-        if (NestStaking != address(0)) {
-            C_NestStaking = NestStaking;
-        }
-
-        if (NestDAO != address(0)) {
-            C_NestDAO = NestDAO;
-        }
+        C_NestToken = INestPool(C_NestPool).addrOfNestToken();
+        C_NestMining = INestPool(C_NestPool).addrOfNestMining();
+        C_NestStaking = INestPool(C_NestPool).addrOfNestStaking();
+        C_NestDAO = INestPool(C_NestPool).addrOfNestDAO();
     }
 
     function setFlag(uint8 newFlag) external onlyGovernance

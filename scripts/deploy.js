@@ -58,6 +58,15 @@ exports.deployNN = async function () {
     return NNToken;
 }
 
+exports.printContractsOfNest = function (deployer, contracts) {
+
+    console.log("Contracts deployed:\n=========================");
+    Object.entries(contracts).forEach((e) => {
+        const [k, v] = e;
+        console.log(`| ${k} |  ${v} | `);
+    })
+}
+
 exports.deployNestProtocol = async function (deployer, contracts) {
 
     console.log(`> [INIT]: Starting to deploy Nest-Protocol v3.5 ...`);
@@ -68,16 +77,19 @@ exports.deployNestProtocol = async function (deployer, contracts) {
     const NestPoolContract = await ethers.getContractFactory("NestPool");
     const NestPool = await NestPoolContract.deploy(); // TODO: arg should be DAOContract
     await NestPool.deployed();
+    contracts.NestPool = NestPool;
     console.log(`> [INIT]: NestPool deployed, address=${NestPool.address}`);
 
     const MiningV1CalcLibrary = await ethers.getContractFactory("MiningV1Calc");
     const MiningV1Calc = await MiningV1CalcLibrary.deploy();
     await MiningV1Calc.deployed();
+    contracts.MiningV1Calc = MiningV1Calc;
     console.log(`> [INIT]: NestMiningV1/MiningV1Calc deployed, address=${MiningV1Calc.address}`);
 
     const MiningV1OpLibrary = await ethers.getContractFactory("MiningV1Op");
     const MiningV1Op = await MiningV1OpLibrary.deploy();
     await MiningV1Op.deployed();
+    contracts.MiningV1Op = MiningV1Op;
     console.log(`> [INIT]: NestMiningV1/MiningV1Op deployed, address=${MiningV1Op.address}`);
 
     const NestMiningV1Contract = await ethers.getContractFactory("NestMiningV1",
@@ -89,67 +101,48 @@ exports.deployNestProtocol = async function (deployer, contracts) {
     });
     const NestMining = await NestMiningV1Contract.deploy();
     await NestMining.deployed();
-    await NestMining.initialize();
+    await NestMining.initialize(NestPool.address);
+    contracts.NestMining = NestMining;
     console.log(`> [INIT]: NestMining deployed, address=${NestMining.address}`);
 
     const NestStakingContract = await ethers.getContractFactory("NestStaking");
     const NestStaking = await NestStakingContract.deploy();
-    await NestStaking.initialize();
+    await NestStaking.initialize(NestPool.address);
+    contracts.NestStaking = NestStaking;
     console.log(`> [INIT]: NestStaking deployed, address=${NestStaking.address}`);
 
     const NNRewardPoolContract = await ethers.getContractFactory("NNRewardPool");
-    const NNRewardPool = await NNRewardPoolContract.deploy(contracts.NEST.address, contracts.NN.address);
+    const NNRewardPool = await NNRewardPoolContract.deploy(NestPool.address, contracts.NN.address);
+    contracts.NNRewardPool = NNRewardPool;
     console.log(`> [INIT]: NNRewardPool deployed, address=${NNRewardPool.address}`);
 
     const NTokenControllerContract = await ethers.getContractFactory("NTokenController");
-    const NTokenController = await NTokenControllerContract.deploy();
+    const NTokenController = await NTokenControllerContract.deploy(NestPool.address);
+    contracts.NTokenController = NTokenController;
     console.log(`> [INIT]: NTokenController deployed, address=${NTokenController.address}`);
 
     const NestQueryContract = await ethers.getContractFactory("NestQuery");
     const NestQuery = await NestQueryContract.deploy();
-    let tx = await NestQuery.initialize();
+    let tx = await NestQuery.initialize(NestPool.address);
     tx.wait();
+    contracts.NestQuery = NestQuery;
     console.log(`> [INIT]: NestQuery deployed, address=${NestQuery.address}`);
 
+    const NestDAOContract = await ethers.getContractFactory("NestDAO");
+    const NestDAO = await NestDAOContract.deploy(NestPool.address);
+    NestDAO.deployTransaction.wait();
+    contracts.NestDAO = NestDAO;
 
-    console.log("Contracts deployed:\n=========================");
-    console.log(`| USDT |  ${contracts.CUSDT.address} | `);
-    console.log(`| WBTC |  ${contracts.CWBTC.address} | `);
-    console.log(`| NEST |  ${contracts.NEST.address} | `);
-    console.log(`| NN |  ${contracts.NN.address} | `);
-    console.log(`| NestPool |  ${NestPool.address} | `);
-    console.log(`| NestMining |  ${NestMining.address} | `);
-    console.log(`| NestStaking |  ${NestStaking.address} | `);
-    console.log(`| NNRewardPool |  ${NNRewardPool.address} | `);
-    console.log(`| NTokenController |  ${NTokenController.address} | `);
-    console.log(`| NestQuery |  ${NestQuery.address} | `);
+    console.log(`> [INIT]: NestDAO deployed, address=${NestDAO.address}`);
 
-    console.log("printing...:\n=========================");
-    console.log(`USDT: "${contracts.CUSDT.address}",`);
-    console.log(`WBTC: "${contracts.CWBTC.address}",`);
-    console.log(`NEST: "${contracts.NEST.address}",`);
-    console.log(`IterableMapping: "${contracts.IterableMapping.address}",`);
-
-    console.log(`NN: "${contracts.NN.address}",`);
-    console.log(`NestPool: "${NestPool.address}",`);
-    console.log(`MiningV1Calc: "${MiningV1Calc.address}",`);
-    console.log(`MiningV1Op: "${MiningV1Op.address}",`);
-    console.log(`NestMining: "${NestMining.address}",`);
-    console.log(`NestStaking: "${NestStaking.address}",`);
-    console.log(`NNRewardPool: "${NNRewardPool.address}",`);
-    console.log(`NTokenController: "${NTokenController.address}",`);
-    console.log(`NestQuery: "${NestQuery.address}",`);
-
-    return {
-        NestPool: NestPool,
-        MiningV1Calc: MiningV1Calc,
-        MiningV1Op: MiningV1Op,
-        NestMining: NestMining,
-        NNRewardPool: NNRewardPool,
-        NestStaking: NestStaking,
-        NTokenController: NTokenController,
-        NestQuery: NestQuery
-    }
+    console.log("\n=========================");
+    let addrOfNest = new Object();
+    Object.entries(contracts).forEach((e) => {
+        const [k, v] = e;
+        addrOfNest[k] = v.address;
+        console.log(`${k}: "${v.address}", `);
+    })
+    return addrOfNest;
 }
 
 exports.deployNestProtocolWithProxy = async function (deployer, contracts) {
@@ -162,16 +155,19 @@ exports.deployNestProtocolWithProxy = async function (deployer, contracts) {
     const NestPoolContract = await ethers.getContractFactory("NestPool");
     const NestPool = await NestPoolContract.deploy(); // TODO: arg should be DAOContract
     await NestPool.deployed();
+    contracts.NestPool = NestPool;
     console.log(`> [INIT]: NestPool deployed, address=${NestPool.address}`);
 
     const MiningV1CalcLibrary = await ethers.getContractFactory("MiningV1Calc");
     const MiningV1Calc = await MiningV1CalcLibrary.deploy();
     await MiningV1Calc.deployed();
+    contracts.MiningV1Calc = MiningV1Calc;
     console.log(`> [INIT]: NestMiningV1/MiningV1Calc deployed, address=${MiningV1Calc.address}`);
 
     const MiningV1OpLibrary = await ethers.getContractFactory("MiningV1Op");
     const MiningV1Op = await MiningV1OpLibrary.deploy();
     await MiningV1Op.deployed();
+    contracts.MiningV1Op = MiningV1Op;
     console.log(`> [INIT]: NestMiningV1/MiningV1Op deployed, address=${MiningV1Op.address}`);
 
     const NestMiningV1Contract = await ethers.getContractFactory("NestMiningV1",
@@ -183,74 +179,69 @@ exports.deployNestProtocolWithProxy = async function (deployer, contracts) {
     });
     console.log(`> [INIT]: NestMining is being deployed`);
 
-    const NestMining = await NestMiningV1Contract.deploy();
-    console.log(`> [INIT]: NestMining deployed, address=${NestMining.address}`);
+    // const NestMining = await NestMiningV1Contract.deploy();
+    // console.log(`> [INIT]: NestMining deployed, address=${NestMining.address}`);
 
-    // const NestMining = await upgrades.deployProxy(NestMiningV1Contract, 
-        // { unsafeAllowCustomTypes: true, unsafeAllowLinkedLibraries: true});
+    const NestMining = await upgrades.deployProxy(NestMiningV1Contract, [NestPool.address],
+        { unsafeAllowCustomTypes: true, unsafeAllowLinkedLibraries: true});
     await NestMining.deployed();
-    // console.log(`> [INIT]: NestMining deployed with Proxy, address=${NestMining.address}`);
+    contracts.NestMining = NestMining;
+    console.log(`> [INIT]: NestMining deployed with Proxy, address=${NestMining.address}`);
 
     const NestStakingContract = await ethers.getContractFactory("NestStaking");
-    const NestStaking = await upgrades.deployProxy(NestStakingContract);
+    const NestStaking = await upgrades.deployProxy(NestStakingContract, [NestPool.address]);
     // const NestStaking = await NestStakingContract.deploy();
     // await NestStaking.initialize();
     await NestStaking.deployed();
+    contracts.NestStaking = NestStaking;
     console.log(`> [INIT]: NestStaking deployed with Proxy, address=${NestStaking.address}`);
 
     const NNRewardPoolContract = await ethers.getContractFactory("NNRewardPool");
-    const NNRewardPool = await NNRewardPoolContract.deploy(contracts.NEST.address, contracts.NN.address);
+    const NNRewardPool = await NNRewardPoolContract.deploy(NestPool.address, NNToken.address);
     await NNRewardPool.deployed();
+    contracts.NNRewardPool = NNRewardPool;
     console.log(`> [INIT]: NNRewardPool deployed, address=${NNRewardPool.address}`);
 
     const NTokenControllerContract = await ethers.getContractFactory("NTokenController");
-    const NTokenController = await NTokenControllerContract.deploy();
+    const NTokenController = await NTokenControllerContract.deploy(NestPool.address);
     await NTokenController.deployed();
+    contracts.NTokenController = NTokenController;
     console.log(`> [INIT]: NTokenController deployed, address=${NTokenController.address}`);
 
     const NestQueryContract = await ethers.getContractFactory("NestQuery");
-    const NestQuery = await upgrades.deployProxy(NestQueryContract, {unsafeAllowCustomTypes: true});
+    const NestQuery = await upgrades.deployProxy(NestQueryContract, [NestPool.address], {unsafeAllowCustomTypes: true});
     await NestQuery.deployed();
+    contracts.NestQuery = NestQuery;
+    console.log(`> [INIT]: NestQuery deployed with Proxy, address=${NestQuery.address}`);
+
+    const NestDAOContract = await ethers.getContractFactory("NestDAO");
+    const NestDAO = await upgrades.deployProxy(NestQueryContract, [NestPool.address], {unsafeAllowCustomTypes: true});
+    await NestDAO.deployed();
+    contracts.NestDAO = NestDAO;
     console.log(`> [INIT]: NestQuery deployed with Proxy, address=${NestQuery.address}`);
 
     console.log("Contracts deployed:\n=========================");
-    console.log(`| USDT |  ${contracts.CUSDT.address} | `);
-    console.log(`| WBTC |  ${contracts.CWBTC.address} | `);
-    console.log(`| IterableMapping |  ${contracts.IterableMapping.address} | `);
-    console.log(`| NEST |  ${contracts.NEST.address} | `);
-    console.log(`| NN |  ${contracts.NN.address} | `);
-    console.log(`| NestPool |  ${NestPool.address} | `);
-    console.log(`| NestMining |  ${NestMining.address} | `);
-    console.log(`| NestStaking |  ${NestStaking.address} | `);
-    console.log(`| NNRewardPool |  ${NNRewardPool.address} | `);
-    console.log(`| NTokenController |  ${NTokenController.address} | `);
-    console.log(`| NestQuery |  ${NestQuery.address} | `);
-
-    console.log("Contracts deployed:\n=========================");
-    console.log(`USDT: "${contracts.CUSDT.address}",`);
-    console.log(`WBTC: "${contracts.CWBTC.address}",`);
-    console.log(`IterableMapping: "${contracts.IterableMapping.address}",`);
-    console.log(`NEST: "${contracts.NEST.address}",`);
-    console.log(`NN: "${contracts.NN.address}",`);
-    console.log(`NestPool: "${NestPool.address}",`);
-    console.log(`MiningV1Calc: "${MiningV1Calc.address}",`);
-    console.log(`MiningV1Op: "${MiningV1Op.address}",`);
-    console.log(`NestMining: "${NestMining.address}",`);
-    console.log(`NestStaking: "${NestStaking.address}",`);
-    console.log(`NNRewardPool: "${NNRewardPool.address}",`);
-    console.log(`NTokenController: "${NTokenController.address}",`);
-    console.log(`NestQuery: "${NestQuery.address}",`);
+    // console.log(`USDT: "${contracts.USDT.address}",`);
+    // console.log(`WBTC: "${contracts.WBTC.address}",`);
+    // console.log(`IterableMapping: "${contracts.IterableMapping.address}",`);
+    // console.log(`NEST: "${contracts.NEST.address}",`);
+    // console.log(`NN: "${contracts.NN.address}",`);
+    // console.log(`NestPool: "${NestPool.address}",`);
+    // console.log(`MiningV1Calc: "${MiningV1Calc.address}",`);
+    // console.log(`MiningV1Op: "${MiningV1Op.address}",`);
+    // console.log(`NestMining: "${NestMining.address}",`);
+    // console.log(`NestStaking: "${NestStaking.address}",`);
+    // console.log(`NNRewardPool: "${NNRewardPool.address}",`);
+    // console.log(`NTokenController: "${NTokenController.address}",`);
+    // console.log(`NestQuery: "${NestQuery.address}",`);
     
-    return {
-        NestPool: NestPool.address,
-        MiningV1Calc: MiningV1Calc.address,
-        MiningV1Op: MiningV1Op.address,
-        NestMining: NestMining.address,
-        NNRewardPool: NNRewardPool.address,
-        NestStaking: NestStaking.address,
-        NTokenController: NTokenController.address,
-        NestQuery: NestQuery.address
-    }
+    let addrOfNest = new Object();
+    Object.entries(contracts).forEach((e) => {
+        const [k, v] = e;
+        addrOfNest[k] = v.address;
+        console.log(`${k}: "${v.address}", `);
+    })
+    return addrOfNest;
 }
 
 exports.upgradeNestMiningWithProxy = async function (deployer, contractsOfNest) {
@@ -266,6 +257,7 @@ exports.upgradeNestMiningWithProxy = async function (deployer, contractsOfNest) 
     console.log(`> [INFO]: NNRewardPool     =${contractsOfNest.NNRewardPool}`);
     console.log(`> [INFO]: NTokenController =${contractsOfNest.NTokenController}`);
     console.log(`> [INFO]: NestQuery        =${contractsOfNest.NestQuery}`);
+    console.log(`> [INFO]: NestDAO          =${contractsOfNest.NestDAO}`);
 
     NestPool = await ethers.getContractAt("NestPool", contractsOfNest.NestPool);
 
@@ -279,6 +271,7 @@ exports.upgradeNestMiningWithProxy = async function (deployer, contractsOfNest) 
     NNRewardPool = await ethers.getContractAt("NNRewardPool", contractsOfNest.NNRewardPool);
     NTokenController = await ethers.getContractAt("NTokenController", contractsOfNest.NTokenController);
     NestQuery = await ethers.getContractAt("NestQuery", contractsOfNest.NestQuery);
+    NestDAO = await ethers.getContractAt("NestDAO", contractsOfNest.NestDAO);
 
     // upgrade NestMining
     const MiningV1CalcLibrary = await ethers.getContractFactory("MiningV1Calc");
@@ -337,21 +330,12 @@ exports.upgradeNestMiningWithProxy = async function (deployer, contractsOfNest) 
     console.log(`NNRewardPool: "${contractsOfNest.NNRewardPool}",`);
     console.log(`NTokenController: "${contractsOfNest.NTokenController}",`);
     console.log(`NestQuery: "${contractsOfNest.NestQuery}",`);
+    console.log(`NestDAO: "${contractsOfNest.NestDAO}",`);
 }
 
 exports.setupNest = async function (deployer, contractsOfNest) {
 
     console.log(`> [INIT]: Starting to setup Nest-Protocol v3.5 ...`);
-
-    // console.log(`> [INFO]: deployer         =${deployer.address}`);
-    // console.log(`> [INFO]: NN               =${contractsOfNest.NN}`);
-    // console.log(`> [INFO]: NestToken        =${contractsOfNest.NEST}`);
-    // console.log(`> [INFO]: NestPool         =${contractsOfNest.NestPool}`);
-    // console.log(`> [INFO]: NestMining       =${contractsOfNest.NestMining}`);
-    // console.log(`> [INFO]: NestStaking      =${contractsOfNest.NestStaking}`);
-    // console.log(`> [INFO]: NNRewardPool     =${contractsOfNest.NNRewardPool}`);
-    // console.log(`> [INFO]: NTokenController =${contractsOfNest.NTokenController}`);
-    // console.log(`> [INFO]: NestQuery        =${contractsOfNest.NestQuery}`);
 
     CUSDT = await ethers.getContractAt("UERC20", contractsOfNest.USDT);
 
@@ -370,6 +354,7 @@ exports.setupNest = async function (deployer, contractsOfNest) {
     NNRewardPool = await ethers.getContractAt("NNRewardPool", contractsOfNest.NNRewardPool);
     NTokenController = await ethers.getContractAt("NTokenController", contractsOfNest.NTokenController);
     NestQuery = await ethers.getContractAt("NestQuery", contractsOfNest.NestQuery);
+    NestDAO = await ethers.getContractAt("NestDAO", contractsOfNest.NestDAO);
     NestMining = await ethers.getContractAt("NestMiningV1", contractsOfNest.NestMining, 
         {
             libraries: {
@@ -377,87 +362,25 @@ exports.setupNest = async function (deployer, contractsOfNest) {
                 MiningV1Op: contractsOfNest.MiningV1Op} 
         });
 
-    console.log(`> [INFO]: USDT             =${CUSDT.address}`);
-    // console.log(`> [INFO]: WBTC             =${CWBTC.address}`);
-    console.log(`> [INFO]: NN               =${NNToken.address}`);
-    console.log(`> [INFO]: NestToken        =${NestToken.address}`);
-    console.log(`> [INFO]: NestPool         =${NestPool.address}`);
-    console.log(`> [INFO]: NestMining       =${NestMining.address}`);
-    console.log(`> [INFO]: NestStaking      =${NestStaking.address}`);
-    console.log(`> [INFO]: NNRewardPool     =${NNRewardPool.address}`);
-    console.log(`> [INFO]: NTokenController =${NTokenController.address}`);
-    console.log(`> [INFO]: NestQuery        =${NestQuery.address}`);
-
-    const _C_USDT = CUSDT.address;
-    // const _C_WBTC = CWBTC.address;
-    const _C_NestToken = NestToken.address;
-    const _C_NestPool = NestPool.address;
-    const _C_NestMining = NestMining.address;
-    const _C_NestStaking = NestStaking.address;
-    const _C_NNRewardPool = NNRewardPool.address;
-    const _C_NNToken = NNToken.address;
-    const _C_NTokenController = NTokenController.address;
-    const _C_NestQuery = NestQuery.address;
-
-
-    let tx = await NestMining.initialize();
-    tx.wait();
-    console.log(`> [INIT] NestMining.initialize()`);
-
     tx = await NestMining.init();
     tx.wait();
     console.log(`> [INIT] deployer: setup NestMining`);
 
-    // await NestMining.setAddresses(deployer.address, deployer.address);
-    // console.log(`> [INIT] NestMining.setAddresses()`);
-
-    tx = await NestMining.setContracts(_C_NestToken, _C_NestPool, _C_NestStaking, _C_NestQuery);
-    tx.wait();
-    console.log(`> [INIT] NestMining.setContracts()`);
-
-    tx = await NestPool.setContracts(_C_NestMining, _C_NestToken, _C_NTokenController, _C_NNRewardPool, _C_NestStaking);
+    tx = await NestPool.setContracts(NestToken.address, NestMining.address, 
+                    NestStaking.address, NTokenController.address, NNToken.address, 
+                    NNRewardPool.address, NestQuery.address, NestDAO.address);
     tx.wait();
     console.log(`> [INIT] NestPool.setContracts()`);
     
-    tx = await NestPool.setNTokenToToken(_C_USDT, _C_NestToken);
+    tx = await NestPool.setNTokenToToken(CUSDT.address, NestToken.address);
     tx.wait();
     console.log(`> [INIT] deployer: set (USDT <-> NEST) to NestPool`);
-
-    tx = await NestStaking.setContracts(_C_NestToken, _C_NestPool);
-    tx.wait();
-    console.log(`> [INIT] NestStaking.setContracts()`);
-
-    tx = await NNToken.setContracts(_C_NNRewardPool);
-    tx.wait();
-    console.log(`> [INIT] NNToken.setContracts()`);
-
-    tx = await NNRewardPool.setContracts(_C_NestToken, _C_NNToken, _C_NestPool, _C_NestMining);
-    tx.wait();
-    console.log(`> [INIT] NNRewardPool.setContracts()`);
-
-    tx = await NTokenController.setContracts(_C_NestToken, _C_NestPool);
-    tx.wait();
-    console.log(`> [INIT] NTokenController.setContracts()`);
-
-    tx = await NestQuery.setContracts(_C_NestToken, _C_NestMining, _C_NestStaking, _C_NestPool, deployer.address);
-    tx.wait();
-    console.log(`> [INIT] NestQuery.setContracts()`);
 
 }
 
 exports.checkDeployment = async function (deployer, contractsOfNest, userA, userB) {
 
     console.log(`> [INIT]: Starting to check Nest-Protocol v3.5 ...`);
-
-    console.log(`> [INFO]: deployer         =${deployer.address}`);
-    console.log(`> [INFO]: NN               =${contractsOfNest.NN}`);
-    console.log(`> [INFO]: NestToken        =${contractsOfNest.NEST}`);
-    console.log(`> [INFO]: NestPool         =${contractsOfNest.NestPool}`);
-    console.log(`> [INFO]: NestMining       =${contractsOfNest.NestMining}`);
-    console.log(`> [INFO]: NestStaking      =${contractsOfNest.NestStaking}`);
-    console.log(`> [INFO]: NNRewardPool     =${contractsOfNest.NNRewardPool}`);
-    console.log(`> [INFO]: NTokenController =${contractsOfNest.NTokenController}`);
-    console.log(`> [INFO]: NestQuery        =${contractsOfNest.NestQuery}`);
 
     CUSDT = await ethers.getContractAt("UERC20", contractsOfNest.USDT);
 
@@ -475,6 +398,7 @@ exports.checkDeployment = async function (deployer, contractsOfNest, userA, user
     NNRewardPool = await ethers.getContractAt("NNRewardPool", contractsOfNest.NNRewardPool);
     NTokenController = await ethers.getContractAt("NTokenController", contractsOfNest.NTokenController);
     NestQuery = await ethers.getContractAt("NestQuery", contractsOfNest.NestQuery);
+    NestDAO = await ethers.getContractAt("NestDAO", contractsOfNest.NestDAO);
     NestMining = await ethers.getContractAt("NestMiningV1", contractsOfNest.NestMining, 
         {
             libraries: {

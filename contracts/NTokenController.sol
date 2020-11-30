@@ -31,9 +31,9 @@ contract NTokenController is  ReentrancyGuard {
     uint8  public flag;
     
     /// @dev Contract address of NestPool
-    address private _C_NestPool;
+    address private C_NestPool;
     /// @dev Contract address of NestToken
-    address private _C_NestToken;
+    address private C_NestToken;
 
     /// @dev A struct for an ntoken
     ///     size: 2 x 256bit
@@ -66,10 +66,11 @@ contract NTokenController is  ReentrancyGuard {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor() public 
+    constructor(address NestPool) public 
     {
         governance = msg.sender;
         flag = 1;
+        C_NestPool = NestPool;
     }
 
     modifier noContract() 
@@ -81,6 +82,15 @@ contract NTokenController is  ReentrancyGuard {
     modifier whenOpenPairAllowed() 
     {
         require(flag & 0x1 != 0, "Nest:NTC:!flag");
+        _;
+    }
+
+    modifier onlyGovOrBy(address _account)
+    {
+        if (msg.sender != governance) { 
+            require(msg.sender == _account,
+                "Nest:NTC:!Auth");
+        }
         _;
     }
 
@@ -98,17 +108,9 @@ contract NTokenController is  ReentrancyGuard {
     }
 
     /// @dev  It should be called immediately after the depolyment
-    function setContracts(
-        address _NestToken, 
-        address _NestPool
-    ) public onlyGovernance 
+    function loadContracts() external onlyGovOrBy(C_NestPool) 
     {
-        if (_NestToken != address(0)) {
-            _C_NestToken = _NestToken;
-        }
-        if (_NestPool != address(0)) {
-            _C_NestPool = _NestPool;
-        }
+        C_NestToken = INestPool(C_NestPool).addrOfNestToken();
     }
 
     function setFlag(uint8 newFlag) external onlyGovernance
@@ -134,14 +136,14 @@ contract NTokenController is  ReentrancyGuard {
     /// @param amount  The amount of NEST tokens 
     function withdrawNest(address to, uint256 amount) external onlyGovernance
     {
-       require(ERC20(_C_NestToken).transfer(to, amount), "transfer");
+       require(ERC20(C_NestToken).transfer(to, amount), "transfer");
     }
 
     /// @dev  The balance of NEST
     /// @return  The amount of NEST tokens for this contract
     function balanceNest() external view returns (uint256) 
     {
-        return ERC20(_C_NestToken).balanceOf(address(this));
+        return ERC20(C_NestToken).balanceOf(address(this));
     }
 
     /* ========== OPEN ========== */
@@ -154,7 +156,7 @@ contract NTokenController is  ReentrancyGuard {
         noContract 
         whenOpenPairAllowed
     {
-        require(INestPool(_C_NestPool).getNTokenFromToken(token) == address(0x0), 
+        require(INestPool(C_NestPool).getNTokenFromToken(token) == address(0x0), 
             "Nest:NTC:EX(token)");
         require(nTokenTagList[token].state == 0, 
             "Nest:NTC:DIS(token)");
@@ -183,13 +185,13 @@ contract NTokenController is  ReentrancyGuard {
                 getAddressStr(ntokenCounter)), 
                 strConcat("N", getAddressStr(ntokenCounter)), 
                 address(governance),
-                // NOTE: here `bidder`, we use `_C_NestPool` to separate new NTokens 
+                // NOTE: here `bidder`, we use `C_NestPool` to separate new NTokens 
                 //   from old ones, whose bidders are the miners creating NTokens
-                address(_C_NestPool)
+                address(C_NestPool)
         );
 
         ntokenCounter = ntokenCounter + 1;  // safe math
-        INestPool(_C_NestPool).setNTokenToToken(token, address(nToken));
+        INestPool(C_NestPool).setNTokenToToken(token, address(nToken));
 
         tokenERC20.safeTransferFrom(address(msg.sender), address(this), 1);
         require(tokenERC20.balanceOf(address(this)) >= 1, 
@@ -197,7 +199,7 @@ contract NTokenController is  ReentrancyGuard {
         tokenERC20.safeTransfer(address(msg.sender), 1);
         require(isNToken == false, "Nest:NTC:(ntoken)!");
 
-        require(ERC20(_C_NestToken).transferFrom(address(msg.sender), address(this), _nestAmount), 
+        require(ERC20(C_NestToken).transferFrom(address(msg.sender), address(this), _nestAmount), 
             "Nest:NTC:!DEPO(nest)");
 
         // raise an event

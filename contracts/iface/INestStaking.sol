@@ -39,6 +39,9 @@ interface INestStaking {
     /// @param ntoken The address of NToken
     function addETHReward(address ntoken) external payable;
 
+    /// @dev Only for governance
+    function loadContracts() external; 
+
     // Events
     event RewardAdded(address ntoken, address sender, uint256 reward);
     event NTokenStaked(address ntoken, address indexed user, uint256 amount);

@@ -44,7 +44,10 @@ interface INestPool {
     function addrOfNestMining() external view returns (address);
     function addrOfNTokenController() external view returns (address);
     function addrOfNNRewardPool() external view returns (address);
+    function addrOfNNToken() external view returns (address);
     function addrOfNestStaking() external view returns (address);
+    function addrOfNestQuery() external view returns (address);
+    function addrOfNestDAO() external view returns (address);
 
     function addressOfBurnedNest() external view returns (address);
 

@@ -9,6 +9,7 @@ const {usdtdec, wbtcdec, nestdec, ethdec,
 const {deployUSDT, deployWBTC, deployNN, 
     deployNEST, 
     deployNestProtocol, 
+    printContractsOfNest,
     setupNest} = require("../scripts/deploy.js");
 
 
@@ -49,40 +50,24 @@ describe("NNRewardPool contract", function () {
         [NestToken, IterableMapping] = await deployNEST();
         NNToken = await deployNN();
         let contracts = {
-            CUSDT: CUSDT, 
-            CWBTC: CWBTC, 
+            USDT: CUSDT, 
+            WBTC: CWBTC, 
             NEST: NestToken, 
             IterableMapping: IterableMapping,
             NN: NNToken}; 
-        let CNest = await deployNestProtocol(owner, contracts);
-        
-        NestPool = CNest.NestPool;
-        MiningV1Calc = CNest.MiningV1Calc;
-        MiningV1Op = CNest.MiningV1Op;
-        NestMining = CNest.NestMining;
-        NestStaking = CNest.NestStaking;
-        NNRewardPool = CNest.NNRewardPool;
-        NTokenController = CNest.NTokenController;
-        NestQuery = CNest.NestQuery;
-    
-        let contractsOfNest = {
-            USDT: CUSDT.address,
-            WBTC: CWBTC.address,
-            NEST: NestToken.address, 
-            IterableMapping: IterableMapping.address,
-            NN: NNToken.address,
-            NestPool: NestPool.address,
-            MiningV1Calc: MiningV1Calc.address,
-            MiningV1Op: MiningV1Op.address,
-            NestMining: NestMining.address,
-            NestStaking: NestStaking.address, 
-            NNRewardPool: NNRewardPool.address,
-            NTokenController: NTokenController.address,
-            NestQuery: NestQuery.address
-        }
+        const addrOfNest = await deployNestProtocol(owner, contracts);
+        printContractsOfNest(owner, addrOfNest);
+        await setupNest(owner, addrOfNest);
 
-        await setupNest(owner, contractsOfNest);
-
+        NestPool = contracts.NestPool;
+        MiningV1Calc = contracts.MiningV1Calc;
+        MiningV1Op = contracts.MiningV1Op;
+        NestMining = contracts.NestMining;
+        NestStaking = contracts.NestStaking;
+        NNRewardPool = contracts.NNRewardPool;
+        NTokenController = contracts.NTokenController;
+        NestQuery = contracts.NestQuery;
+        NestDAO = contracts.NestDAO;
 
         _C_USDT = CUSDT.address;
         _C_WBTC = CWBTC.address;
@@ -94,6 +79,7 @@ describe("NNRewardPool contract", function () {
         _C_NNToken = NNToken.address;
         _C_NTokenController = NTokenController.address;
         _C_NestQuery = NestQuery.address;
+        _C_NestDAO = NestDAO.address;
 
     });
 

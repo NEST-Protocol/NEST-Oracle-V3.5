@@ -5,7 +5,7 @@ const {deployUSDT, deployWBTC, deployNN,
     deployNestProtocol,
     deployNestProtocolWithProxy, 
     upgradeNestMiningWithProxy,
-    setupNest} = require("../test/deploy.js");
+    setupNest} = require("./deploy.js");
 
 const contractsDeployed = {
     USDT: "0xccA9728291bC98ff4F97EF57Be3466227b0eb06C",
