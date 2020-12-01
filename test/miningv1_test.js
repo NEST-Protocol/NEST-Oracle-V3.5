@@ -224,7 +224,7 @@ describe("NestToken contract", function () {
             await NestMining.stat(_C_USDT);
             const price = await NestMining.priceAvgAndSigmaOf(_C_USDT);
 
-            console.log(`[INFO] price=${show_64x64(price[0])} avg=${show_64x64(price[1])}, sigma=${show_64x64(price[2])}, height=${price[3]}}`);
+            console.log(`[INFO] price=${price[0]}, avg=${price[1]}, sigma=${show_64x64(price[2])}, height=${price[3]}}`);
         }); 
 
         it("should post a price sheet for NWBTC", async () => {

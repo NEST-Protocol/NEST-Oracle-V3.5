@@ -233,7 +233,7 @@ library MiningV1Calc {
             _curr = uint256(_sheet.height);
             if (_prev == 0) {
                 if (_curr + state.priceDurationBlock < block.number) {
-                    data[_index] = uint128(_curr);
+                    data[_index] = uint128(_curr + state.priceDurationBlock); // safe math
                     _ethNum = uint256(_sheet.remainNum);
                     data[_index + 1] = uint128(_ethNum.mul(1 ether));
                     data[_index + 2] = uint128(_ethNum.mul(_sheet.tokenAmountPerEth));
@@ -249,7 +249,7 @@ library MiningV1Calc {
                 if (_index >= uint256(num * 3)) {
                     break;
                 }
-                data[_index] = uint128(_curr);
+                data[_index] = uint128(_curr + state.priceDurationBlock); // safe math
                 _ethNum = uint256(_sheet.remainNum);
                 data[_index + 1] = uint128(_ethNum.mul(1 ether));
                 data[_index + 2] = uint128(_ethNum.mul(_sheet.tokenAmountPerEth));

@@ -256,7 +256,6 @@ contract NestMiningV1 {
         return state.governance;
     }
 
-
     function parameters() view external 
         returns (Params memory params)
     {
@@ -660,6 +659,7 @@ contract NestMiningV1 {
                 break;
             }
         }
+        blockNum = blockNum + uint256(state.priceDurationBlock); // safe math
     }
 
     /// @dev It shouldn't be read from any contracts other than NestQuery
@@ -671,7 +671,7 @@ contract NestMiningV1 {
     {
         MiningV1Data.PriceInfo memory pi = state.priceInfo[token];
         require(pi.height > 0, "Nest:Mine:NO(price)");
-        return (uint256(pi.ethNum).mul(1 ether), pi.tokenAmount, pi.height);
+        return (uint256(pi.ethNum).mul(1 ether), pi.tokenAmount, pi.height + state.priceDurationBlock);
     }
 
     /// @dev It shouldn't be read from any contracts other than NestQuery
@@ -685,7 +685,7 @@ contract NestMiningV1 {
         require(pi.height > 0, "Nest:Mine:NO(price)");
         int128 v = ABDKMath64x64.sqrt(ABDKMath64x64.abs(pi.volatility_sigma_sq));
         int128 p = ABDKMath64x64.divu(uint256(pi.tokenAmount), uint256(pi.ethNum));
-        return (p, pi.avgTokenAmount, v, uint256(pi.height));
+        return (p, pi.avgTokenAmount, v, uint256(pi.height) + state.priceDurationBlock);
     }
 
     function priceOfTokenAtHeight(address token, uint64 atHeight) 
@@ -768,11 +768,10 @@ contract NestMiningV1 {
 
     /* ========== WITHDRAW ========== */
 
-    function withdrawEthAndTokenAndNest(uint256 ethAmount, address token, uint256 tokenAmount, uint256 nestAmount) 
+    function withdrawEth(uint256 ethAmount) 
         external nonReentrant
     {
-        INestPool(state.C_NestPool).withdrawEthAndToken(address(msg.sender), ethAmount, token, tokenAmount); 
-        INestPool(state.C_NestPool).withdrawNest(address(msg.sender), nestAmount);
+        INestPool(state.C_NestPool).withdrawEth(address(msg.sender), ethAmount); 
     }
 
     function withdrawEthAndToken(uint256 ethAmount, address token, uint256 tokenAmount) 
@@ -785,6 +784,13 @@ contract NestMiningV1 {
         external nonReentrant
     {
         INestPool(state.C_NestPool).withdrawNest(address(msg.sender), nestAmount); 
+    }
+
+    function withdrawEthAndTokenAndNest(uint256 ethAmount, address token, uint256 tokenAmount, uint256 nestAmount) 
+        external nonReentrant
+    {
+        INestPool(state.C_NestPool).withdrawEthAndToken(address(msg.sender), ethAmount, token, tokenAmount); 
+        INestPool(state.C_NestPool).withdrawNest(address(msg.sender), nestAmount);
     }
 
     /* ========== VIEWS ========== */
