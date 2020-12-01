@@ -14,24 +14,29 @@ const contractsDeployed_localhost = require("./.contracts_localhost.js");
 const contractsDeployed_kovan = require("./.contracts_kovan.js");
 
 
-async function main(network) {
+async function main() {
 
-    addrList = contractsDeployed_localhost;
-    
+    const addrList = function () {
+        if (network.name === "localhost") {
+            return contractsDeployed_localhost;
+        } else if (network.name === "kovan") {
+            return contractsDeployed_kovan;
+        }
+    } ();    
     [owner, userA, userB, userC, userD, dev, NNodeA, NNodeB] = await ethers.getSigners();
 
     const contracts = await getContractsFromAddrList(addrList);
 
-    const CUSDT = contracts.CUSDT;
-    const NestToken = contracts.NestToken;
-    const NestPool = contracts.NestPool;
+    // const CUSDT = contracts.CUSDT;
+    // const NestToken = contracts.NestToken;
+    // const NestPool = contracts.NestPool;
     const NestMining = contracts.NestMining;
-    const NestStaking = contracts.NestStaking;
-    const NTokenController = contracts.NTokenController;
-    const NNToken = contracts.NNToken;
-    const NNRewardPool = contracts.NNRewardPool;
-    const NestQuery = contracts.NestQuery;
-    const NestDAO = contracts.NestDAO;
+    // const NestStaking = contracts.NestStaking;
+    // const NTokenController = contracts.NTokenController;
+    // const NNToken = contracts.NNToken;
+    // const NNRewardPool = contracts.NNRewardPool;
+    // const NestQuery = contracts.NestQuery;
+    // const NestDAO = contracts.NestDAO;
 
     console.log(`> [INIT]: Starting to upgrade Nest-Protocol v3.5 ...`);
 

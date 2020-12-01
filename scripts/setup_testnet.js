@@ -14,8 +14,14 @@ const contractsDeployed_kovan = require("./.contracts_kovan.js");
 
 async function main(network) {
 
-    addrList = contractsDeployed_localhost;
-    
+    const addrList = function () {
+        if (network.name === "localhost") {
+            return contractsDeployed_localhost;
+        } else if (network.name === "kovan") {
+            return contractsDeployed_kovan;
+        }
+    } ();
+
     [owner, userA, userB, userC, userD, dev, NNodeA, NNodeB] = await ethers.getSigners();
 
 
