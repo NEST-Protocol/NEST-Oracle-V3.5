@@ -14,6 +14,8 @@ import "../iface/INToken.sol";
 import "../iface/INNRewardPool.sol";
 import "../libminingv1/MiningV1Data.sol";
 
+//import "hardhat/console.sol";
+
 /// @title  NestMiningV1/MiningV1Calc
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
 /// @author Paradox  - <paradox@nestprotocol.org>
@@ -43,7 +45,6 @@ library MiningV1Op {
         MiningV1Data.PriceSheet memory _sheet = state.priceSheetList[token][index]; 
         require(_sheet.height + state.priceDurationBlock > block.number, "Nest:Mine:!EFF(sheet)");
         require(_sheet.remainNum >= biteNum, "Nest:Mine:!(remain)");
-
         INestPool _C_NestPool = INestPool(state.C_NestPool);
 
         uint256 _state = uint256(_sheet.state);
@@ -59,14 +60,13 @@ library MiningV1Op {
             } else if (_sheet.typ == MiningV1Data.PRICESHEET_TYPE_NEST || _sheet.typ == MiningV1Data.PRICESHEET_TYPE_NTOKEN) {
                 nToken = token;
             }
-
             uint256 _ethFee = biteNum.mul(1 ether).mul(state.biteFeeRate).div(1000);
 
             // save the changes into miner's virtual account
             _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
             INestStaking(state.C_NestStaking).addETHReward{value:_ethFee}(nToken);
         }
-
+ 
         // post a new price sheet
         { 
             // check bitting conditions

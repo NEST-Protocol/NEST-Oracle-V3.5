@@ -1,7 +1,5 @@
-
-const {usdtdec, wbtcdec, nestdec, ethdec, 
-    ETH, USDT, WBTC, MBTC, NEST, BigNum, 
-    show_eth, show_usdt, show_64x64, timeConverter} = require("./utils.js");
+const  contractsDeployed_localhost = require("./.contracts_deployed_localhost.js");
+const  contractsDeployed_kovan = require("./.contracts_deployed_kovan.js");
 
 const {deployUSDT, deployWBTC, deployNN, 
     deployNEST, 
@@ -18,11 +16,9 @@ async function main(network) {
     
     [owner, userA, userB, userC, userD, dev, NNodeA, NNodeB] = await ethers.getSigners();
 
-    console.log(`> [INIT]: Starting to setup Nest-Protocol v3.5 ...`);
 
     const contracts = await getContractsFromAddrList(addrList);
 
-    const CUSDT = contracts.CUSDT;
     const NestToken = contracts.NestToken;
     const NestPool = contracts.NestPool;
     const NestMining = contracts.NestMining;

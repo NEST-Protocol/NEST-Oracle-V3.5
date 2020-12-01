@@ -355,14 +355,12 @@ contract NestPool is INestPool {
     {
         mapping(address => uint256) storage _nest_ledger = _token_ledger[address(C_NestToken)];
 
-        require (amount > 0, "Nest:Pool:(amount)=0");
         _nest_ledger[miner] = _nest_ledger[miner].add(amount);
     }
 
     function addNToken(address miner, address ntoken, uint256 amount) 
         override public onlyGovOrBy(C_NestMining)
     {
-        require (amount > 0, "Reward amount should be greater than zero");
         _token_ledger[ntoken][miner] = _token_ledger[ntoken][miner].add(amount);
     }
 
