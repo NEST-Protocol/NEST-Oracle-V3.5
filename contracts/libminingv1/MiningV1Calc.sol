@@ -53,21 +53,21 @@ library MiningV1Calc {
         return (_new_sigma_sq, _new_ut_sq);
     }
 
-    function _calcAvg(uint256 ethA, uint256 tokenA, int128 _avg) 
+    function _calcAvg(uint256 ethA, uint256 tokenA, uint256 _avg) 
         private 
         pure
-        returns(int128)
+        returns(uint256)
     {
-        int128 _newP = ABDKMath64x64.div(ABDKMath64x64.fromUInt(tokenA),
-                                        ABDKMath64x64.fromUInt(ethA));
-        int128 _newAvg;
+        uint256 _newP = tokenA.div(ethA);
+        uint256 _newAvg;
 
         if (_avg == 0) {
             _newAvg = _newP;
         } else {
-            _newAvg = ABDKMath64x64.add(
-                ABDKMath64x64.mul(ABDKMath64x64.divu(95, 100), _avg),
-                ABDKMath64x64.mul(ABDKMath64x64.divu(5,100), _newP));
+            _newAvg = (_avg.mul(95).div(100)).add(_newP.mul(5).div(100));
+            // _newAvg = ABDKMath64x64.add(
+            //     ABDKMath64x64.mul(ABDKMath64x64.divu(95, 100), _avg),
+            //     ABDKMath64x64.mul(ABDKMath64x64.divu(5,100), _newP));
         }
 
         return _newAvg;
@@ -84,12 +84,12 @@ library MiningV1Calc {
     {
         uint256 i = p0.index + 1;
         if (i >= pL.length) {
-            return (MiningV1Data.PriceInfo(0,0,0,0,0,int128(0),int128(0), int128(0), 0));
+            return (MiningV1Data.PriceInfo(0,0,0,0,0,int128(0),int128(0), uint128(0), 0));
         }
 
         uint256 h = uint256(pL[i].height);
         if (h + priceDurationBlock >= block.number) {
-            return (MiningV1Data.PriceInfo(0,0,0,0,0,int128(0),int128(0), int128(0), 0));
+            return (MiningV1Data.PriceInfo(0,0,0,0,0,int128(0),int128(0), uint128(0), 0));
         }
 
         uint256 ethA1 = 0;
@@ -115,7 +115,7 @@ library MiningV1Calc {
                     uint32(0),  // tokenAmount
                     int128(0),  // volatility_sigma_sq
                     int128(0),  // volatility_ut_sq
-                    int128(0),  // avgTokenAmount
+                    uint128(0),  // avgTokenAmount
                     0           // _reserved2
             ));
         }
@@ -130,7 +130,7 @@ library MiningV1Calc {
                 i - p0.index);
             }
         }
-        int128 _newAvg = _calcAvg(ethA1, tokenA1, p0.avgTokenAmount); 
+        uint256 _newAvg = _calcAvg(ethA1, tokenA1, p0.avgTokenAmount); 
 
         return(MiningV1Data.PriceInfo(
                 uint32(i),          // index
@@ -140,7 +140,7 @@ library MiningV1Calc {
                 uint128(tokenA1),   // tokenAmount
                 new_sigma_sq,       // volatility_sigma_sq
                 new_ut_sq,          // volatility_ut_sq
-                _newAvg,            // avgTokenAmount
+                uint128(_newAvg),   // avgTokenAmount
                 uint128(0)          // _reserved2
         ));
     }
@@ -162,7 +162,7 @@ library MiningV1Calc {
             p0.height = _sheet.height;
             p0.volatility_sigma_sq = 0;
             p0.volatility_ut_sq = 0;
-            p0.avgTokenAmount = ABDKMath64x64.fromUInt(_sheet.tokenAmountPerEth);
+            p0.avgTokenAmount = uint128(_sheet.tokenAmountPerEth);
             state.priceInfo[token] = p0;
         }
 

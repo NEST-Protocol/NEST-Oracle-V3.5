@@ -22,12 +22,15 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     using SafeMath for uint256;
 
     /// @dev  The flag of staking global state
-    ///     bits[0]: open 
-    ///     bits[1]: staking 
-    ///     bits[2]: unstaking  
-    ///     bits[3]: claiming 
-    ///     bits[4]: reward
-    uint8 private _state; 
+    int8 public flag;       // = 0: uninitialized
+                            // = 1: active
+                            // = 2: withdraw forbidden
+                            // = -1: paused 
+
+    int8 constant STAKING_FLAG_UNINITIALIZED    = 0;
+    int8 constant STAKING_FLAG_ACTIVE           = 1;
+    int8 constant STAKING_FLAG_NO_STAKING       = 2;
+    int8 constant STAKING_FLAG_PAUSED           = -1;
     
     /// @dev The percentage of dividends 
     ///      - 80% to Nest/NToken holders as dividend
@@ -80,15 +83,17 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     //     C_NestToken = _nestToken;
     //     C_NestPool = NestPool;
     //     governance = msg.sender;
-    //     _state = 0;
+    //     flag = 0;
     // }
 
     receive() external payable {}
 
-    function initialize(address NestPool) external {
+    function initialize(address NestPool) external 
+    {
+        require(flag == STAKING_FLAG_UNINITIALIZED, "Nest:Stak:!flag");
         governance = msg.sender;
         _dividend_share = 80;
-        _state = 0;
+        flag = STAKING_FLAG_ACTIVE;
         C_NestPool = NestPool;
     }
 
@@ -116,14 +121,21 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         governance = _newGov;
     }
 
-    function setState(uint8 _newSt) external onlyGovernance
+    function setFlag(int8 _newFlag) external onlyGovernance
     {
-        _state = _newSt;
+        flag = _newFlag;
     }
-    
-    function state() view external onlyGovernance returns (uint8)
+
+    /// @dev Stop service for emergency
+    function pause() external onlyGovernance
     {
-        return _state;
+        flag = STAKING_FLAG_PAUSED;
+    }
+
+    /// @dev Resume service 
+    function resume() external onlyGovernance
+    {
+        flag = STAKING_FLAG_ACTIVE;
     }
 
     function withdrawSavingByGov(address ntoken, address to, uint256 amount) 
@@ -131,8 +143,9 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         nonReentrant 
         onlyGovernance 
     {
+        require(flag == STAKING_FLAG_PAUSED, "Nest:Stak:!flag");
+
         _pending_saving_amount[ntoken] = _pending_saving_amount[ntoken].sub(amount);
-        //TransferHelper.safeTransferETH(to, amount);
 
         // must refresh WETH balance record after updating WETH balance
         // or lastRewardsTotal could be less than the newest WETH balance in the next update
@@ -270,7 +283,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         nonReentrant 
         updateReward(ntoken, msg.sender) 
     {
-        require(_state & 0x02 == 0, "Nest:Stak:!state");
+        require(flag == STAKING_FLAG_ACTIVE, "Nest:Stak:!flag");
         require(amount > 0, "Nest:Stak:!amount");
         _ntoken_staked_total[ntoken] = _ntoken_staked_total[ntoken].add(amount);
         _staked_balances[ntoken][msg.sender] = _staked_balances[ntoken][msg.sender].add(amount);
@@ -287,7 +300,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         nonReentrant 
         updateReward(ntoken, msg.sender) 
     {
-        require(_state & 0x02 == 0, "Nest:Stak:!state");
+        require(flag == STAKING_FLAG_ACTIVE, "Nest:Stak:!flag");
         require(amount > 0, "Nest:Stak:!amount");
         _ntoken_staked_total[ntoken] = _ntoken_staked_total[ntoken].add(amount);
         _staked_balances[ntoken][msg.sender] = _staked_balances[ntoken][msg.sender].add(amount);
@@ -302,7 +315,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         nonReentrant 
         updateReward(ntoken, msg.sender)
     {
-        require(_state & 0x04 == 0, "Nest:Stak:!state");
+        require(flag == STAKING_FLAG_ACTIVE, "Nest:Stak:!flag");
         require(amount > 0, "Nest:Stak:!amount");
         _ntoken_staked_total[ntoken] = _ntoken_staked_total[ntoken].sub(amount);
         _staked_balances[ntoken][msg.sender] = _staked_balances[ntoken][msg.sender].sub(amount);
@@ -319,7 +332,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         nonReentrant 
         updateReward(ntoken, msg.sender) 
     {
-        require(_state & 0x08 == 0, "Nest:Stak:!state");
+        require(flag == STAKING_FLAG_ACTIVE, "Nest:Stak:!flag");
         uint256 _reward = rewardBalances[ntoken][msg.sender];
         if (_reward > 0) {
             rewardBalances[ntoken][msg.sender] = 0;
@@ -340,11 +353,10 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     /* ========== INTER-CALLS ========== */
 
     function addETHReward(address ntoken) 
+        override 
         external 
         payable 
-        override 
     {
-        require(_state & 0x10 == 0, "Nest:Stak:!_state");
         // NOTE: no need to update reward here
         // support for sending ETH for rewards
         rewardsTotal[ntoken] = rewardsTotal[ntoken].add(msg.value); 

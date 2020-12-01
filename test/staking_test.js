@@ -8,7 +8,7 @@ const {usdtdec, wbtcdec, nestdec, ethdec,
 
 const {deployUSDT, deployWBTC, deployNN, 
     deployNEST, deployNestProtocol, 
-    printContractsOfNest,
+    printContracts,
     setupNest} = require("../scripts/deploy.js");
 
 let provider = ethers.provider;
@@ -41,7 +41,7 @@ describe("NestStaking contract", function () {
             IterableMapping: IterableMapping,
             NN: NNToken}; 
         const addrOfNest = await deployNestProtocol(owner, contracts);
-        printContractsOfNest(owner, addrOfNest);
+        await printContracts("", addrOfNest);
         await setupNest(owner, addrOfNest);
 
         NestPool = contracts.NestPool;
@@ -301,7 +301,9 @@ describe("NestStaking contract", function () {
             const fund_pre = await provider.getBalance(userB.address);
             const rewardsTotal_pre = await NestStaking.totalRewards(ntoken);
 
+            await NestStaking.pause();
             await NestStaking.connect(owner).withdrawSavingByGov(ntoken,userB.address,amount);
+            await NestStaking.resume();
 
             // record funds after transfer
             const fund_pos = await provider.getBalance(userB.address);

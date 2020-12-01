@@ -2,8 +2,12 @@
 const {deployUSDT, deployWBTC, deployNN, 
     deployNEST, 
     deployNestProtocol,
-    deployNestProtocolWithProxy, 
+    deployNestProtocolWithProxy, printContracts,
     setupNest} = require("./deploy.js");
+
+
+const contractsDeployed_localhost = require("./.contracts_localhost.js");
+const contractsDeployed_kovan = require("./.contracts_kovan.js");
 
 async function main(network) {
 
@@ -15,6 +19,8 @@ async function main(network) {
     NNToken = await deployNN();
     let contracts = {USDT: CUSDT, WBTC: CWBTC, NEST: NestToken, NN: NNToken, IterableMapping: IterableMapping}; 
     let addrOfNest = await deployNestProtocolWithProxy(owner, contracts);
+    printContracts("json", addrOfNest);
+
     // await setupNest(owner, CNest);
 }
 

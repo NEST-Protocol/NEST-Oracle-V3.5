@@ -1,16 +1,34 @@
 const { expect } = require("chai");
 const { WeiPerEther, BigNumber } = require("ethers");
-// const { time, balance, constants, expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
+const { time, balance, constants, expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
 
 const {usdtdec, wbtcdec, nestdec, ethdec, 
     ETH, USDT, WBTC, MBTC, NEST, BigNum, BigN,
-    show_eth, show_usdt, show_64x64} = require("./utils.js");
+    show_eth, show_usdt, show_64x64} = require("../scripts/utils.js");
 
-const {deployUSDT, deployWBTC, deployNN, deployNEST, deployNestProtocol, setupNest} = require("./deploy.js");
+const {deployUSDT, deployWBTC, deployNN, 
+    deployNEST, 
+    deployNestProtocol, 
+    printContracts,
+    setupNest} = require("../scripts/deploy.js");
+
+
+const advanceBlock = async (provider) => {
+    await provider.send("evm_mine");
+};
+
+const goBlocks = async function (provider, num) {
+    let block_h;
+    for (i = 0; i < num; i++) {
+        await advanceBlock(provider);
+    }
+    const h = await provider.getBlockNumber();
+    console.log(`>> [INFO] block mined +${num}, height=${h}`);
+};
 
 let provider = ethers.provider;
 
-describe("NestToken contract", function () {
+describe("NNRewardPool contract", function () {
     // Mocha has four functions that let you hook into the the test runner's
     // lifecyle. These are: `before`, `beforeEach`, `after`, `afterEach`.
 
@@ -19,7 +37,9 @@ describe("NestToken contract", function () {
     let userB;
     let userC;
     let userD;
-
+    let dev;
+    let NNodeA;
+    let NNodeB;
 
     before(async function () {
 
@@ -27,23 +47,28 @@ describe("NestToken contract", function () {
 
         CUSDT = await deployUSDT();
         CWBTC = await deployWBTC();
-        NestToken = await deployNEST();
+        [NestToken, IterableMapping] = await deployNEST();
         NNToken = await deployNN();
-        let contracts = {CUSDT: CUSDT, CWBTC: CWBTC, NestToken: NestToken, NN: NNToken}; 
-        let CNest = await deployNestProtocol(owner, contracts);
-        CNest.CUSDT = CUSDT;
-        CNest.CWBTC = CWBTC;
-        CNest.NestToken = NestToken;
-        CNest.NNToken = NNToken;
-        await setupNest(owner, CNest);
+        let contracts = {
+            USDT: CUSDT, 
+            WBTC: CWBTC, 
+            NEST: NestToken, 
+            IterableMapping: IterableMapping,
+            NN: NNToken}; 
+        const addrOfNest = await deployNestProtocol(owner, contracts);
+        await printContracts("", addrOfNest);
+        await setupNest(owner, addrOfNest);
 
-        NestPool = CNest.NestPool;
-        NestMining = CNest.NestMining;
-        NestStaking = CNest.NestStaking;
-        NNRewardPool = CNest.NNRewardPool;
-        NTokenController = CNest.NTokenController;
-        NestQuery = CNest.NestQuery;
-    
+        NestPool = contracts.NestPool;
+        MiningV1Calc = contracts.MiningV1Calc;
+        MiningV1Op = contracts.MiningV1Op;
+        NestMining = contracts.NestMining;
+        NestStaking = contracts.NestStaking;
+        NNRewardPool = contracts.NNRewardPool;
+        NTokenController = contracts.NTokenController;
+        NestQuery = contracts.NestQuery;
+        NestDAO = contracts.NestDAO;
+
         _C_USDT = CUSDT.address;
         _C_WBTC = CWBTC.address;
         _C_NestToken = NestToken.address;
@@ -54,19 +79,38 @@ describe("NestToken contract", function () {
         _C_NNToken = NNToken.address;
         _C_NTokenController = NTokenController.address;
         _C_NestQuery = NestQuery.address;
+        _C_NestDAO = NestDAO.address;
+
+        await NNToken.setContracts(_C_NNRewardPool);
+        console.log(`[INIT]: NNToken.setContracts()`);
+
+    });
+
+    describe('USDT Token', function () {
+
+        it("should transfer USDT(1,000,000) [1 million] | deployer===> userA", async () => {
+            await CUSDT.transfer(userA.address, USDT('1000000'));
+        });
+
+        it("should transfer USDT(1000000) [1 million] | deployer ===> userB", async () => {
+            await CUSDT.transfer(userB.address, USDT('1000000'));
+        });
+
+        it("should (userA) approve to NestPool USDT(1000000)", async () => {
+            await CUSDT.connect(userA).approve(_C_NestPool, USDT("1000000"));
+            const allowed_a = await CUSDT.allowance(userA.address, _C_NestPool);
+            expect(allowed_a).to.equal(USDT("1000000"));
+        });
+
+        it("should (userB) approve to NestPool USDT(1000000)", async () => {
+            await CUSDT.connect(userB).approve(_C_NestPool, USDT("1000000"));        
+            const allowed_b = await CUSDT.allowance(userB.address, _C_NestPool);
+            expect(allowed_b).to.equal(USDT("1000000"));
+        });
+
     });
 
     describe("Deployment", function () {
-
-        // // If the callback function is async, Mocha will `await` it.
-        // it("Should set the right owner", async function () {
-        //   // Expect receives a value, and wraps it in an assertion objet. These
-        //   // objects have a lot of utility methods to assert values.
-
-        //   // This test expects the owner variable stored in the contract to be equal
-        //   // to our Signer's owner.
-        //   expect(await NestToken.owner()).to.equal(owner.address);
-        // });
 
         it("should assign the total supply of tokens to the owner", async function () {
             const ownerBalance = await NestToken.balanceOf(owner.address);
@@ -146,24 +190,17 @@ describe("NestToken contract", function () {
         });
 
         it("can set NNRewardSum by the governer", async () => {
-            const amount = NEST(900);
+            const amount = NEST(300);
             await NNRewardPool.setNNRewardSum(amount);
+            const h = await NNRewardPool.NN_reward_sum();
+            console.log("h =",h.toString());
             expect(await NNRewardPool.NN_reward_sum()).to.equal(amount);
         });
 
         it("can set setNNRewardSumCheckpoint by the governer", async () => {
-            const amount = NEST(900);
+            const amount = NEST(300);
             await NNRewardPool.setNNRewardSumCheckpoint(userC.address, amount);
             expect(await NNRewardPool.NN_reward_sum_checkpoint(userC.address)).to.equal(amount);
-        });
-
-        it("can add NEST as rewards", async () => {
-            const amount = NEST(300);
-            const sum = await NNRewardPool.NN_reward_sum();
-            await expect(NNRewardPool.addNNReward(amount))
-                .to.emit(NNRewardPool, 'NNRewardAdded')
-                .withArgs(amount, amount.add(sum));
-            expect(await NNRewardPool.NN_reward_sum()).to.equal(amount.add(sum));
         });
 
         it("can set NNRewardSumCheckpoint by the governer", async () => {
@@ -174,54 +211,187 @@ describe("NestToken contract", function () {
 
         it("can check NEST unclaimed rewards", async () => {
             const amount = await NNRewardPool.connect(userD).unclaimedNNReward();
-            expect(amount).to.equal(NEST(800));
+            expect(amount).to.equal(NEST(200));
         });
         
-        it("can claim NEST rewards", async () => {
-            await NestPool.addNest(_C_NNRewardPool, NEST(1200));
-            await NNRewardPool.connect(userD).claimNNReward();
-            expect(await NNRewardPool.connect(userD).NN_reward_sum_checkpoint(userD.address)).to.equal(NEST(1200));
-            expect(await NestToken.balanceOf(userD.address)).to.equal(NEST(800));
+        // check updateNNReward function
+        it("should updateNNReward correctly!", async () =>{
+            const token = _C_USDT;
+            const tokenAmountPerEth = USDT(450);
+            const NTokenAmountPerEth = NEST(1000);
+            const msgValue = ETH(BigN(50));
+
+            await NestToken.transfer(userA.address, NEST('1000000'));
+            await NestToken.connect(userA).approve(_C_NTokenController, NEST('100000'));
+            await NestToken.connect(userA).approve(_C_NestPool, NEST('10000000'));
+
+            await CWBTC.transfer(userA.address, WBTC('10000'));
+            await CWBTC.connect(userA).approve(_C_NestPool, WBTC(10000));
+            await CWBTC.connect(userA).approve(_C_NTokenController, WBTC(1));
+
+            // post2 (in oreder to getting nest)
+            await NestMining.connect(userA).post2(token, 10, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
+
+            const NNRewardSum = await NNRewardPool.NN_reward_sum();
+            console.log("NNRewardSum =",NNRewardSum.toString());
+            
+            await NestMining.connect(userA).post2(token, 10, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
+            
+            await NNRewardPool.updateNNReward();
+
         });
 
+         // check claimNNReward function
+         it("can claim NEST rewards", async () => {         
+            const blnc_C = await NNToken.balanceOf(userC.address);
+            const blnc_D = await NNToken.balanceOf(userD.address);         
+            const total = BigN(blnc_C).add(blnc_D);
+            
+            // sum = NEST(1980);
+            const sum = await NNRewardPool.NN_reward_sum();
+            
+            const userD_checkpoint_pre = await NNRewardPool.NN_reward_sum_checkpoint(userD.address);
+            
+            // reward = NEST(1980);
+            const reward = sum.sub(userD_checkpoint_pre);
+            
+            const share = reward.mul(blnc_D).div(total);
+
+            // record funds before claimNNReward
+            const userD_balance_pre = await NestToken.balanceOf(userD.address);
+
+            // Charge to the nestpool to prevent insufficient funds from being transferred
+            await NestPool.addNest(_C_NNRewardPool, NEST(3000));
+            const nest_NNRewardPool_pre = await NestPool.balanceOfNestInPool(_C_NNRewardPool);
+
+            // claimNNReward
+            await NNRewardPool.connect(userD).claimNNReward();
+
+            // record funds before claimNNReward
+            const nest_NNRewardPool_pos = await NestPool.balanceOfNestInPool(_C_NNRewardPool);
+            console.log("nest_NNRewardPool_pos =",nest_NNRewardPool_pos.toString());
+
+            const userD_balance_pos = await NestToken.balanceOf(userD.address);
+
+            const userD_checkpoint_pos = await NNRewardPool.NN_reward_sum_checkpoint(userD.address);
+
+            
+            // check data
+            expect(nest_NNRewardPool_pre.sub(share)).to.equal(nest_NNRewardPool_pos);
+
+            expect(userD_checkpoint_pre).to.equal(0);
+
+            expect(userD_checkpoint_pos).to.equal(sum);
+
+            expect(userD_balance_pre.add(share)).to.equal(userD_balance_pos);
+        });
+ 
+        // check nodeCount function (fromAdd)
         it("can settle rewards when tranferring", async () => {
-            const nest_a_pre = await NestToken.balanceOf(userA.address);
+            //===============preparation====================//
+            const token = _C_USDT;
+            const tokenAmountPerEth = USDT(450);
+            const NTokenAmountPerEth = NEST(1000);
+            const msgValue = ETH(BigN(50));
+
+            // post2 (in oreder to getting nest)
+            await NestMining.connect(userA).post2(token, 10, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
+            //================================================//
+
+
+            const blnc_C = await NNToken.balanceOf(userC.address);
+            const blnc_D = await NNToken.balanceOf(userD.address);         
+            const total = BigN(blnc_C).add(blnc_D);
+            const nest_a_pre = await NestToken.balanceOf(userA.address);  
             const nest_d_pre = await NestToken.balanceOf(userD.address);
-            await NNRewardPool.addNNReward(NEST(1200));
-            await NestPool.addNest(_C_NNRewardPool, NEST(1200));
+            const sum_pre = await NNRewardPool.NN_reward_sum();
+        
+            // Charge to the nestpool to prevent insufficient funds from being transferred
+            await NestPool.addNest(_C_NNRewardPool, NEST(1000));
+
+            // run nodeCount function by transfer 
+            // userD (1000) => userA (0)
             await NNToken.connect(userD).transfer(userA.address, 500);
+
             const nest_a_post = await NestToken.balanceOf(userA.address);
             const nest_d_post = await NestToken.balanceOf(userD.address);
-            expect(nest_d_post.sub(nest_d_pre)).to.equal(NEST(800));
+            const sum_pos = await NNRewardPool.NN_reward_sum();
+            const fromReward = sum_pos.sub(sum_pre).mul(blnc_D).div(total);
+
+            expect(nest_d_post.sub(nest_d_pre)).to.equal(fromReward);
             expect(nest_a_post.sub(nest_a_pre)).to.equal(NEST(0));
         });
 
-        it("can settle rewards again when tranferring", async () => {
-            const NN_total_supply = await NNRewardPool.NN_total_supply();
-            const nest_a_pre = await NestToken.balanceOf(userA.address);
-            const nest_d_pre = await NestToken.balanceOf(userD.address);
-            const nn_a_pre = await NNToken.balanceOf(userA.address);
-            const nn_d_pre = await NNToken.balanceOf(userD.address);
-            const sum = await NNRewardPool.NN_reward_sum();
-            const cp_a = await NNRewardPool.NN_reward_sum_checkpoint(userA.address);
-            const cp_d = await NNRewardPool.NN_reward_sum_checkpoint(userD.address);
-            console.log(`pre a=${nest_a_pre.div(ethdec)}, d=${nest_d_pre.div(ethdec)}`);
-            
-            const reward = NEST(2400);
-            await NNRewardPool.addNNReward(reward);
-            await NestPool.addNest(_C_NNRewardPool, reward);
+        // check nodeCount function (toAdd)
+        it("can settle rewards again when tranferring", async () => {       
+            //===============preparation====================//
+            const token = _C_USDT;
+            const tokenAmountPerEth = USDT(450);
+            const NTokenAmountPerEth = NEST(1000);
+            const msgValue = ETH(BigN(50));
 
+            // post2 (in oreder to getting nest)
+            await goBlocks(provider, 50);
+            await NestMining.connect(userA).post2(token, 10, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
+            //=====================================================//
+            
+            // Charge to the nestpool to prevent insufficient funds from being transferred
+            const reward = NEST(3000);
+            await NestPool.addNest(_C_NNRewardPool, reward);
+            const sum_pre = await NNRewardPool.NN_reward_sum(); 
+            const blnc_A_pre = await NNToken.balanceOf(userA.address);
+            console.log("blnc_A_pre =",blnc_A_pre);
+            const blnc_C_pre = await NNToken.balanceOf(userC.address);   
+            const blnc_D_pre = await NNToken.balanceOf(userD.address);
+            const total = BigN(blnc_A_pre).add(blnc_C_pre).add(blnc_D_pre);
+            
+            const nest_A_pre = await NestToken.balanceOf(userA.address);
+            const nest_D_pre = await NestToken.balanceOf(userD.address);
+
+
+            // userA (500) => userD (500)
             await NNToken.connect(userA).transfer(userD.address, 500);
-            const nest_a_post = await NestToken.balanceOf(userA.address);
-            const nest_d_post = await NestToken.balanceOf(userD.address);
-            const nn_a_post = await NNToken.balanceOf(userA.address);
-            const nn_d_post = await NNToken.balanceOf(userD.address);
-            console.log(`post a=${nest_a_post.div(ethdec)}, d=${nest_d_post.div(ethdec)}`);
-            const reward_d = reward.add(sum).sub(cp_d).mul(nn_d_pre).div(NN_total_supply);
-            const reward_a= reward.add(sum).sub(cp_a).mul(nn_a_pre).div(NN_total_supply);
-            expect(nest_d_post.sub(nest_d_pre)).to.equal(reward_d);
-            expect(nest_a_post.sub(nest_a_pre)).to.equal(reward_a);
+
+            // record funds after transfer
+            const sum_pos = await NNRewardPool.NN_reward_sum();
+            const nest_A_pos = await NestToken.balanceOf(userA.address);
+            const nest_D_pos = await NestToken.balanceOf(userD.address);
+
+            const fromReward = sum_pos.sub(sum_pre).mul(blnc_A_pre).div(total);
+            const toReward = sum_pos.sub(sum_pre).mul(blnc_D_pre).div(total);
+
+            // fromReward
+            expect(nest_A_pos.sub(nest_A_pre)).to.equal(fromReward);
+            
+            // toREward
+            expect(nest_D_pos.sub(nest_D_pre)).to.equal(toReward);
         });
+
+        // check unclaimedNNReward function 
+        it("should unclaimedNNReward correctly!", async () =>{
+            await NNRewardPool.updateNNReward();
+
+            // record funds
+            const blnc_C = await NNToken.balanceOf(userC.address);
+            const sum = await NNRewardPool.NN_reward_sum();
+            const total = await NNRewardPool.NN_total_supply();
+            const userC_checkpoint_pos = await NNRewardPool.NN_reward_sum_checkpoint(userC.address);
+            const reward = sum.sub(userC_checkpoint_pos).mul(blnc_C).div(total);
+
+            const amountA = await NNRewardPool.connect(userA).unclaimedNNReward();
+
+            const amountC = await NNRewardPool.connect(userC).unclaimedNNReward();
+
+            const amountD = await NNRewardPool.connect(userD).unclaimedNNReward();
+            
+            expect(amountA).to.equal(0);
+
+            expect(amountC).to.equal(reward);
+            
+            expect(amountD).to.equal(0);
+
+        });
+
     });
 
 });

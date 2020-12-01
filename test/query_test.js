@@ -10,7 +10,7 @@ const {usdtdec, wbtcdec, nestdec, ethdec,
 const {deployUSDT, deployWBTC, deployNN, 
     deployNEST, 
     deployNestProtocol, 
-    printContractsOfNest,
+    printContracts,
     setupNest} = require("../scripts/deploy.js");
 
 // function toBN(value) {
@@ -60,7 +60,7 @@ describe("Nest Protocol", function () {
             IterableMapping: IterableMapping,
             NN: NNToken}; 
         const addrOfNest = await deployNestProtocol(owner, contracts);
-        printContractsOfNest(owner, addrOfNest);
+        printContracts("", addrOfNest);
         await setupNest(owner, addrOfNest);
 
         NestPool = contracts.NestPool;

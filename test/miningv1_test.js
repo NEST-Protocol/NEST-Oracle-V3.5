@@ -8,7 +8,7 @@ const {usdtdec, wbtcdec, nestdec, ethdec,
 
 const {deployUSDT, deployWBTC, deployNN, 
     deployNEST, deployNestProtocol, 
-    printContractsOfNest,
+    printContracts,
     setupNest} = require("../scripts/deploy.js");
 
 const ethTwei = BigNumber.from(10).pow(12);
@@ -93,7 +93,7 @@ describe("NestToken contract", function () {
             IterableMapping: IterableMapping,
             NN: NNToken}; 
         const addrOfNest = await deployNestProtocol(owner, contracts);
-        printContractsOfNest(owner, addrOfNest);
+        await printContracts("", addrOfNest);
         await setupNest(owner, addrOfNest);
 
         NestPool = contracts.NestPool;
