@@ -48,9 +48,7 @@ module.exports = {
     },*/
     kovan: {
       url: `https://eth-kovan.alchemyapi.io/v2/${config.alchemy.kovan.apiKey}`,
-      accounts: [config.account.kovan.key],
-      userA: [config.account.kovan.userA],
-      userB: [config.account.kovan.userB],
+      accounts: [config.account.kovan.key, config.account.kovan.userA, config.account.kovan.userB],
       gasPrice:10e9
     },
   },

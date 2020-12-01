@@ -1,5 +1,7 @@
-const  contractsDeployed_localhost = require("./.contracts_deployed_localhost.js");
-const  contractsDeployed_kovan = require("./.contracts_deployed_kovan.js");
+
+const {usdtdec, wbtcdec, nestdec, ethdec, 
+    ETH, USDT, WBTC, MBTC, NEST, BigNum, 
+    show_eth, show_usdt, show_64x64, timeConverter} = require("./utils.js");
 
 const {deployUSDT, deployWBTC, deployNN, 
     deployNEST, 
@@ -19,6 +21,7 @@ async function main(network) {
 
     const contracts = await getContractsFromAddrList(addrList);
 
+    const CUSDT = contracts.CUSDT;
     const NestToken = contracts.NestToken;
     const NestPool = contracts.NestPool;
     const NestMining = contracts.NestMining;

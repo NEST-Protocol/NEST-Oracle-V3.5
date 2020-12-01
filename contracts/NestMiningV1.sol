@@ -34,7 +34,13 @@ contract NestMiningV1 {
 
     uint8   public  flag;
     uint64  public  version; 
-    uint184 private _reserved; 
+    uint8   private _entrant_state; 
+    uint176   private _reserved; 
+
+
+    // NOTE: _NOT_ENTERED is set to ZERO such that it needn't constructor
+    uint8 private constant _NOT_ENTERED = 0;
+    uint8 private constant _ENTERED = 1;
 
     uint8 constant MINING_FLAG_UNINITIALIZED    = 0;
     uint8 constant MINING_FLAG_SETUP_NEEDED     = 1;
@@ -187,6 +193,20 @@ contract NestMiningV1 {
     {
         require(msg.sender == state.governance || msg.sender == _contract, "Nest:Mine:!sender");
         _;
+    }
+
+    modifier nonReentrant() {
+        // On the first call to nonReentrant, _notEntered will be true
+        require(_entrant_state != _ENTERED, "ReentrancyGuard: reentrant call");
+
+        // Any calls to nonReentrant after this point will fail
+        _entrant_state = _ENTERED;
+
+        _;
+
+        // By storing the original value once again, a refund is triggered (see
+        // https://eips.ethereum.org/EIPS/eip-2200)
+        _entrant_state = _NOT_ENTERED;
     }
 
     /* ========== GOVERNANCE ========== */
@@ -748,10 +768,23 @@ contract NestMiningV1 {
 
     /* ========== WITHDRAW ========== */
 
-
-    function withdrawEthAndToken(uint256 ethAmount, address token, uint256 tokenAmount) public noContract
+    function withdrawEthAndTokenAndNest(uint256 ethAmount, address token, uint256 tokenAmount, uint256 nestAmount) 
+        external nonReentrant
     {
         INestPool(state.C_NestPool).withdrawEthAndToken(address(msg.sender), ethAmount, token, tokenAmount); 
+        INestPool(state.C_NestPool).withdrawNest(address(msg.sender), nestAmount);
+    }
+
+    function withdrawEthAndToken(uint256 ethAmount, address token, uint256 tokenAmount) 
+        external nonReentrant
+    {
+        INestPool(state.C_NestPool).withdrawEthAndToken(address(msg.sender), ethAmount, token, tokenAmount); 
+    }
+
+    function withdrawNest(uint256 nestAmount) 
+        external nonReentrant
+    {
+        INestPool(state.C_NestPool).withdrawNest(address(msg.sender), nestAmount); 
     }
 
     /* ========== VIEWS ========== */
