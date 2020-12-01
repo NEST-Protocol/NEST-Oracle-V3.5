@@ -85,7 +85,20 @@ exports.goBlocks = async function (provider, num) {
         await provider.send("evm_mine");
     }
     const h = await provider.getBlockNumber();
-    console.log(`>> [INFO] block mined +${num}, height=${h}`);
+    console.log(`>>> [INFO] block mined +${num}, height=${h}`);
+}
+
+exports.waitBlocks = async function (provider, num) {
+    let block_h;
+    process.stdout.write(">>> [PROC] waiting blocks ");
+    for (i = 0; i < num; i++) {
+        provider.on("block", (blockNumber) => {
+            process.stdout.write(".");
+        })
+    }
+    process.stdout.write(">\n");
+    const h = await provider.getBlockNumber();
+    console.log(`>>> [INFO] block mined +${num}, height=${h}`);
 }
 
 exports.timeConverter = function (UNIX_timestamp) {
