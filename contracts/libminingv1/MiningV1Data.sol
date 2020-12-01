@@ -62,11 +62,12 @@ library MiningV1Data {
 
 
     uint8 constant STATE_FLAG_UNINITIALIZED    = 0;
-    uint8 constant STATE_FLAG_ACTIVE           = 1;
-    uint8 constant STATE_FLAG_MINING_STOPPED   = 2;
-    uint8 constant STATE_FLAG_CLOSING_STOPPED  = 3;
-    uint8 constant STATE_FLAG_WITHDRAW_STOPPED = 4;
-    uint8 constant STATE_FLAG_PRICE_STOPPED    = 5;
+    uint8 constant STATE_FLAG_SETUP_NEEDED     = 1;
+    uint8 constant STATE_FLAG_ACTIVE           = 3;
+    uint8 constant STATE_FLAG_MINING_STOPPED   = 4;
+    uint8 constant STATE_FLAG_CLOSING_STOPPED  = 5;
+    uint8 constant STATE_FLAG_WITHDRAW_STOPPED = 6;
+    uint8 constant STATE_FLAG_PRICE_STOPPED    = 7;
     uint8 constant STATE_FLAG_SHUTDOWN         = 127;
 
 
@@ -96,7 +97,7 @@ library MiningV1Data {
         uint128 tokenAmount;    //  the balance of token 
         int128  volatility_sigma_sq;
         int128  volatility_ut_sq;
-        int128  avgTokenAmount;
+        uint128  avgTokenAmount;
         uint128 _reserved2;     
     }
 

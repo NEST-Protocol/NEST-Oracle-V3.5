@@ -9,25 +9,11 @@ const {usdtdec, wbtcdec, nestdec, ethdec,
 const {deployUSDT, deployWBTC, deployNN, 
     deployNEST, 
     deployNestProtocol, 
-    printContractsOfNest,
+    printContracts,
     setupNest} = require("../scripts/deploy.js");
 
 
 const ethTwei = BigNumber.from(10).pow(12);
-
-function timeConverter(UNIX_timestamp){
-    var a = new Date(UNIX_timestamp * 1000);
-    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    var year = a.getFullYear();
-    var month = a.getMonth();
-    var date = a.getDate();
-    var hour = a.getHours();
-    var min = a.getMinutes();
-    var sec = a.getSeconds();
-    var time = year + "-" + month + "-" + date + " "+hour+":"+min+":"+sec;
-    return time;
-  }
-
 
 const advanceTime = async (provider, seconds) => {
     await provider.send("evm_increaseTime", [seconds]);
@@ -88,7 +74,7 @@ describe("NestToken contract", function () {
             IterableMapping: IterableMapping,
             NN: NNToken}; 
         const addrOfNest = await deployNestProtocol(owner, contracts);
-        printContractsOfNest(owner, addrOfNest);
+        await printContracts("", addrOfNest);
         await setupNest(owner, addrOfNest);
 
         NestPool = contracts.NestPool;

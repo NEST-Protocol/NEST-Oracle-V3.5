@@ -32,13 +32,29 @@ contract NestMiningV1 {
 
     address private C_NestPool;
 
+    uint8   public  flag;
+    uint64  public  version; 
+    uint184 private _reserved; 
+
+    uint8 constant MINING_FLAG_UNINITIALIZED    = 0;
+    uint8 constant MINING_FLAG_SETUP_NEEDED     = 1;
+    uint8 constant MINING_FLAG_ACTIVE           = 3;
+    // uint8 constant STATE_FLAG_MINING_STOPPED   = 4;
+    // uint8 constant STATE_FLAG_CLOSING_STOPPED  = 5;
+    // uint8 constant STATE_FLAG_WITHDRAW_STOPPED = 6;
+    // uint8 constant STATE_FLAG_PRICE_STOPPED    = 7;
+    // uint8 constant STATE_FLAG_SHUTDOWN         = 127;
+
     struct Params {
         uint8    miningEthUnit;     // = 10;
         uint32   nestStakedNum1k;   // = 1;
         uint8    biteFeeRate;       // = 1; 
         uint8    miningFeeRate;     // = 10;
+        uint8    priceDurationBlock; 
+        uint8    maxBiteNestedLevel; // = 3;
+        uint8    biteInflateFactor;
+        uint8    biteNestInflateFactor;
     }
-
 
     // /* ========== CONSTANTS ========== */
 
@@ -65,7 +81,7 @@ contract NestMiningV1 {
 
     function initialize(address NestPool) external 
     {
-        require(state.flag == MiningV1Data.STATE_FLAG_UNINITIALIZED);
+        require(flag == MINING_FLAG_UNINITIALIZED, "Nest:Mine:!flag");
 
         uint256 amount = MiningV1Data.MINING_NEST_YIELD_PER_BLOCK_BASE;
         for (uint i =0; i < 10; i++) {
@@ -82,8 +98,36 @@ contract NestMiningV1 {
         state.governance = msg.sender;
 
         state.version = 1;
-        state.flag = MiningV1Data.STATE_FLAG_ACTIVE;
+        flag = MINING_FLAG_SETUP_NEEDED;
         C_NestPool = NestPool;
+    }
+    /// @dev This function can only be called once immediately right after deployment
+    function setup(
+            uint32   genesisBlockNumber, 
+            uint128  latestMiningHeight,
+            uint128  minedNestTotalAmount,
+            Params calldata initParams
+        ) external onlyGovernance
+    {
+        require(flag == MINING_FLAG_SETUP_NEEDED, "Nest:Mine:!flag");
+        
+        state.miningEthUnit = initParams.miningEthUnit;
+        state.nestStakedNum1k = initParams.nestStakedNum1k;
+        state.biteFeeRate = initParams.biteFeeRate;    // 0.1%
+        state.miningFeeRate = initParams.miningFeeRate;  // 0.1% on testnet
+        state.priceDurationBlock = initParams.priceDurationBlock;  // 5 on testnet
+        state.maxBiteNestedLevel = initParams.maxBiteNestedLevel;  
+        state.biteInflateFactor = initParams.biteInflateFactor;   // 1 on testnet
+        state.biteNestInflateFactor = initParams.biteNestInflateFactor; // 1 on testnet
+
+        state.latestMiningHeight = latestMiningHeight;
+        state.minedNestAmount = minedNestTotalAmount;
+        
+        // genesisBlock = 6236588 on testnet or mainnet
+        state.genesisBlock = genesisBlockNumber;
+
+        flag = MINING_FLAG_ACTIVE;
+        version = uint64(block.number);
     }
 
     function init() external onlyGovernance
@@ -100,13 +144,12 @@ contract NestMiningV1 {
         state.genesisBlock = 1;  // for testing
 
         state.latestMiningHeight = uint128(block.number);
-        state.flag = MiningV1Data.STATE_FLAG_ACTIVE;
+        flag = MINING_FLAG_SETUP_NEEDED;
     }
 
-    function initOnMainnet(uint128 _minedNestAmount) external onlyGovernance
+    function incVersion() external onlyGovernance
     {
-        state.genesisBlock = 6236588;
-        state.minedNestAmount = _minedNestAmount;
+        version = uint64(block.number);
     }
 
     receive() external payable { }
@@ -178,15 +221,14 @@ contract NestMiningV1 {
         if (newParams.miningFeeRate != 0) {
             state.miningFeeRate = newParams.miningFeeRate;
         }
+
+        state.priceDurationBlock = newParams.priceDurationBlock;
+        state.maxBiteNestedLevel = newParams.maxBiteNestedLevel;
+        state.biteInflateFactor = newParams.biteInflateFactor;
+        state.biteNestInflateFactor = newParams.biteNestInflateFactor;
     }
 
     /* ========== HELPERS ========== */
-
-    function version() view public 
-        returns (uint256)
-    {
-        return uint256(state.version);
-    }
 
     function addrOfGovernance() view external
         returns (address) 
@@ -202,15 +244,12 @@ contract NestMiningV1 {
         params.nestStakedNum1k = state.nestStakedNum1k;
         params.biteFeeRate = state.biteFeeRate;
         params.miningFeeRate = state.miningFeeRate;
+        params.priceDurationBlock = state.priceDurationBlock;
+        params.maxBiteNestedLevel = state.maxBiteNestedLevel;
+        params.biteInflateFactor = state.biteInflateFactor;
+        params.biteNestInflateFactor = state.biteNestInflateFactor;
     }
 
-/*
-
-    function volatility(address token) public view returns (PriceInfo memory p) {
-        // TODO: no contract allowed
-        return priceInfo[token];
-    }
-*/
     /* ========== POST/CLOSE Price Sheets ========== */
 
 
@@ -416,6 +455,8 @@ contract NestMiningV1 {
             }
         }
 
+        stat(token);
+        stat(_ntoken);
         return; 
     }
 
@@ -618,7 +659,7 @@ contract NestMiningV1 {
         public 
         view 
         noContractExcept(state.C_NestQuery)
-        returns (int128, int128, int128, uint256) 
+        returns (int128, uint128, int128, uint256) 
     {
         MiningV1Data.PriceInfo memory pi = state.priceInfo[token];
         require(pi.height > 0, "Nest:Mine:NO(price)");
