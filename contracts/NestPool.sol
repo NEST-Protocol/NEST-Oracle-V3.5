@@ -156,6 +156,7 @@ contract NestPool is INestPool {
         onlyGovOrBy(C_NTokenController) 
     {
         _token_ntoken_mapping[token] = ntoken;
+        _token_ntoken_mapping[ntoken] = ntoken;
     }    
     /* ========== ONLY FOR EMERGENCY ========== */
 
@@ -288,7 +289,7 @@ contract NestPool is INestPool {
         override external onlyMiningContract 
     {
         uint256 blncs = _eth_ledger[miner];
-        require(blncs >= ethAmount, "Insufficient ethers in the pool");
+        require(blncs >= ethAmount, "Nest:Pool:!eth");
         _eth_ledger[miner] = blncs - ethAmount;  //safe_math: checked before
         _eth_ledger[address(this)] =  _eth_ledger[address(this)].add(ethAmount);
 
@@ -392,17 +393,9 @@ contract NestPool is INestPool {
 
     // NOTE: Guarded by onlyMiningContract
 
-    // function depositEthMiner(address miner, uint256 amount) 
-    //     override public onlyMiningContract 
-    // {
-    //     require(amount > 0, "deposit amount should >0");
-    //     _eth_ledger[miner] =  _eth_ledger[miner].add(amount);
-    // }
-
     function depositEth(address miner) 
-        override payable public onlyMiningContract 
+        override payable external onlyMiningContract 
     {
-        require(msg.value > 0, "deposit amount should >0");
         _eth_ledger[miner] =  _eth_ledger[miner].add(msg.value);
     }
 
