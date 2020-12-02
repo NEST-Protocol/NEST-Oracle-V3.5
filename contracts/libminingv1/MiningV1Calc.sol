@@ -214,9 +214,9 @@ library MiningV1Calc {
             address token, 
             uint8 num
         )
-        public 
+        external 
         view
-        returns (uint128[] memory data, uint256 atHeight) 
+        returns (uint128[] memory data, uint256 bn) 
     {
         MiningV1Data.PriceSheet[] storage _list = state.priceSheetList[token];
         uint256 len = _list.length;
@@ -237,7 +237,7 @@ library MiningV1Calc {
                     _ethNum = uint256(_sheet.remainNum);
                     data[_index + 1] = uint128(_ethNum.mul(1 ether));
                     data[_index + 2] = uint128(_ethNum.mul(_sheet.tokenAmountPerEth));
-                    atHeight = _curr;
+                    bn = _curr + state.priceDurationBlock;  // safe math
                     _prev = _curr;
                 }
             } else if (_prev == _curr) {
@@ -256,7 +256,7 @@ library MiningV1Calc {
                 _prev = _curr;
             }
         } 
-        require (data.length == uint256(num * 3), "Incorrect price list length");
+        // require (data.length == uint256(num * 3), "Incorrect price list length");
     }
 
 

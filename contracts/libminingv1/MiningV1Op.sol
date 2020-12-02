@@ -52,19 +52,15 @@ library MiningV1Op {
              || _state == MiningV1Data.PRICESHEET_STATE_BITTEN,  "Nest:Mine:!(state)");
 
         {
-            address nToken = token;
-            
-            if (_sheet.typ == MiningV1Data.PRICESHEET_TYPE_USD || _sheet.typ == MiningV1Data.PRICESHEET_TYPE_TOKEN) {
-                nToken = _C_NestPool.getNTokenFromToken(token);
-                require (nToken != address(0x0), "Nest:Mine:!(ntoken)");
-            } else if (_sheet.typ == MiningV1Data.PRICESHEET_TYPE_NEST || _sheet.typ == MiningV1Data.PRICESHEET_TYPE_NTOKEN) {
-                nToken = token;
-            }
+            address _ntoken = _C_NestPool.getNTokenFromToken(token);
             uint256 _ethFee = biteNum.mul(1 ether).mul(state.biteFeeRate).div(1000);
 
             // save the changes into miner's virtual account
-            _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
-            INestStaking(state.C_NestStaking).addETHReward{value:_ethFee}(nToken);
+            if (msg.value.sub(_ethFee) > 0) {
+                _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
+            }
+            // pump fee into staking pool
+            INestStaking(state.C_NestStaking).addETHReward{value:_ethFee}(_ntoken);
         }
  
         // post a new price sheet
@@ -153,24 +149,20 @@ library MiningV1Op {
             || _state == MiningV1Data.PRICESHEET_STATE_BITTEN,  "Nest:Mine:!(state)");
 
         {
-            address nToken = token;
-            
-            if (_sheet.typ == MiningV1Data.PRICESHEET_TYPE_USD 
-                    || _sheet.typ == MiningV1Data.PRICESHEET_TYPE_TOKEN) {
-                nToken = _C_NestPool.getNTokenFromToken(token);
-                require (nToken != address(0x0), "Nest:Mine:!(ntoken)");
-            } else if (_sheet.typ == MiningV1Data.PRICESHEET_TYPE_NEST || _sheet.typ == MiningV1Data.PRICESHEET_TYPE_NTOKEN) {
-                nToken = token;
-            }
+            address _ntoken = _C_NestPool.getNTokenFromToken(token);
 
             uint256 _ethFee = biteNum.mul(1 ether).mul(state.biteFeeRate).div(1000);
 
             // save the changes into miner's virtual account
-            _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
-            INestStaking(state.C_NestStaking).addETHReward{value:_ethFee}(nToken);
+            if (msg.value.sub(_ethFee) > 0) {
+                _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
+            }
+
+            // pump fee into staking pool
+            INestStaking(state.C_NestStaking).addETHReward{value:_ethFee}(_ntoken);
         }
         
-       // post a new price sheet
+        // post a new price sheet
         { 
             // check bitting conditions
             uint256 _newEthNum;

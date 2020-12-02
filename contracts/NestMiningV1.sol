@@ -15,6 +15,7 @@ import "./lib/ABDKMath64x64.sol";
 import "./iface/INestPool.sol";
 import "./iface/INestStaking.sol";
 import "./iface/INTokenLegacy.sol";
+import "./iface/INestMining.sol";
 
 // import "hardhat/console.sol";
 
@@ -271,9 +272,8 @@ contract NestMiningV1 {
 
     /* ========== POST/CLOSE Price Sheets ========== */
 
-
-    /// @notice Post a price sheet for TOKEN
-    /// @dev  It is for TOKEN (except USDx)
+/*
+    /// @dev  Obselete!
     /// @param token The address of TOKEN contract
     /// @param ethNum The numbers of ethers to post sheets
     /// @param tokenAmountPerEth The price of TOKEN
@@ -282,7 +282,7 @@ contract NestMiningV1 {
             uint256 ethNum, 
             uint256 tokenAmountPerEth
         )
-        external 
+        internal 
         payable 
         noContract
     {
@@ -348,8 +348,8 @@ contract NestMiningV1 {
 
         return; 
     }
-
-    /// @notice Post two price sheets for token and ntoken respectively
+*/
+    /// @notice Post two price sheets for a token and its ntoken simultaneously 
     /// @dev  Support dual-posts for TOKEN/NTOKEN, (ETH, TOKEN) + (ETH, NTOKEN)
     /// @param token The address of TOKEN contract
     /// @param ethNum The numbers of ethers to post sheets
@@ -370,7 +370,7 @@ contract NestMiningV1 {
         require(tokenAmountPerEth > 0 && ntokenAmountPerEth > 0, "Nest:Mine:!(price)");
         address _ntoken = INestPool(state.C_NestPool).getNTokenFromToken(token);
 
-        // NOTE: only allow dual-posting for USDx/NEST pair 
+        // NOTE: uncomment the line below to ensure that only (ETH, NEST) can be dual-posted
         //require(_ntoken == address(state.C_NestToken), "Nest:Mine:!(ntoken)");
 
         // calculate eth fee
@@ -378,10 +378,13 @@ contract NestMiningV1 {
 
         { // settle ethers and tokens
             INestPool _C_NestPool = INestPool(state.C_NestPool);
-            // save the changes into miner's virtual account
-            _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
 
-           INestStaking(state.C_NestStaking).addETHReward{value:_ethFee}(_ntoken);       
+            // save the changes into miner's virtual account
+            if (msg.value.sub(_ethFee) > 0) {
+                _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
+            }
+
+            INestStaking(state.C_NestStaking).addETHReward{value:_ethFee}(_ntoken);       
            
             // freeze eths and tokens in the nest pool
             _C_NestPool.freezeEthAndToken(msg.sender, ethNum.mul(1 ether), 
@@ -702,10 +705,9 @@ contract NestMiningV1 {
     /// @param token The address of token contract
     /// @param num   The length of price list
     function priceListOfToken(address token, uint8 num) 
-        public
-        view 
+        external view 
         noContractExcept(state.C_NestQuery)
-        returns (uint128[] memory data, uint256 atHeight) 
+        returns (uint128[] memory data, uint256 bn) 
     {
         return state._priceListOfToken(token, num);
     }
