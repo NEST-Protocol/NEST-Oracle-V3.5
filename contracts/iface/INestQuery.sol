@@ -26,6 +26,11 @@ interface INestQuery {
     function updateAndCheckPriceNow(address tokenAddress) 
         external payable returns (uint256, uint256, uint256);
 
+    function queryPriceList(address token, uint8 num, address payback) 
+        external payable returns (uint128[] memory);
+
+    function priceList(address token, uint8 num) 
+        external view returns (uint128[] memory);
 
     /// @dev Withdraw NEST only when emergency or governance
     /// @param to  The address of recipient
