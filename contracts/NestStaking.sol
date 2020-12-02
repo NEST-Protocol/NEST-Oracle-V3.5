@@ -22,15 +22,16 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     using SafeMath for uint256;
 
     /// @dev  The flag of staking global state
-    int8 public flag;       // = 0: uninitialized
+    uint8 public flag;       // = 0: uninitialized
                             // = 1: active
                             // = 2: withdraw forbidden
-                            // = -1: paused 
+                            // = 3: paused 
+    uint248 private _reserved;
 
-    int8 constant STAKING_FLAG_UNINITIALIZED    = 0;
-    int8 constant STAKING_FLAG_ACTIVE           = 1;
-    int8 constant STAKING_FLAG_NO_STAKING       = 2;
-    int8 constant STAKING_FLAG_PAUSED           = -1;
+    uint8 constant STAKING_FLAG_UNINITIALIZED    = 0;
+    uint8 constant STAKING_FLAG_ACTIVE           = 1;
+    uint8 constant STAKING_FLAG_NO_STAKING       = 2;
+    uint8 constant STAKING_FLAG_PAUSED           = 3;
     
     /// @dev The percentage of dividends 
     ///      - 80% to Nest/NToken holders as dividend
@@ -76,18 +77,16 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     event SavingWithdrawn(address ntoken, address indexed to, uint256 amount);
     event RewardClaimed(address ntoken, address indexed user, uint256 reward);
 
+    event GovSet(address gov, address oldGov, address newGov);
+
     /* ========== CONSTRUCTOR ========== */
 
-    // constructor(address _nestToken, address NestPool) public 
-    // {
-    //     C_NestToken = _nestToken;
-    //     C_NestPool = NestPool;
-    //     governance = msg.sender;
-    //     flag = 0;
-    // }
+    // NOTE: to support open-zeppelin/upgrades, leave it blank
+    constructor() public { }
 
     receive() external payable {}
 
+    /// @dev It is called by the proxy (open-zeppelin/upgrades), only ONCE!
     function initialize(address NestPool) external 
     {
         require(flag == STAKING_FLAG_UNINITIALIZED, "Nest:Stak:!flag");
@@ -119,9 +118,10 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     function setGovernance(address _newGov) external onlyGovernance
     {
         governance = _newGov;
+        emit GovSet(address(msg.sender), governance, _newGov);
     }
 
-    function setFlag(int8 _newFlag) external onlyGovernance
+    function setFlag(uint8 _newFlag) external onlyGovernance
     {
         flag = _newFlag;
     }
