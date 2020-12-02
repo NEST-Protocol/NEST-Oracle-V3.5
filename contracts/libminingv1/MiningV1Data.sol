@@ -44,10 +44,11 @@ library MiningV1Data {
     // uint256 constant c_mining_price_deviateion_factor = 10; // removed
     uint256 constant c_mining_fee_thousandth = 10;
 
-    uint256 constant DEV_REWARD_PERCENTAGE = 5;
-    uint256 constant NN_REWARD_PERCENTAGE = 15;
+    uint256 constant NN_NEST_REWARD_PERCENTAGE = 15;
+    uint256 constant DAO_NEST_REWARD_PERCENTAGE = 5;
     uint256 constant MINER_NEST_REWARD_PERCENTAGE = 80;
     uint256 constant BIDDER_NTOKEN_REWARD_PERCENTAGE = 5;
+
     uint256 constant MINER_NTOKEN_REWARD_PERCENTAGE = 95;
 
     uint8 constant PRICESHEET_STATE_CLOSED = 0;
@@ -163,6 +164,7 @@ library MiningV1Data {
         address     C_NestStaking;
         address     C_NNRewardPool;
         address     C_NestQuery;
+        address     C_NestDAO;
 
         uint256[10] _mining_nest_yield_per_block_amount;
         uint256[10] _mining_ntoken_yield_per_block_amount;

@@ -195,11 +195,14 @@ exports.deployNestProtocol = async function (deployer, contracts) {
     console.log(`>>> [INIT]: NestMining initialized, block=${tx.blockNumber}`);
 
     const NestDAOContract = await ethers.getContractFactory("NestDAO");
-    const NestDAO = await NestDAOContract.deploy(NestPool.address);
+    const NestDAO = await NestDAOContract.deploy();
     tx = NestDAO.deployTransaction;
     receipt = await tx.wait();
     console.log(`>>> [DPLY]: NestDAO deployed, address=${NestQuery.address}, block=${tx.blockNumber}`);
     contracts.NestDAO = NestDAO;
+
+    tx = await NestDAO.initialize(NestPool.address);
+    console.log(`>>> [INIT]: NestDAO initialized, block=${tx.blockNumber}`);
 
     const bn = tx.blockNumber;
     const ts = (await ethers.provider.getBlock(bn)).timestamp;
@@ -282,10 +285,10 @@ exports.deployNestProtocolWithProxy = async function (deployer, contracts) {
     console.log(`>>> [DPLY]: NestQuery deployed with proxy, address=${NestQuery.address}, block=${NestQuery.deployTransaction.blockNumber}`);
 
     const NestDAOContract = await ethers.getContractFactory("NestDAO");
-    const NestDAO = await NestDAOContract.deploy(NestPool.address);
+    const NestDAO = await upgrades.deployProxy(NestDAOContract, [NestPool.address], {unsafeAllowCustomTypes: true});
     tx = NestDAO.deployTransaction;
     receipt = await tx.wait();
-    console.log(`>>> [DPLY]: NestDAO deployed with Proxy, address=${NestQuery.address}, block=${NestQuery.deployTransaction.blockNumber}`);
+    console.log(`>>> [DPLY]: NestDAO deployed with Proxy, address=${NestDAO.address}, block=${NestDAO.deployTransaction.blockNumber}`);
     contracts.NestDAO = NestDAO;
     
     const bn = tx.blockNumber;
@@ -382,7 +385,7 @@ exports.setupNest = async function (deployer, addrList) {
     const NNRewardPool = contracts.NNRewardPool;
     const NestQuery = contracts.NestQuery;
     const NestDAO = contracts.NestDAO;
-    
+
     tx = await NestMining.setup(1, 1, NEST(1000), {
         miningEthUnit: 10,
         nestStakedNum1k: 1,

@@ -32,6 +32,11 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         uint32 _reserved2;
     }
 
+    uint32  constant CLIENT_QUERY_FEE_ETH_TWEI = (0.01 ether) / 1e12;
+    uint32  constant CLIENT_ACTIVATION_NEST_AMOUNT = 1_000;
+    uint32  constant CLIENT_MONTHLY_FEE_NEST_AMOUNT = 1_000;
+    uint32  constant CLIENT_ACTIVATION_DURATION_SECOND = 1;
+
     uint8   public flag;
     uint248 private _reserved;
 
@@ -51,16 +56,12 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         uint64 _reserved;
     }
 
+
     address    private C_NestToken;
     address    private C_NestMining;
     address    private C_NestPool;
     address    private C_NestStaking;
     address    private C_NestDAO;
-
-    uint32  constant CLIENT_QUERY_FEE_ETH_TWEI = (0.01 ether) / 1e12;
-    uint32  constant CLIENT_ACTIVATION_NEST_AMOUNT = 1_000;
-    uint32  constant CLIENT_MONTHLY_FEE_NEST_AMOUNT = 1_000;
-    uint32  constant CLIENT_ACTIVATION_DURATION_SECOND = 1;
 
     uint32 constant CLIENT_TYPE_PAY_PER_QUERY = 1;
     // uint32 constant CLIENT_TYPE_PAY_PER_MONTH = 2;
@@ -69,15 +70,6 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     mapping(address => uint256) private clientList;
     mapping(address => address) private clientOp;
 
-    event ClientActivated(address, uint256, uint256);
-    // event ClientRenewed(address, uint256, uint256, uint256);
-    event PriceQueried(address client, address token, uint256 atHeight);
-    event PriceListQueried(address client, address token, uint256 atHeight, uint8 num);
-
-    // governance events
-    event ParamsSetup(address gov, uint256 oldParams, uint256 newParams);
-    event FlagSet(address gov, uint256 flag);
-    event GovSet(address gov, address oldGov, address newGov);
 
     receive() external payable { }
 
@@ -210,12 +202,14 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     function pause() external onlyGovernance
     {
         flag = QUERY_FLAG_PAUSED;
+        emit FlagSet(address(msg.sender), uint256(QUERY_FLAG_PAUSED));
     }
 
     /// @dev Resume service 
     function resume() external onlyGovernance
     {
         flag = QUERY_FLAG_ACTIVE;
+        emit FlagSet(address(msg.sender), uint256(QUERY_FLAG_ACTIVE));
     }
 
     /// @dev Withdraw NEST only when emergency or governance
@@ -323,7 +317,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         payable 
         whenActive
         nonReentrant
-        returns (uint256 ethAmount, uint256 tokenAmount, int128 avgPrice, int128 vola, uint256 bn) 
+        returns (uint256 ethAmount, uint256 tokenAmount, uint128 avgPrice, int128 vola, uint256 bn) 
     {
         // check parameters
         Client memory c = decodeClient(clientList[address(msg.sender)]);
@@ -345,6 +339,8 @@ contract NestQuery is INestQuery, ReentrancyGuard {
                 TransferHelper.safeTransferETH(payback, msg.value.sub(_ethFee));
             }
         }
+        emit PriceAvgVolaQueried(address(msg.sender), token, bn, avgPrice, vola);
+
     }
     
     /// @notice The main function called by DeFi clients, compatible to Nest Protocol v3.0 

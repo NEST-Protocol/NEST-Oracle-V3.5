@@ -227,40 +227,40 @@ describe("NestToken contract", function () {
             console.log(`[INFO] price=${price[0]}, avg=${price[1]}, sigma=${show_64x64(price[2])}, height=${price[3]}}`);
         }); 
 
-        it("should post a price sheet for NWBTC", async () => {
-            await NestToken.transfer(userC.address, NEST('1000000'));
-            await NestToken.transfer(userD.address, NEST('1000000'));
-            await NestToken.connect(userC).approve(_C_NTokenController, NEST('100000'));
-            await NestToken.connect(userC).approve(_C_NestPool, NEST('10000000'));
-            await NestToken.connect(userC).approve(_C_NestPool, NEST('10000000'));
+        // it("should post a price sheet for NWBTC", async () => {
+        //     await NestToken.transfer(userC.address, NEST('1000000'));
+        //     await NestToken.transfer(userD.address, NEST('1000000'));
+        //     await NestToken.connect(userC).approve(_C_NTokenController, NEST('100000'));
+        //     await NestToken.connect(userC).approve(_C_NestPool, NEST('10000000'));
+        //     await NestToken.connect(userC).approve(_C_NestPool, NEST('10000000'));
 
-            await CWBTC.transfer(userC.address, WBTC('10000'));
-            await CWBTC.connect(userC).approve(_C_NestPool, WBTC(10000));
-            await CWBTC.connect(userC).approve(_C_NTokenController, WBTC(1));
-            await CUSDT.transfer(userD.address, WBTC('10000'));
-            await CWBTC.connect(userD).approve(_C_NestPool, WBTC(10000));
+        //     await CWBTC.transfer(userC.address, WBTC('10000'));
+        //     await CWBTC.connect(userC).approve(_C_NestPool, WBTC(10000));
+        //     await CWBTC.connect(userC).approve(_C_NTokenController, WBTC(1));
+        //     await CUSDT.transfer(userD.address, WBTC('10000'));
+        //     await CWBTC.connect(userD).approve(_C_NestPool, WBTC(10000));
 
 
-            await NTokenController.connect(userC).open(_C_WBTC);
+        //     await NTokenController.connect(userC).open(_C_WBTC);
 
-            await NestMining.connect(userC).post(_C_WBTC, 10, MBTC(30), {value: ETH(11)});
-            await goBlocks(provider, 26);
-            await NestMining.connect(userC).close(_C_WBTC, 0);
-        }); 
+        //     await NestMining.connect(userC).post(_C_WBTC, 10, MBTC(30), {value: ETH(11)});
+        //     await goBlocks(provider, 26);
+        //     await NestMining.connect(userC).close(_C_WBTC, 0);
+        // }); 
 
-        it("can close 5 price sheets in one single tx", async () => {
-            await NestMining.connect(userC).post(_C_WBTC, 10, MBTC(30), {value: ETH(11)});
-            await goBlocks(provider, 5);
-            await NestMining.connect(userC).post(_C_WBTC, 10, MBTC(34), {value: ETH(11)});
-            await goBlocks(provider, 5);
-            await NestMining.connect(userC).post(_C_WBTC, 10, MBTC(33), {value: ETH(11)});
-            await goBlocks(provider, 5);
-            await NestMining.connect(userC).post(_C_WBTC, 10, MBTC(32), {value: ETH(11)});
-            await goBlocks(provider, 5);
-            await NestMining.connect(userC).post(_C_WBTC, 10, MBTC(34), {value: ETH(11)});
-            await goBlocks(provider, 26);
-            await NestMining.connect(userC).closeList(_C_WBTC, [1,2,3,4,5]);
-        }); 
+        // it("can close 5 price sheets in one single tx", async () => {
+        //     await NestMining.connect(userC).post(_C_WBTC, 10, MBTC(30), {value: ETH(11)});
+        //     await goBlocks(provider, 5);
+        //     await NestMining.connect(userC).post(_C_WBTC, 10, MBTC(34), {value: ETH(11)});
+        //     await goBlocks(provider, 5);
+        //     await NestMining.connect(userC).post(_C_WBTC, 10, MBTC(33), {value: ETH(11)});
+        //     await goBlocks(provider, 5);
+        //     await NestMining.connect(userC).post(_C_WBTC, 10, MBTC(32), {value: ETH(11)});
+        //     await goBlocks(provider, 5);
+        //     await NestMining.connect(userC).post(_C_WBTC, 10, MBTC(34), {value: ETH(11)});
+        //     await goBlocks(provider, 26);
+        //     await NestMining.connect(userC).closeList(_C_WBTC, [1,2,3,4,5]);
+        // }); 
 
     });
 });

@@ -48,4 +48,8 @@ interface INestStaking {
     event NTokenUnstaked(address ntoken, address indexed user, uint256 amount);
     event SavingWithdrawn(address ntoken, address indexed to, uint256 amount);
     event RewardClaimed(address ntoken, address indexed user, uint256 reward);
+
+    event FlagSet(address gov, uint256 flag);
+    event GovSet(address gov, address oldGov, address newGov);
+
 }

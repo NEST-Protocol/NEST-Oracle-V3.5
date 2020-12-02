@@ -60,7 +60,7 @@ describe("Nest Protocol", function () {
             IterableMapping: IterableMapping,
             NN: NNToken}; 
         const addrOfNest = await deployNestProtocol(owner, contracts);
-        printContracts("", addrOfNest);
+        await printContracts("json", addrOfNest);
         await setupNest(owner, addrOfNest);
 
         NestPool = contracts.NestPool;
@@ -287,19 +287,19 @@ describe("Nest Protocol", function () {
 
         it("can perform a query by a DeFi client", async () => {
             await advanceTime(provider, 10);
-            await DeFiMock.query(_C_USDT);
+            await DeFiMock.query(_C_USDT, {value:ETH(1).div(10)});
         });
 
 
         it("can deactivate a DeFi client", async () => {
             await advanceTime(provider, 10);
             await NestQuery.connect(userA).deactivate(_C_DeFi);
-            expect(DeFiMock.query(_C_USDT)).to.be.reverted;
+            expect(DeFiMock.query(_C_USDT, {value:ETH(1).div(10)})).to.be.reverted;
         });
 
         it("can remove a DeFi client by the governer", async () => {
             await NestQuery.remove(_C_DeFi);
-            expect(DeFiMock.query(_C_USDT)).to.be.reverted;
+            expect(DeFiMock.query(_C_USDT, {value:ETH(1).div(10)})).to.be.reverted;
         });
 
         it("can withdraw NEST from the contract", async () => {

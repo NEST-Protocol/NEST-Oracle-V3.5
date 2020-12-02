@@ -146,39 +146,53 @@ contract NNRewardPool is INNRewardPool {
 
     /* ========== ADDING REWARDS ========== */
 
-    /// @dev The updator is to update the sum of NEST tokens mined in NestMining
-    function updateNNReward() external
-    {
-        require(flag == NNREWARD_FLAG_ACTIVE, "Nest:NN:!flag");
 
-        uint256 _allMined = INestMining(C_NestMining).minedNestAmount();
-        if (_allMined > NN_reward_sum) {
-            uint256 _amount = _allMined.mul(NN_REWARD_PERCENTAGE).div(100).sub(NN_reward_sum);
+    /// @notice Add rewards for Nest-Nodes, only governance or NestMining (contract) are allowed
+    /// @dev  The rewards need to pull from NestPool
+    /// @param _amount The amount of Nest token as the rewards to each nest-node
+    function addNNReward(uint256 _amount) override external onlyGovOrBy(C_NestMining)
+    {
+        if (_amount > 0) {
             uint256 _newSum = uint256(NN_reward_sum).add(_amount);
             NN_reward_sum = uint128(_newSum);
             emit NNRewardAdded(_amount, _newSum);
         }
+        return;
     }
 
-    modifier updateNNReward1()
-    {
-        require(flag == NNREWARD_FLAG_ACTIVE, "Nest:NN:!flag");
+    // /// @dev The updator is to update the sum of NEST tokens mined in NestMining
+    // function updateNNReward() external
+    // {
+    //     require(flag == NNREWARD_FLAG_ACTIVE, "Nest:NN:!flag");
 
-        uint256 _allMined = INestMining(C_NestMining).minedNestAmount();
-        if (_allMined > NN_reward_sum) {
-            uint256 _amount = _allMined.mul(NN_REWARD_PERCENTAGE).div(100).sub(NN_reward_sum);
-            uint256 _newSum = uint256(NN_reward_sum).add(_amount);
-            NN_reward_sum = uint128(_newSum);
-            emit NNRewardAdded(_amount, _newSum);
-        }
-       _;
-    }
+    //     uint256 _allMined = INestMining(C_NestMining).minedNestAmount();
+    //     if (_allMined > NN_reward_sum) {
+    //         uint256 _amount = _allMined.mul(NN_REWARD_PERCENTAGE).div(100).sub(NN_reward_sum);
+    //         uint256 _newSum = uint256(NN_reward_sum).add(_amount);
+    //         NN_reward_sum = uint128(_newSum);
+    //         emit NNRewardAdded(_amount, _newSum);
+    //     }
+    // }
+
+    // modifier updateNNReward1()
+    // {
+    //     require(flag == NNREWARD_FLAG_ACTIVE, "Nest:NN:!flag");
+
+    //     uint256 _allMined = INestMining(C_NestMining).minedNestAmount();
+    //     if (_allMined > NN_reward_sum) {
+    //         uint256 _amount = _allMined.mul(NN_REWARD_PERCENTAGE).div(100).sub(NN_reward_sum);
+    //         uint256 _newSum = uint256(NN_reward_sum).add(_amount);
+    //         NN_reward_sum = uint128(_newSum);
+    //         emit NNRewardAdded(_amount, _newSum);
+    //     }
+    //    _;
+    // }
 
     /* ========== CLAIM/SETTLEMENT ========== */
 
     /// @notice Claim rewards by Nest-Nodes
     /// @dev The rewards need to pull from NestPool
-    function claimNNReward() override external noContract updateNNReward1
+    function claimNNReward() override external noContract //updateNNReward1
     {
         require(flag == NNREWARD_FLAG_ACTIVE, "Nest:NN:!flag");
 
@@ -239,7 +253,7 @@ contract NNRewardPool is INNRewardPool {
     function nodeCount(address fromAdd, address toAdd) 
         override
         external
-        updateNNReward1
+        // updateNNReward1
         onlyBy(address(C_NNToken)) 
     {
         settleNNReward(fromAdd, toAdd);

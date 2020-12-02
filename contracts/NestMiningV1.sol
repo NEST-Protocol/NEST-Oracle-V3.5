@@ -16,6 +16,7 @@ import "./iface/INestPool.sol";
 import "./iface/INestStaking.sol";
 import "./iface/INTokenLegacy.sol";
 import "./iface/INestMining.sol";
+import "./iface/INestDAO.sol";
 
 // import "hardhat/console.sol";
 
@@ -224,7 +225,8 @@ contract NestMiningV1 {
         state.C_NestToken = INestPool(state.C_NestPool).addrOfNestToken();
         state.C_NestStaking = INestPool(state.C_NestPool).addrOfNestStaking();
         state.C_NestQuery = INestPool(state.C_NestPool).addrOfNestQuery();
-        // state.C_NestDAO = INestPool(state.C_NestPool).addrOfNestDAO();
+        state.C_NNRewardPool = INestPool(state.C_NestPool).addrOfNNRewardPool();
+        state.C_NestDAO = INestPool(state.C_NestPool).addrOfNestDAO();
     }
 
     function setParameters(Params calldata newParams) external 
@@ -272,83 +274,6 @@ contract NestMiningV1 {
 
     /* ========== POST/CLOSE Price Sheets ========== */
 
-/*
-    /// @dev  Obselete!
-    /// @param token The address of TOKEN contract
-    /// @param ethNum The numbers of ethers to post sheets
-    /// @param tokenAmountPerEth The price of TOKEN
-    function post(
-            address token, 
-            uint256 ethNum, 
-            uint256 tokenAmountPerEth
-        )
-        internal 
-        payable 
-        noContract
-    {
-        // check parameters 
-        require(ethNum >= state.miningEthUnit && ethNum % state.miningEthUnit == 0, "Nest:Mine:!(ethNum)");
-        require(tokenAmountPerEth > 0, "Nest:Mine:!(price)");
-        INestPool _C_NestPool = INestPool(state.C_NestPool);
-        address _ntoken = _C_NestPool.getNTokenFromToken(token);
-        require(_ntoken != address(0) &&  _ntoken != address(state.C_NestToken), "Nest:Mine:!(ntoken)");
-
-
-        // calculate eth fee
-        uint256 _ethFee = ethNum.mul(state.miningFeeRate).mul(1e18).div(1000);
-
-        { // settle ethers and tokens
-
-            // save the changes into miner's virtual account
-            _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
-
-           INestStaking(state.C_NestStaking).addETHReward{value:_ethFee}(_ntoken);       
-
-            // freeze eths and tokens in the nest pool
-            _C_NestPool.freezeEthAndToken(msg.sender, ethNum.mul(1 ether), 
-                token, tokenAmountPerEth.mul(ethNum));
-            _C_NestPool.freezeNest(msg.sender, uint256(state.nestStakedNum1k).mul(1000 * 1e18));
-        }
-
-        {
-            MiningV1Data.PriceSheet[] storage _sheetToken = state.priceSheetList[token];
-            // append a new price sheet
-            _sheetToken.push(MiningV1Data.PriceSheet(
-                uint160(msg.sender),            // miner 
-                uint32(block.number),           // atHeight
-                uint32(ethNum),                 // ethNum
-                uint32(ethNum),                 // remainNum
-                uint8(0),                       // level
-                uint8(MiningV1Data.PRICESHEET_TYPE_TOKEN),   // typ
-                uint8(MiningV1Data.PRICESHEET_STATE_POSTED), // state 
-                uint8(0),                       // _reserved
-                uint32(ethNum),                 // ethNumBal
-                uint32(ethNum),                 // tokenNumBal
-                uint32(state.nestStakedNum1k),        // nestNum1k
-                uint128(tokenAmountPerEth)      // tokenAmountPerEth
-            ));
-            emit MiningV1Data.PricePosted(msg.sender, token, (_sheetToken.length - 1), ethNum.mul(1 ether), tokenAmountPerEth.mul(ethNum)); 
-
-        }
-
-        { // mining
-            uint256 _minedH = state.minedAtHeight[token][block.number];
-            uint256 _ntokenH = uint256(_minedH >> 128);
-            uint256 _ethH = uint256(_minedH % (1 << 128));
-            if (_ntokenH == 0) {
-                uint256 _ntokenAmount = _mineNToken(_ntoken);  
-                state.latestMiningHeight = uint32(block.number); 
-                _ntokenH = _ntokenAmount;
-                INToken(_ntoken).mint(_ntokenAmount, address(state.C_NestPool));
-            }
-            _ethH = _ethH.add(ethNum);
-            // require(_nestH < (1 << 128) && _ethH < (1 << 128), "nestAtHeight/ethAtHeight error");
-            state.minedAtHeight[token][block.number] = (_ntokenH * (1<< 128) + _ethH);
-        }
-
-        return; 
-    }
-*/
     /// @notice Post two price sheets for a token and its ntoken simultaneously 
     /// @dev  Support dual-posts for TOKEN/NTOKEN, (ETH, TOKEN) + (ETH, NTOKEN)
     /// @param token The address of TOKEN contract
@@ -451,6 +376,14 @@ contract NestMiningV1 {
                     state.latestMiningHeight = uint32(block.number); 
                     state.minedNestAmount += uint128(_nestAmount);
                     _nestH = _nestAmount.mul(MiningV1Data.MINER_NEST_REWARD_PERCENTAGE).div(100); 
+
+                    // 15% to NNRewardPool
+                    INestPool(state.C_NestPool).addNest(state.C_NNRewardPool, _nestAmount.mul(MiningV1Data.NN_NEST_REWARD_PERCENTAGE).div(100));
+                    INNRewardPool(state.C_NNRewardPool).addNNReward(_nestAmount.mul(MiningV1Data.MINER_NEST_REWARD_PERCENTAGE).div(100));
+
+                    // 5% to NestDAO
+                    INestPool(state.C_NestPool).addNest(state.C_NestDAO, _nestAmount.mul(MiningV1Data.DAO_NEST_REWARD_PERCENTAGE).div(100));
+                    INestDAO(state.C_NestDAO).addNestReward(_nestAmount.mul(MiningV1Data.DAO_NEST_REWARD_PERCENTAGE).div(100));
                 }
                 _ethH = _ethH.add(ethNum);
                 state.minedAtHeight[token][block.number] = (_nestH * (1<< 128) + _ethH);
@@ -682,13 +615,13 @@ contract NestMiningV1 {
         public 
         view 
         noContractExcept(state.C_NestQuery)
-        returns (int128, uint128, int128, uint256) 
+        returns (uint128, uint128, int128, uint32) 
     {
         MiningV1Data.PriceInfo memory pi = state.priceInfo[token];
         require(pi.height > 0, "Nest:Mine:NO(price)");
         int128 v = ABDKMath64x64.sqrt(ABDKMath64x64.abs(pi.volatility_sigma_sq));
-        int128 p = ABDKMath64x64.divu(uint256(pi.tokenAmount), uint256(pi.ethNum));
-        return (p, pi.avgTokenAmount, v, uint256(pi.height) + state.priceDurationBlock);
+        uint128 p = uint128(uint256(pi.tokenAmount).div(uint256(pi.ethNum)));
+        return (p, pi.avgTokenAmount, v, pi.height + uint32(state.priceDurationBlock)); // safe math
     }
 
     function priceOfTokenAtHeight(address token, uint64 atHeight) 

@@ -71,13 +71,6 @@ contract NestStaking is INestStaking, ReentrancyGuard {
 
     /* ========== EVENTS ========== */
 
-    event RewardAdded(address ntoken, address sender, uint256 reward);
-    event NTokenStaked(address ntoken, address indexed user, uint256 amount);
-    event NTokenUnstaked(address ntoken, address indexed user, uint256 amount);
-    event SavingWithdrawn(address ntoken, address indexed to, uint256 amount);
-    event RewardClaimed(address ntoken, address indexed user, uint256 reward);
-
-    event GovSet(address gov, address oldGov, address newGov);
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -96,9 +89,24 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         C_NestPool = NestPool;
     }
 
+    /* ========== MODIFIERS ========== */
+
     modifier onlyGovOrBy(address _contract) 
     {
         require(msg.sender == governance || msg.sender == _contract, "Nest:Stak:!sender");
+        _;
+    }
+
+    modifier whenActive() 
+    {
+        require(flag == STAKING_FLAG_ACTIVE, "Nest:Stak:!flag");
+        _;
+    }
+
+
+    modifier onlyGovernance() 
+    {
+        require(msg.sender == governance, "Nest:Stak:!gov");
         _;
     }
 
@@ -109,11 +117,6 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         C_NestToken = INestPool(C_NestPool).addrOfNestToken();
     }
 
-    modifier onlyGovernance() 
-    {
-        require(msg.sender == governance, "Nest:Stak:!gov");
-        _;
-    }
 
     function setGovernance(address _newGov) external onlyGovernance
     {
@@ -130,12 +133,14 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     function pause() external onlyGovernance
     {
         flag = STAKING_FLAG_PAUSED;
+        emit FlagSet(address(msg.sender), uint256(STAKING_FLAG_PAUSED));
     }
 
     /// @dev Resume service 
     function resume() external onlyGovernance
     {
         flag = STAKING_FLAG_ACTIVE;
+        emit FlagSet(address(msg.sender), uint256(STAKING_FLAG_ACTIVE));
     }
 
     function withdrawSavingByGov(address ntoken, address to, uint256 amount) 
@@ -281,9 +286,9 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         external 
         override 
         nonReentrant 
+        whenActive
         updateReward(ntoken, msg.sender) 
     {
-        require(flag == STAKING_FLAG_ACTIVE, "Nest:Stak:!flag");
         require(amount > 0, "Nest:Stak:!amount");
         _ntoken_staked_total[ntoken] = _ntoken_staked_total[ntoken].add(amount);
         _staked_balances[ntoken][msg.sender] = _staked_balances[ntoken][msg.sender].add(amount);
@@ -298,9 +303,9 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         external 
         override 
         nonReentrant 
+        whenActive
         updateReward(ntoken, msg.sender) 
     {
-        require(flag == STAKING_FLAG_ACTIVE, "Nest:Stak:!flag");
         require(amount > 0, "Nest:Stak:!amount");
         _ntoken_staked_total[ntoken] = _ntoken_staked_total[ntoken].add(amount);
         _staked_balances[ntoken][msg.sender] = _staked_balances[ntoken][msg.sender].add(amount);
@@ -313,9 +318,9 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         public 
         override 
         nonReentrant 
+        whenActive
         updateReward(ntoken, msg.sender)
     {
-        require(flag == STAKING_FLAG_ACTIVE, "Nest:Stak:!flag");
         require(amount > 0, "Nest:Stak:!amount");
         _ntoken_staked_total[ntoken] = _ntoken_staked_total[ntoken].sub(amount);
         _staked_balances[ntoken][msg.sender] = _staked_balances[ntoken][msg.sender].sub(amount);
@@ -330,9 +335,9 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         public 
         override 
         nonReentrant 
+        whenActive
         updateReward(ntoken, msg.sender) 
     {
-        require(flag == STAKING_FLAG_ACTIVE, "Nest:Stak:!flag");
         uint256 _reward = rewardBalances[ntoken][msg.sender];
         if (_reward > 0) {
             rewardBalances[ntoken][msg.sender] = 0;

@@ -13,7 +13,7 @@ interface INestMining {
     function latestPriceOf(address token) external view returns (uint256 ethNum, uint256 tokenAmount, uint256 atHeight);
 
     function priceAvgAndSigmaOf(address token) 
-        external view returns (int128, int128, int128, uint256);
+        external view returns (uint128, uint128, int128, uint32);
 
     function minedNestAmount() external view returns (uint256);
 

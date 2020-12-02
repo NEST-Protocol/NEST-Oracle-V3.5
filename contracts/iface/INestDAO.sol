@@ -8,4 +8,9 @@ interface INestDAO {
     function loadContracts() external; 
 
     function addETHReward(address ntoken) external payable; 
+
+    function addNestReward(uint256 amount) external;
+
+    event FlagSet(address gov, uint256 flag);
+    event GovSet(address gov, address oldGov, address newGov);
 }

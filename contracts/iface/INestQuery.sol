@@ -10,6 +10,7 @@ pragma solidity ^0.6.12;
 // import "./iface/INToken.sol";
 
 interface INestQuery {
+
  
     // function setFee(uint256 min, uint256 max, uint256 single, uint256 monthly) external;
 
@@ -21,7 +22,7 @@ interface INestQuery {
         external payable returns (uint256, uint256, uint256);
 
     function queryPriceAvgVola(address token, address payback) 
-        external payable returns (uint256, uint256, int128, int128, uint256);
+        external payable returns (uint256, uint256, uint128, int128, uint256);
 
     function updateAndCheckPriceNow(address tokenAddress) 
         external payable returns (uint256, uint256, uint256);
@@ -52,4 +53,16 @@ interface INestQuery {
 
     /// @dev Only for governance
     function loadContracts() external; 
+
+    event ClientActivated(address, uint256, uint256);
+    // event ClientRenewed(address, uint256, uint256, uint256);
+    event PriceQueried(address client, address token, uint256 bn);
+    event PriceAvgVolaQueried(address client, address token, uint256 bn, uint128 avgPrice, int128 vola);
+
+    event PriceListQueried(address client, address token, uint256 atHeight, uint8 num);
+
+    // governance events
+    event ParamsSetup(address gov, uint256 oldParams, uint256 newParams);
+    event FlagSet(address gov, uint256 flag);
+    event GovSet(address gov, address oldGov, address newGov);
 }
