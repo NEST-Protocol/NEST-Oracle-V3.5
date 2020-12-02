@@ -70,7 +70,7 @@ exports.deployNN = async function () {
 exports.printContracts = function (format, contracts) {
 
     console.log("\n Contracts deployed:\n=========================");
-    if (format === "json") {
+    if (format === "js") {
         Object.entries(contracts).forEach((e) => {
             const [k, v] = e;
             console.log(`${k}: "${v}",`);

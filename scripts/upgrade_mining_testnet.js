@@ -7,7 +7,7 @@ const {usdtdec, wbtcdec, nestdec, ethdec,
 const {deployUSDT, deployWBTC, deployNN, 
     deployNEST, 
     deployNestProtocol,
-    deployNestProtocolWithProxy, getContractsFromAddrList,
+    deployNestProtocolWithProxy, printContracts, getContractsFromAddrList,
     setupNest} = require("./deploy.js");
 
 const contractsDeployed_localhost = require("./.contracts_localhost.js");
@@ -46,10 +46,12 @@ async function main() {
     await MiningV1Calc.deployTransaction.wait();
     console.log(`>>> [UPGD]: NestMiningV1/MiningV1Calc deployed, address=${MiningV1Calc.address}, block=${MiningV1Calc.deployTransaction.blockNumber}`);
 
+    addrList.MiningV1Calc = MiningV1Calc.address;
     const MiningV1OpLibrary = await ethers.getContractFactory("MiningV1Op");
     const MiningV1Op = await MiningV1OpLibrary.deploy();
     await MiningV1Op.deployTransaction.wait();
     console.log(`>>> [UPGD]: NestMiningV1/MiningV1Op deployed, address=${MiningV1Op.address}, block=${MiningV1Op.deployTransaction.blockNumber}`);
+    addrList.MiningV1Op = MiningV1Op.address;
 
     const NewNestMiningV1Contract = await ethers.getContractFactory("NestMiningV1",
     {
@@ -72,6 +74,9 @@ async function main() {
     await tx.wait();
     const v1 = await NestMining.version();
     console.log(`>>>    [INFO]: NEW NestMining.version = ${v1}, block=${tx.blockNumber}`);
+
+    await printContracts("js", addrList);
+
 
 }
 
