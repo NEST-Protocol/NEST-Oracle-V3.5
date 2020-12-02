@@ -1,4 +1,4 @@
-const { WeiPerEther, BigNumber } = require("ethers");
+const { WeiPerEther, BigNumber, ethers } = require("ethers");
 const { BN } = require('@openzeppelin/test-helpers');
 
 const usdtdec = BigNumber.from(10).pow(6);
@@ -274,3 +274,29 @@ const show_eth_usdt_ledger = async function () {
 }
 
 */
+
+
+// const minedBlocks = function () {
+    
+//     const NEST = function (amount) {
+//         return BigNumber.from(amount).mul(ethdec);
+//     }
+//     const total = NEST(1e10);
+//     let remain = total;
+//     let annual = BigNumber.from(2_400_000).mul(NEST(400));
+//     console.log(`Y[0]=`, annual.toString());
+//     remain = remain.sub(annual);
+//     for(var i = 0; i < 9; i++) {
+//         annual = annual.mul(4).div(5);
+//         console.log(`Y[${i+1}]=`, annual.toString());
+//         remain = remain.sub(annual);
+//     }
+//     console.log(`rest=`, remain.toString());
+//     let rb = remain.div(NEST(40));
+//     console.log(`remain blocks=`, rb.toString());
+//     let lastH = rb.add(6236588).add(2_400_000*10);
+//     console.log(`last=`,lastH.toString());
+// } ()
+
+// //   6236588
+// // 173121489

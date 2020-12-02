@@ -12,7 +12,7 @@ const {deployUSDT, deployWBTC, deployNN,
 const contractsDeployed_localhost = require("./.contracts_localhost.js");
 const contractsDeployed_kovan = require("./.contracts_kovan.js");
 
-async function main(network) {
+async function main() {
 
     const addrList = function () {
         if (network.name === "localhost") {

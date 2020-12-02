@@ -160,10 +160,12 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     }
 
     function params() external view 
-        returns(uint256 single, uint32 time, uint256 nestAmount) 
+        returns(uint256 single, uint64 leadTime, uint256 nestAmount) 
     {
         (uint32 _singleFee, uint32 _time, uint32 _actFee, uint32 _res) =  decode_4x32_256(paramsEncoded);
-        
+        single = uint256(_singleFee).mul(1e12);
+        leadTime = uint64(_time);
+        nestAmount = uint256(_actFee).mul(1e18);
     }
 
     function loadContracts() override external onlyGovOrBy(C_NestPool)

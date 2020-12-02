@@ -652,9 +652,13 @@ contract NestMiningV1 {
         uint256 _nestPerBlock;
         if (_period > 9) {
             _nestPerBlock = MiningV1Data.MINING_NEST_YIELD_OFF_PERIOD_AMOUNT;
+            if (block.number > MiningV1Data.MINING_FINAL_BLOCK_NUMBER) {
+                return 0;  // NEST is empty
+            }
         } else {
             _nestPerBlock = state._mining_nest_yield_per_block_amount[_period];
         }
+        
         return _nestPerBlock.mul(block.number.sub(state.latestMiningHeight));
     }
 

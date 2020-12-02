@@ -29,6 +29,8 @@ contract NestPool is INestPool {
     using SafeMath for uint256;
     using SafeERC20 for ERC20;
 
+    uint8 private flag;  // 0: UNINITIALIZED  | 1: INITIALIZED
+    uint256 minedNestAmount; 
     address public governance;
 
     // eth ledger for all miners, if address == 0, it is the balance of pool
@@ -65,25 +67,25 @@ contract NestPool is INestPool {
 
     modifier onlyGovernance() 
     {
-        require(msg.sender == governance, "Nest:NTC:!governance");
+        require(msg.sender == governance, "Nest:Pool:!governance");
         _;
     }
 
     modifier onlyBy(address _contract) 
     {
-        require(msg.sender == _contract, "Nest:Mine:!sender");
+        require(msg.sender == _contract, "Nest:Pool:!sender");
         _;
     }
 
     modifier onlyGovOrBy(address _contract) 
     {
-        require(msg.sender == governance || msg.sender == _contract, "Nest:Mine:!sender");
+        require(msg.sender == governance || msg.sender == _contract, "Nest:Pool:!sender");
         _;
     }
 
     modifier onlyGovOrBy2(address _contract, address _contract2) 
     {
-        require(msg.sender == governance || msg.sender == _contract || msg.sender == _contract2, "Nest:Mine:!sender");
+        require(msg.sender == governance || msg.sender == _contract || msg.sender == _contract2, "Nest:Pool:!sender");
         _;
     }
 
@@ -92,13 +94,13 @@ contract NestPool is INestPool {
         require(msg.sender == governance 
             || msg.sender == _contract 
             || msg.sender == _contract2 
-            || msg.sender == _contract3, "Nest:Mine:!sender");
+            || msg.sender == _contract3, "Nest:Pool:!sender");
         _;
     }
 
     modifier onlyMiningContract()
     {
-        require(address(msg.sender) == C_NestMining, "Nest:Mine:onlyMining");
+        require(address(msg.sender) == C_NestMining, "Nest:Pool:onlyMining");
         _;
     }
 
@@ -157,7 +159,8 @@ contract NestPool is INestPool {
     {
         _token_ntoken_mapping[token] = ntoken;
         _token_ntoken_mapping[ntoken] = ntoken;
-    }    
+    }
+
     /* ========== ONLY FOR EMERGENCY ========== */
 
     function drainEth(address to, uint256 amount) 
@@ -169,7 +172,7 @@ contract NestPool is INestPool {
     function drainNest(address to, uint256 amount) 
         external onlyGovernance
     {
-        require(C_NestToken.transfer(to, amount),"transfer fail!");
+        require(C_NestToken.transfer(to, amount),"Nest:Pool:!transfer");
     }
 
     function drainToken(address token, address to, uint256 amount) 
@@ -355,8 +358,8 @@ contract NestPool is INestPool {
         override public onlyGovOrBy(C_NestMining)
     {
         mapping(address => uint256) storage _nest_ledger = _token_ledger[address(C_NestToken)];
-
         _nest_ledger[miner] = _nest_ledger[miner].add(amount);
+        minedNestAmount = minedNestAmount.add(amount);
     }
 
     function addNToken(address miner, address ntoken, uint256 amount) 

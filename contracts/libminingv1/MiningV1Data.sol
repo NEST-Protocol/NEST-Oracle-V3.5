@@ -36,6 +36,8 @@ library MiningV1Data {
     uint256 constant MINING_NTOKEN_YIELD_OFF_PERIOD_AMOUNT = 0.4 ether;
     uint256 constant MINING_NTOKEN_YIELD_PER_BLOCK_BASE = 4 ether;
 
+    uint256 constant MINING_GENESIS_BLOCK_NUMBER = 6236588;
+    uint256 constant MINING_FINAL_BLOCK_NUMBER = 173121488;
 
 
     // uint256[10] private _mining_ntoken_yield_per_block_amount;
