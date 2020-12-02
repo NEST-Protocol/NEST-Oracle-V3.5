@@ -1,4 +1,4 @@
-# Nest Protocol Version 3.5
+# NEST Protocol Version 3.5
 
 ## Development
 
