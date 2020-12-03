@@ -89,12 +89,24 @@ contract NestPool is INestPool {
         _;
     }
 
-    modifier onlyGovOrBy3(address _contract, address _contract2, address _contract3) 
+    modifier onlyGovOrBy3(address _contract1, address _contract2, address _contract3) 
     {
         require(msg.sender == governance 
-            || msg.sender == _contract 
+            || msg.sender == _contract1
             || msg.sender == _contract2 
             || msg.sender == _contract3, "Nest:Pool:!sender");
+        _;
+    }
+
+    modifier onlyGovOrByNest() 
+    {
+        require(msg.sender == governance 
+            || msg.sender == C_NestMining
+            || msg.sender == C_NTokenController 
+            || msg.sender == C_NestDAO 
+            || msg.sender == C_NestStaking 
+            || msg.sender == C_NNRewardPool 
+            || msg.sender == C_NestQuery, "Nest:Pool:!sender");
         _;
     }
 
@@ -361,6 +373,7 @@ contract NestPool is INestPool {
         return _token_ledger[token][address(0x0)];
     }
 
+    /* ========== DISTRIBUTING ========== */
 
     function addNest(address miner, uint256 amount) 
         override public onlyGovOrBy(C_NestMining)
@@ -392,7 +405,7 @@ contract NestPool is INestPool {
     
     /// @dev If amount == 0, it won't go stuck
     function withdrawEth(address miner, uint256 ethAmount) 
-        override public onlyGovOrBy(C_NestMining)
+        override public onlyGovOrByNest
     {
         uint256 blncs = _eth_ledger[miner];
         require(ethAmount <= blncs, "Nest:Pool:(ethAmount)<BAL");
@@ -404,15 +417,42 @@ contract NestPool is INestPool {
 
     /// @dev If amount == 0, it won't go stuck
     function withdrawToken(address miner, address token, uint256 tokenAmount) 
-        override public onlyGovOrBy(C_NestMining)
+        override public onlyGovOrByNest
     {
-        uint256 blncs = _eth_ledger[miner];
+        uint256 blncs = _token_ledger[token][miner];
         require(tokenAmount <= blncs, "Nest:Pool:(tokenAmount)<BAL");
         if (tokenAmount > 0) {
             _token_ledger[token][miner] = blncs - tokenAmount; // safe math
             ERC20(token).safeTransfer(miner, tokenAmount);
         }
     }
+
+    /// @dev If amount == 0, it won't go stuck
+    function withdrawNToken(address miner, address ntoken, uint256 amount) 
+        override public onlyGovOrByNest
+    {
+        uint256 blncs = _token_ledger[ntoken][miner];
+        require(amount <= blncs, "Nest:Pool:(ntokenAmount)<BAL");
+        if (amount > 0) {
+            _token_ledger[ntoken][miner]= blncs - amount;
+            require(ERC20(ntoken).transfer(miner, amount), "Nest:Pool:!transfer");
+        }
+    }
+
+    /// @dev If amount == 0, it won't go stuck
+    function withdrawNest(address miner, uint256 amount) 
+        override public onlyGovOrByNest
+    {
+        mapping(address => uint256) storage _nest_ledger = _token_ledger[address(C_NestToken)];
+
+        uint256 blncs = _nest_ledger[miner];
+        require(amount <= blncs, "Nest:Pool:(nestAmount)<BAL");
+        if (amount > 0) {
+            _nest_ledger[miner] = blncs - amount;  // safe math
+            require(C_NestToken.transfer(miner, amount),"Nest:Pool:!transfer");
+        }
+    }
+
 
     /// @dev If amount == 0, it won't go stuck
     function withdrawEthAndToken(address miner, uint256 ethAmount, address token, uint256 tokenAmount) 
@@ -428,32 +468,6 @@ contract NestPool is INestPool {
         if (tokenAmount <= blncs && tokenAmount > 0) {
             _token_ledger[token][miner] = blncs - tokenAmount;  // safe math
             ERC20(token).safeTransfer(miner, tokenAmount);
-        }
-    }
-
-    /// @dev If amount == 0, it won't go stuck
-    function withdrawNToken(address miner, address ntoken, uint256 amount) 
-        override public onlyGovOrBy(C_NestMining)
-    {
-        uint256 blncs = _token_ledger[ntoken][miner];
-        require(amount <= blncs, "Nest:Pool:(ntokenAmount)<BAL");
-        if (amount > 0) {
-            _token_ledger[ntoken][miner]= blncs - amount;
-            require(ERC20(ntoken).transfer(miner, amount), "Nest:Pool:!transfer");
-        }
-    }
-
-    /// @dev If amount == 0, it won't go stuck
-    function withdrawNest(address miner, uint256 amount) 
-        override public onlyGovOrBy2(C_NestMining, C_NNRewardPool)
-    {
-        mapping(address => uint256) storage _nest_ledger = _token_ledger[address(C_NestToken)];
-
-        uint256 blncs = _nest_ledger[miner];
-        require(amount <= blncs, "Nest:Pool:(nestAmount)<BAL");
-        if (amount > 0) {
-            _nest_ledger[miner] = blncs - amount;  // safe math
-            require(C_NestToken.transfer(miner, amount),"Nest:Pool:!transfer");
         }
     }
 
