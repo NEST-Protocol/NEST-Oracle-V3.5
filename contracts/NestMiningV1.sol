@@ -379,7 +379,7 @@ contract NestMiningV1 {
 
                     // 15% to NNRewardPool
                     INestPool(state.C_NestPool).addNest(state.C_NNRewardPool, _nestAmount.mul(MiningV1Data.NN_NEST_REWARD_PERCENTAGE).div(100));
-                    INNRewardPool(state.C_NNRewardPool).addNNReward(_nestAmount.mul(MiningV1Data.MINER_NEST_REWARD_PERCENTAGE).div(100));
+                    INNRewardPool(state.C_NNRewardPool).addNNReward(_nestAmount.mul(MiningV1Data.NN_NEST_REWARD_PERCENTAGE).div(100));
 
                     // 5% to NestDAO
                     INestPool(state.C_NestPool).addNest(state.C_NestDAO, _nestAmount.mul(MiningV1Data.DAO_NEST_REWARD_PERCENTAGE).div(100));
