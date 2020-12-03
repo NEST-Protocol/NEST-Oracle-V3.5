@@ -71,7 +71,7 @@ async function main() {
         });
     }
 
-    receipt = await tx.wait();
+    receipt = await tx.wait(1);
     console.log(`>>> [STUP] NestMining setup() ...... ok`);
     bn = tx.blockNumber;
     ts = (await ethers.provider.getBlock(bn)).timestamp;
