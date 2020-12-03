@@ -33,22 +33,49 @@ npx hardhat test
 
 #### Kovan testnet
 
+format: markdown
+
 | Contract | Address |
 | ------------ | ------------|
-| USDT |  0x4349C96f686973d3A6C2BE0D18ADBB7002E7E486 | 
-| WBTC |  0xa71aeaD2011C0810f608109e35d71d67b5892B8d | 
-| IterableMapping |  0x861a88C3419c8F7e9412ef751332c5bE72aB041F | 
-| NEST |  0x1dF3eb17e2b38Ce354f3DE5ECa41137e969B9B60 | 
-| NNToken |  0xffd7270664D15A32f84852BdD5E10064Fe67AF07 | 
-| NestPool |  0x0cAB66dB4b1A9f9719bB0E654BF066fA8245d50c | 
-| NestMining |  0x727F46f177cc49854873FB6872e5ef64408f9dF9 | 
-| NestStaking |  0x0ab354949E511a0C766a5aA2830B290F618467F1 | 
-| NNRewardPool |  0x9F10F2a1261ab01a97cd57F86b0795E394224973 | 
-| NTokenController |  0x2E5690d9D53C47E7B2Ea7af02842Abb9130DAe64 | 
-| NestQuery |  0xc76dE07116fF220a5d859B85CCe48Cb2aCc4d4dB | 
+| network | kovan |
+| block | null |
+|timestamp|2020-12-3 10:29:40|
+| USDT |  0x353d1072d364d039cb4240C27E8aC7e9f8c29fcF | 
+| WBTC |  0x7ea91E575bc2452922c8732E36D9AB69a1Af629a | 
+|NEST|0x2948e1Bc9dF602046e334A6Be9B6aF0f26d42265|
+| NN |  0x899d44e1b5716084be7674a1da3DeD731fBda3c4 | 
+| IterableMapping |  0xf153d2d20AF647D6b47259fd6557Af318151fba9 |  
+| NestPool |  0x4034645552A9bf1e453D9b658733E1965526E398 | 
+| MiningV1Calc |  0x532253f0Ab671A26a659c93a29dAf48ea27CFf60 | 
+| MiningV1Op |  0xcABCc7bDC525749C75A801c748e8E71b5644Ae3e | 
+| NestMining |  0xe0E4d947Fc48459110C5C86264ee469752065b86 | 
+| NestStaking |  0xe5684Db2654fa11c5c3D9f55D6fdd62b74bcfCAd | 
+| NNRewardPool |  0x015Ea0EFD9612706B10a024EdFA6349ecC953685 | 
+| NTokenController | 0x8f25c64872eb5f713f3E365596a0EDBd163A7D65 |
+| NestQuery | 0x0Ee4Fbf902073c7213155d48A6e0C213B7D3C139 |
+| NestDAO | 0xB8Ec9706aEe308152FA785144D209C36096d113d |
+
+
+## Initialized parameters
+
+| parameter | value |
+| ------------ | ------------|
+| genesisBlockNumber | 1 |
+| latestMiningHeight | 22397738 |
+| minedNestTotalAmount | NEST(1000) |
+| miningEthUnit | 1 |
+| nestStakedNum1k |1 |
+| biteFeeRate | 1 |
+| miningFeeRate | 1 |
+| priceDurationBlock | 20 |
+| maxBiteNestedLevel | 3 |
+| biteInflateFactor | 2 |
+| biteNestInflateFactor | 2 |
+   
 
 
 ## Changelog
 
+- 2020-12-03: update kovan addresses
 - 2020-11-14: Upgrade framework to MiningV1
 - 2020-11-03: Migrate from truffle to hardhat
