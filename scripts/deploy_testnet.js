@@ -19,8 +19,7 @@ async function main() {
     NNToken = await deployNN();
     let contracts = {USDT: CUSDT, WBTC: CWBTC, NEST: NestToken, NN: NNToken, IterableMapping: IterableMapping}; 
     let addrOfNest = await deployNestProtocolWithProxy(owner, contracts);
-    addrOfNest.network = network.name;
-    printContracts("json", addrOfNest);
+    printContracts("js", addrOfNest);
 
     // await setupNest(owner, CNest);
 }
