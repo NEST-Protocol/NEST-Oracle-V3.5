@@ -4,7 +4,7 @@
 
 ## Development
 
-### Install Dependencies
+### Install dependencies
 
 ```
 npm install
@@ -28,12 +28,19 @@ npx hardhat test
 
 ### Deploy
 
-#### Local Development
+#### Local development
 
+```shell
+npx hardhat scripts/deploy_testnet.js --network localhost
+npx hardhat scripts/setup_testnet.js --network localhost
+```
 
 #### Kovan testnet
 
-format: markdown
+```shell
+npx hardhat scripts/deploy_testnet.js --network kovan
+npx hardhat scripts/setup_testnet.js --network kovan
+```
 
 | Contract | Address |
 | ------------ | ------------|
@@ -55,12 +62,15 @@ format: markdown
 | NestQuery | 0x0Ee4Fbf902073c7213155d48A6e0C213B7D3C139 |
 | NestDAO | 0xB8Ec9706aEe308152FA785144D209C36096d113d |
 
+#### Ropsten testnet
 
-## Initialized parameters
 
-| parameter | value |
+
+##### Initialized parameters
+
+| Parameter | Value |
 | ------------ | ------------|
-| genesisBlockNumber | 1 |
+| genesisBlockNumber | 6236588 |
 | latestMiningHeight | 22397738 |
 | minedNestTotalAmount | NEST(1000) |
 | miningEthUnit | 1 |
