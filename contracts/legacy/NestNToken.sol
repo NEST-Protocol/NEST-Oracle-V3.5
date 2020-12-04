@@ -12,32 +12,35 @@ contract NestNToken is INTokenLegacy {
     
     mapping (address => uint256) private _balances;                                 //  账本
     mapping (address => mapping (address => uint256)) private _allowed;             //  授权账本
-    uint256 private _totalSupply = 0 ether;                                         //  总量
+    uint256 private _totalSupply = 1e9 ether;                                       //  总量
     string public name;                                                             //  名称
     string public symbol;                                                           //  简称
     uint8 public decimals = 18;                                                     //  精度
     uint256 public _createBlock;                                                    //  创建区块
     uint256 public _recentlyUsedBlock;                                              //  最近使用区块
-    address _voteFactory;                                                //  投票合约
+    address _voteFactory;                                                           //  投票合约
     // Nest_3_VoteFactory _voteFactory;                                                //  投票合约
     address _bidder;                                                                //  拥有者
     
-    /**
-    * @dev 初始化方法
-    * @param _name token名称
-    * @param _symbol token简称
-    * @param voteFactory 投票合约地址
-    * @param bidder 中标者地址
-    */
-    constructor (string memory _name, string memory _symbol, address voteFactory, address bidder) public {
-    	name = _name;                                                               
-    	symbol = _symbol;
-    	_createBlock = block.number;
-    	_recentlyUsedBlock = block.number;
-    	_voteFactory = address(voteFactory);
-    	// _voteFactory = Nest_3_VoteFactory(address(voteFactory));
-    	_bidder = bidder;
+    constructor (string memory _name, string memory _symbol, address bidder) public 
+    {
+        _bidder = bidder;
+        name = _name;
+        _createBlock = block.number;
+        _recentlyUsedBlock = block.number;
+        _balances[bidder] = _totalSupply;
     }
+
+    // constructor (string memory _name, string memory _symbol, address voteFactory, address bidder) public {
+    // 	name = _name;                                                               
+    // 	symbol = _symbol;
+    // 	_createBlock = block.number;
+    // 	_recentlyUsedBlock = block.number;
+    // 	_voteFactory = address(voteFactory);
+    // 	// _voteFactory = Nest_3_VoteFactory(address(voteFactory));
+    // 	_bidder = bidder;
+    //     _balances[bidder] = _totalSupply;
+    // }
     
     /**
     * @dev 重置投票合约方法

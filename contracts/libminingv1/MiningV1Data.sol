@@ -40,6 +40,13 @@ library MiningV1Data {
     uint256 constant MINING_FINAL_BLOCK_NUMBER = 173121488;
 
 
+    uint256 constant MINING_NEST_FEE_DIVIDEND_RATE = 80;    // percentage = 80%
+    uint256 constant MINING_NEST_FEE_DAO_RATE = 20;         // percentage = 80%
+
+    uint256 constant MINING_NTOKEN_FEE_DIVIDEND_RATE        = 60;     // percentage = 80%
+    uint256 constant MINING_NTOKEN_FEE_DAO_RATE             = 20;     // percentage = 20%
+    uint256 constant MINING_NTOKEN_FEE_NEST_DAO_RATE        = 20;     // percentage = 20%
+
     // uint256[10] private _mining_ntoken_yield_per_block_amount;
 
     uint256 constant c_mining_eth_unit = 10;  // 10 ether
@@ -49,9 +56,10 @@ library MiningV1Data {
     uint256 constant NN_NEST_REWARD_PERCENTAGE = 15;
     uint256 constant DAO_NEST_REWARD_PERCENTAGE = 5;
     uint256 constant MINER_NEST_REWARD_PERCENTAGE = 80;
-    uint256 constant BIDDER_NTOKEN_REWARD_PERCENTAGE = 5;
+    // uint256 constant BIDDER_NTOKEN_REWARD_PERCENTAGE = 5;
 
-    uint256 constant MINER_NTOKEN_REWARD_PERCENTAGE = 95;
+    uint256 constant MINING_LEGACY_NTOKEN_MINER_REWARD_PERCENTAGE = 95;
+    uint256 constant MINING_LEGACY_NTOKEN_BIDDER_REWARD_PERCENTAGE = 5;
 
     uint8 constant PRICESHEET_STATE_CLOSED = 0;
     uint8 constant PRICESHEET_STATE_POSTED = 1;

@@ -33,9 +33,9 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     }
 
     uint32  constant CLIENT_QUERY_FEE_ETH_TWEI = (0.01 ether) / 1e12;
-    uint32  constant CLIENT_ACTIVATION_NEST_AMOUNT = 1_000;
+    uint32  constant CLIENT_ACTIVATION_NEST_AMOUNT = 100_000;
     uint32  constant CLIENT_MONTHLY_FEE_NEST_AMOUNT = 1_000;
-    uint32  constant CLIENT_ACTIVATION_DURATION_SECOND = 1;
+    uint32  constant CLIENT_ACTIVATION_DURATION_SECOND = 10;
 
     uint8   public flag;
     uint248 private _reserved;
@@ -255,7 +255,10 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         clientList[defi] = encodeClient(uint64(_start), uint64(_end), uint32(_mfee), 0x1);
         clientOp[defi] = address(msg.sender);
         emit ClientActivated(defi, _start, _end);
-        require(ERC20(C_NestToken).transferFrom(address(msg.sender), address(this), _nestFee), "Nest:Qury:!transfer");
+        require(ERC20(C_NestToken).transferFrom(
+            address(msg.sender), 
+            address(C_NestDAO), 
+            _nestFee), "Nest:Qury:!transfer");
     }
 
     function deactivate(address defi) 
@@ -300,7 +303,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         {
             address _ntoken = INestPool(C_NestPool).getNTokenFromToken(token); 
             uint256 _ethFee = _single;
-            INestStaking(C_NestStaking).addETHReward{value:_ethFee}(address(_ntoken));
+            INestDAO(C_NestDAO).addETHReward{value:_ethFee}(address(_ntoken));
 
             // return change
             if (payback != address(0)) {

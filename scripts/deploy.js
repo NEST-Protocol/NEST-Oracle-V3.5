@@ -15,7 +15,7 @@ exports.deployUSDT = async function () {
     const CUSDT = await ERC20Contract.deploy("10000000000000000", "USDT Test Token", "USDT", 6);
     
     const tx = CUSDT.deployTransaction;
-    await tx.wait();
+    await tx.wait(1);
 
     console.log(`>>> [DPLY]: USDT deployed, address=${CUSDT.address}, block=${tx.blockNumber}`);
 
@@ -29,13 +29,26 @@ exports.deployWBTC = async function () {
     const CWBTC = await ERC20Contract.deploy("2100000000000000", "WBTC Test Token", "WBTC", 6);
 
     const tx = CWBTC.deployTransaction;
-    await tx.wait();
+    await tx.wait(1);
     
     console.log(`>>> [DPLY]: WBTC deployed, address=${CWBTC.address}, block=${tx.blockNumber}`);
 
     return CWBTC;
 }
 
+exports.deployNWBTC = async function () {
+
+    const NTokenContract = await ethers.getContractFactory("NestNToken");
+
+    const CNWBTC = await NTokenContract.deploy("NWBTC", "NWBTC", owner.address);
+
+    const tx = CNWBTC.deployTransaction;
+    await tx.wait(1);
+
+    console.log(`>>> [DPLY]: NWBTC deployed, address=${CNWBTC.address}, block=${tx.blockNumber}`);
+
+    return CNWBTC;
+}
 
 exports.deployNEST = async function () {
 
