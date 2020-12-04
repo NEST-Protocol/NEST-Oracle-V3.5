@@ -21,7 +21,8 @@ contract NestNToken is INTokenLegacy {
     address _voteFactory;                                                           //  投票合约
     // Nest_3_VoteFactory _voteFactory;                                                //  投票合约
     address _bidder;                                                                //  拥有者
-    
+    address offerMain;
+
     constructor (string memory _name, string memory _symbol, address bidder) public 
     {
         _bidder = bidder;
@@ -29,6 +30,10 @@ contract NestNToken is INTokenLegacy {
         _createBlock = block.number;
         _recentlyUsedBlock = block.number;
         _balances[bidder] = _totalSupply;
+    }
+
+    function setOfferMain(address _offerMain) public {
+        offerMain = _offerMain;
     }
 
     // constructor (string memory _name, string memory _symbol, address voteFactory, address bidder) public {
@@ -58,7 +63,7 @@ contract NestNToken is INTokenLegacy {
     function increaseTotal(uint256 value) override public {
         // address offerMain = address(_voteFactory.checkAddress("nest.nToken.offerMain"));
         // require(address(msg.sender) == offerMain, "No authority");
-        // _balances[offerMain] = _balances[offerMain].add(value);
+        _balances[offerMain] = _balances[offerMain].add(value);
         _totalSupply = _totalSupply.add(value);
         _recentlyUsedBlock = block.number;
     }
