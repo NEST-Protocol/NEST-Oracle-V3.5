@@ -67,23 +67,20 @@ library MiningV1Op {
         { 
             // check bitting conditions
             uint256 _newEthNum;
-            uint256 _newNestNum1k;
+            uint256 _newNestNum1k = uint256(_sheet.nestNum1k);
             {
                 uint256 _level = uint256(_sheet.level);
-                uint256 _newLevel;
+                uint256 _newLevel = _level;
 
                 if (_level > state.maxBiteNestedLevel && _level < 127) { // bitten sheet, nest doubling
                     _newEthNum = biteNum;
-                    _newNestNum1k = uint256(_sheet.nestNum1k).mul(_newEthNum).div(_sheet.ethNum).mul(2);
+                    _newNestNum1k = _newNestNum1k.mul(state.biteNestInflateFactor * _newEthNum).div(_sheet.ethNum);
                     _newLevel = _level + 1;
                 } else if (_level <= state.maxBiteNestedLevel) {  // bitten sheet, eth doubling 
                     _newEthNum = biteNum.mul(state.biteInflateFactor);
-                    _newNestNum1k = uint256(_sheet.nestNum1k).mul(_newEthNum).div(_sheet.ethNum).mul(2);
+                    _newNestNum1k = _newNestNum1k.mul(state.biteNestInflateFactor * _newEthNum).div(_sheet.ethNum);
                     _newLevel = _level + 1;
-                } else if (_level >= 127) {
-                    _newLevel = _level;
-                    _newNestNum1k = uint256(_sheet.nestNum1k);
-                }
+                } 
 
                 MiningV1Data.PriceSheet[] storage _sheetOfToken = state.priceSheetList[token];
                 // append a new price sheet
@@ -105,7 +102,7 @@ library MiningV1Op {
             _C_NestPool.freezeNest(address(msg.sender), _newNestNum1k.mul(1000 * 1e18));
             _C_NestPool.freezeEthAndToken(msg.sender, _newEthNum.add(biteNum).mul(1 ether), 
                 token, _newEthNum.mul(newTokenAmountPerEth)
-                                    .sub(biteNum.mul(_sheet.tokenAmountPerEth)));
+                                    .sub(biteNum * _sheet.tokenAmountPerEth));
             _sheet.state = MiningV1Data.PRICESHEET_STATE_BITTEN;
             _sheet.ethNumBal = uint32(uint256(_sheet.ethNumBal).add(biteNum));
             _sheet.tokenNumBal = uint32(uint256(_sheet.tokenNumBal).sub(biteNum));
@@ -166,22 +163,19 @@ library MiningV1Op {
         { 
             // check bitting conditions
             uint256 _newEthNum;
-            uint256 _newNestNum1k;
+            uint256 _newNestNum1k = uint256(_sheet.nestNum1k);
             {
                 uint256 _level = uint256(_sheet.level);
-                uint256 _newLevel;
+                uint256 _newLevel = _level;
 
                 if (_level > state.maxBiteNestedLevel && _level < 127) { // bitten sheet, nest doubling
                     _newEthNum = biteNum;
-                    _newNestNum1k = uint256(_sheet.nestNum1k).mul(_newEthNum).div(_sheet.ethNum).mul(state.biteNestInflateFactor);
+                    _newNestNum1k = _newNestNum1k.mul(state.biteNestInflateFactor * _newEthNum).div(_sheet.ethNum);
                     _newLevel = _level + 1;
                 } else if (_level <= state.maxBiteNestedLevel) {  // bitten sheet, eth doubling 
                     _newEthNum = biteNum.mul(state.biteInflateFactor);
-                    _newNestNum1k = uint256(_sheet.nestNum1k).mul(_newEthNum).div(_sheet.ethNum).mul(state.biteNestInflateFactor);
+                    _newNestNum1k = _newNestNum1k.mul(state.biteNestInflateFactor * _newEthNum).div(_sheet.ethNum);
                     _newLevel = _level + 1;
-                } else if (_level >= 127) {
-                    _newLevel = _level;
-                    _newNestNum1k = uint256(_sheet.nestNum1k);
                 }
 
                 MiningV1Data.PriceSheet[] storage _sheetOfToken = state.priceSheetList[token];
@@ -204,7 +198,7 @@ library MiningV1Op {
             _C_NestPool.freezeNest(address(msg.sender), _newNestNum1k.mul(1000 * 1e18));
             _C_NestPool.freezeEthAndToken(msg.sender, _newEthNum.sub(biteNum).mul(1 ether), 
                 token, _newEthNum.mul(newTokenAmountPerEth)
-                                    .add(biteNum.mul(_sheet.tokenAmountPerEth)));
+                                    .add(biteNum * _sheet.tokenAmountPerEth));
             _sheet.state = MiningV1Data.PRICESHEET_STATE_BITTEN;
             _sheet.ethNumBal = uint32(uint256(_sheet.ethNumBal).sub(biteNum));
             _sheet.tokenNumBal = uint32(uint256(_sheet.tokenNumBal).add(biteNum));
