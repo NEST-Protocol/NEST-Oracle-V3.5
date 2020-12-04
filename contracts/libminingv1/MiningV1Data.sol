@@ -160,7 +160,6 @@ library MiningV1Data {
 
         uint32  genesisBlock;       // = 6236588;
 
-
         uint128  latestMiningHeight;
         uint128  minedNestAmount;   
         
@@ -187,6 +186,10 @@ library MiningV1Data {
 
         mapping(address => mapping(uint256 => uint256)) minedAtHeight;
 
+        uint256  _reserved1;
+        uint256  _reserved2;
+        uint256  _reserved3;
+        uint256  _reserved4;
     }
 
 }
