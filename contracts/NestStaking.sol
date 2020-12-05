@@ -117,11 +117,10 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         C_NestToken = INestPool(C_NestPool).addrOfNestToken();
     }
 
-
-    function setGovernance(address _newGov) external onlyGovernance
-    {
-        governance = _newGov;
-        emit GovSet(address(msg.sender), governance, _newGov);
+    /// @dev To ensure that all of governance-addresses be consist with each other
+    function loadGovernance() override external onlyGovernance 
+    { 
+        governance = INestPool(C_NestPool).governance();
     }
 
     function setFlag(uint8 _newFlag) external onlyGovernance

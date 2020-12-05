@@ -9,8 +9,6 @@ import './lib/TransferHelper.sol';
 import "./iface/INestMining.sol";
 import "./iface/INNRewardPool.sol";
 
-//import "hardhat/console.sol";
-
 /// @title NNRewardPool
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
 /// @author Paradox  - <paradox@nestprotocol.org>
@@ -19,6 +17,14 @@ import "./iface/INNRewardPool.sol";
 ///     15% share of the amount of nest-token produced by miners
 /// @dev The nest-tokens are put in NestPool. This contract only traces 
 ///     the sum-amount of all of the rewards (nest-token)
+///   - NNToken is pre-deployed in Nest v3.0, so we should connect (legacy)
+///       with NNRewardPool. Whenever a NN holder transfers NN token to another,
+///       NNToken will call back NNRewardPool.nodeCount() to settle rewards (decisively)
+///       for both sender and receiver.
+///   - After upgrading, NNRewardPool will count rewards from zero. Any NN holder should
+///       claim rewards that had been issued before upgrading from the old contract. Old
+///       data about NN rewards will be dropped in this contract, while it can also accessible
+///       through OLD (Nest v3.0) contracts.
 contract NNRewardPool is INNRewardPool {
     using SafeMath for uint256;
 
@@ -26,8 +32,17 @@ contract NNRewardPool is INNRewardPool {
                             // | 0: uninitialized
                             // | -1: shutdown
 
-    uint256 public NN_reward_sum;
-    uint256 public NN_total_supply;
+    int8   constant NNREWARD_FLAG_UNINITIALIZED    = 0;
+    int8   constant NNREWARD_FLAG_ACTIVE           = 1;
+    int8   constant NNREWARD_FLAG_SHUTDOWN         = -1;
+
+
+    uint256 constant DEV_REWARD_PERCENTAGE   = 5;
+    uint256 constant NN_REWARD_PERCENTAGE    = 15;
+    uint256 constant MINER_REWARD_PERCENTAGE = 80;
+    
+    uint256 public rewardSum;
+    uint256 public totalSupplyNN;
 
     address C_NNToken;
     address C_NestToken;
@@ -36,28 +51,8 @@ contract NNRewardPool is INNRewardPool {
 
     address public governance;
 
-    uint256 constant DEV_REWARD_PERCENTAGE   = 5;
-    uint256 constant NN_REWARD_PERCENTAGE    = 15;
-    uint256 constant MINER_REWARD_PERCENTAGE = 80;
-
-    int8   constant NNREWARD_FLAG_UNINITIALIZED    = 0;
-    int8   constant NNREWARD_FLAG_ACTIVE           = 1;
-    int8   constant NNREWARD_FLAG_SHUTDOWN         = -1;
-
     /// @dev From nest-node address to checkpoints of reward-sum
-    mapping(address => uint256) public NN_reward_sum_checkpoint;
-
-    /* ========== EVENTS ============== */
-
-    /// @notice When rewards are added to the pool
-    /// @param reward The amount of Nest Token
-    /// @param allRewards The snapshot of all rewards accumulated
-    event NNRewardAdded(uint256 reward, uint256 allRewards);
-
-    /// @notice When rewards are claimed by nodes 
-    /// @param nnode The address of the nest node
-    /// @param share The amount of Nest Token claimed by the nest node
-    event NNRewardClaimed(address nnode, uint256 share);
+    mapping(address => uint256) public rewardSumCheckpoint;
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -69,7 +64,7 @@ contract NNRewardPool is INNRewardPool {
     {
         C_NestPool = NestPool;
         C_NNToken = NNToken;
-        NN_total_supply = uint128(ERC20(C_NNToken).totalSupply());
+        totalSupplyNN = uint128(ERC20(C_NNToken).totalSupply());
         governance = msg.sender;
         flag = NNREWARD_FLAG_UNINITIALIZED;
     }
@@ -105,6 +100,13 @@ contract NNRewardPool is INNRewardPool {
 
     /* ========== GOVERNANCE ========== */
 
+    /// @dev To ensure that all of governance-addresses be consistent, every contract
+    ///        besides NestPool must load newest `governance` from NestPool.
+    function loadGovernance() override external onlyGovernance 
+    { 
+        governance = INestPool(C_NestPool).governance();
+    }
+
     /// @dev The function loads all nest-contracts, it is supposed to be called by NestPool
     function loadContracts() override external onlyGovOrBy(C_NestPool)
     {
@@ -116,27 +118,27 @@ contract NNRewardPool is INNRewardPool {
 
     }
 
-    /// @notice Set the snapshot of NN total rewards
-    /// @dev The function should be called by admin when upgrading
-    function setNNRewardSum(uint128 sum) external onlyGovernance
-    {
-        NN_reward_sum = uint128(sum);
-    }
+    // /// @notice Set the snapshot of NN total rewards
+    // /// @dev The function should be called by admin when upgrading
+    // function setNNRewardSum(uint128 sum) external onlyGovernance
+    // {
+    //     rewardSum = uint128(sum);
+    // }
 
-    /// @notice Set the snapshot of NN holders
-    /// @dev The function should be called by admin when upgrading
-    function setNNRewardSumCheckpoint(address node, uint256 sum) external onlyGovernance 
-    {
-        if (sum > 0) {
-            NN_reward_sum_checkpoint[node] = sum;
-        }
-    }
+    // /// @notice Set the snapshot of NN holders
+    // /// @dev The function should be called by admin when upgrading
+    // function setNNRewardSumCheckpoint(address node, uint256 sum) external onlyGovernance 
+    // {
+    //     if (sum > 0) {
+    //         rewardSumCheckpoint[node] = sum;
+    //     }
+    // }
 
-    /// @dev Set the flag of this contract
-    function setFlag(int8 newFlag) external onlyGovernance
-    {
-        flag = newFlag;
-    }
+    // /// @dev Set the flag of this contract
+    // function setFlag(int8 newFlag) external onlyGovernance
+    // {
+    //     flag = newFlag;
+    // }
 
     /// @dev Shutdown this contract
     function shutdown() external onlyGovernance
@@ -150,11 +152,11 @@ contract NNRewardPool is INNRewardPool {
     /// @notice Add rewards for Nest-Nodes, only governance or NestMining (contract) are allowed
     /// @dev  The rewards need to pull from NestPool
     /// @param _amount The amount of Nest token as the rewards to each nest-node
-    function addNNReward(uint256 _amount) override external onlyGovOrBy(C_NestMining)
+    function addNNReward(uint256 _amount) override external onlyBy(C_NestMining)
     {
         if (_amount > 0) {
-            uint256 _newSum = uint256(NN_reward_sum).add(_amount);
-            NN_reward_sum = uint128(_newSum);
+            uint256 _newSum = uint256(rewardSum).add(_amount);
+            rewardSum = uint128(_newSum);
             emit NNRewardAdded(_amount, _newSum);
         }
         return;
@@ -166,10 +168,10 @@ contract NNRewardPool is INNRewardPool {
     //     require(flag == NNREWARD_FLAG_ACTIVE, "Nest:NN:!flag");
 
     //     uint256 _allMined = INestMining(C_NestMining).minedNestAmount();
-    //     if (_allMined > NN_reward_sum) {
-    //         uint256 _amount = _allMined.mul(NN_REWARD_PERCENTAGE).div(100).sub(NN_reward_sum);
-    //         uint256 _newSum = uint256(NN_reward_sum).add(_amount);
-    //         NN_reward_sum = uint128(_newSum);
+    //     if (_allMined > rewardSum) {
+    //         uint256 _amount = _allMined.mul(NN_REWARD_PERCENTAGE).div(100).sub(rewardSum);
+    //         uint256 _newSum = uint256(rewardSum).add(_amount);
+    //         rewardSum = uint128(_newSum);
     //         emit NNRewardAdded(_amount, _newSum);
     //     }
     // }
@@ -179,10 +181,10 @@ contract NNRewardPool is INNRewardPool {
     //     require(flag == NNREWARD_FLAG_ACTIVE, "Nest:NN:!flag");
 
     //     uint256 _allMined = INestMining(C_NestMining).minedNestAmount();
-    //     if (_allMined > NN_reward_sum) {
-    //         uint256 _amount = _allMined.mul(NN_REWARD_PERCENTAGE).div(100).sub(NN_reward_sum);
-    //         uint256 _newSum = uint256(NN_reward_sum).add(_amount);
-    //         NN_reward_sum = uint128(_newSum);
+    //     if (_allMined > rewardSum) {
+    //         uint256 _amount = _allMined.mul(NN_REWARD_PERCENTAGE).div(100).sub(rewardSum);
+    //         uint256 _newSum = uint256(rewardSum).add(_amount);
+    //         rewardSum = uint128(_newSum);
     //         emit NNRewardAdded(_amount, _newSum);
     //     }
     //    _;
@@ -198,16 +200,16 @@ contract NNRewardPool is INNRewardPool {
 
         uint256 blnc =  ERC20(C_NNToken).balanceOf(address(msg.sender));
         require(blnc > 0, "Nest:NN:!(NNToken)");
-        uint256 total = NN_total_supply;
-        uint256 sum = NN_reward_sum;
-        uint256 reward = sum.sub(NN_reward_sum_checkpoint[address(msg.sender)]);
+        uint256 total = totalSupplyNN;
+        uint256 sum = rewardSum;
+        uint256 reward = sum.sub(rewardSumCheckpoint[address(msg.sender)]);
         uint256 share = reward.mul(blnc).div(total);
 
-        NN_reward_sum_checkpoint[address(msg.sender)] = sum;
+        rewardSumCheckpoint[address(msg.sender)] = sum;
         emit NNRewardClaimed(address(msg.sender), share);
      
         INestPool(C_NestPool).withdrawNest(address(this), share);
-        require(ERC20(C_NestToken).transfer(address(msg.sender), share), "transfer fail!");
+        require(ERC20(C_NestToken).transfer(address(msg.sender), share), "Nest:NN:!TRANS");
         
         return;
     }
@@ -222,25 +224,25 @@ contract NNRewardPool is INNRewardPool {
 
         uint256 fromBlnc = ERC20(C_NNToken).balanceOf(address(from));
         require (fromBlnc > 0, "Nest:NN:!(fromBlnc)");
-        uint256 sum = NN_reward_sum;
-        uint256 total = NN_total_supply;
+        uint256 sum = rewardSum;
+        uint256 total = totalSupplyNN;
 
-        uint256 fromReward = sum.sub(NN_reward_sum_checkpoint[from]).mul(fromBlnc).div(total);      
-        NN_reward_sum_checkpoint[from] = sum;      
+        uint256 fromReward = sum.sub(rewardSumCheckpoint[from]).mul(fromBlnc).div(total);      
+        rewardSumCheckpoint[from] = sum;      
        
         uint256 toBlnc = ERC20(C_NNToken).balanceOf(address(to));
-        uint256 toReward = sum.sub(NN_reward_sum_checkpoint[to]).mul(toBlnc).div(total);
-        NN_reward_sum_checkpoint[to] = sum;
+        uint256 toReward = sum.sub(rewardSumCheckpoint[to]).mul(toBlnc).div(total);
+        rewardSumCheckpoint[to] = sum;
         
         if (fromReward > 0) {
             INestPool(C_NestPool).withdrawNest(address(this), fromReward);
-            require(ERC20(C_NestToken).transfer(from, fromReward), "transfer fail!");
+            require(ERC20(C_NestToken).transfer(from, fromReward), "Nest:NN:!TRANS");
             emit NNRewardClaimed(from, uint128(fromReward));
         }
 
         if (toReward > 0) { 
             INestPool(C_NestPool).withdrawNest(address(this), toReward);
-            require(ERC20(C_NestToken).transfer(to, toReward), "transfer fail!");
+            require(ERC20(C_NestToken).transfer(to, toReward), "Nest:NN:!TRANS");
             emit NNRewardClaimed(to, uint128(toReward));
         }
 
@@ -265,10 +267,10 @@ contract NNRewardPool is INNRewardPool {
     function unclaimedNNReward() override external view returns (uint256 reward) 
     {
         uint256 blnc = ERC20(C_NNToken).balanceOf(address(msg.sender));
-        uint256 sum = uint256(NN_reward_sum);
-        uint256 total = uint256(NN_total_supply);
+        uint256 sum = uint256(rewardSum);
+        uint256 total = uint256(totalSupplyNN);
      
-        reward = sum.sub(NN_reward_sum_checkpoint[address(msg.sender)]).mul(blnc).div(total);
+        reward = sum.sub(rewardSumCheckpoint[address(msg.sender)]).mul(blnc).div(total);
 
     }
 
