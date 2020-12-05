@@ -34,7 +34,7 @@ interface INestPool {
 
     function withdrawNest(address miner, uint256 amount) external;
     function withdrawEthAndToken(address miner, uint256 ethAmount, address token, uint256 tokenAmount) external;
-    function withdrawNToken(address miner, address ntoken, uint256 amount) external;
+    // function withdrawNToken(address miner, address ntoken, uint256 amount) external;
     function withdrawNTokenAndTransfer(address miner, address ntoken, uint256 amount, address to) external;
 
 
