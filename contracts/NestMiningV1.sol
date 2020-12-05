@@ -27,8 +27,6 @@ contract NestMiningV1 {
 
     using SafeMath for uint256;
 
-    MiningV1Data.State state;
-
     using MiningV1Calc for MiningV1Data.State;
     using MiningV1Op for MiningV1Data.State;
 
@@ -38,6 +36,8 @@ contract NestMiningV1 {
     uint64  public  version; 
     uint8   private _entrant_state; 
     uint176   private _reserved; 
+    
+    address public governance;
 
 
     // NOTE: _NOT_ENTERED is set to ZERO such that it needn't constructor
@@ -52,6 +52,8 @@ contract NestMiningV1 {
     // uint8 constant STATE_FLAG_WITHDRAW_STOPPED = 6;
     // uint8 constant STATE_FLAG_PRICE_STOPPED    = 7;
     // uint8 constant STATE_FLAG_SHUTDOWN         = 127;
+
+    MiningV1Data.State state;
 
     struct Params {
         uint8    miningEthUnit;     // = 10;
@@ -218,6 +220,11 @@ contract NestMiningV1 {
     //     state._developer_address = developer_address;
     //     state._NN_address = NN_address;
     // }
+
+    function loadGovernance() external onlyGovernance
+    {
+        governance = INestPool(state.C_NestPool).governance();
+    }
 
     function loadContracts() external onlyGovOrBy(C_NestPool)
     {
@@ -568,7 +575,8 @@ contract NestMiningV1 {
     }
 
  
-    /// @notice Close a price sheet and withdraw assets
+    /// @notice Close a price sheet and withdraw assets for WEB users.  
+    /// @dev Contracts aren't allowed to call it.
     /// @param token The address of TOKEN contract
     /// @param index The index of the price sheet w.r.t. `token`
     function closeAndWithdraw(address token, uint256 index) 
@@ -611,6 +619,13 @@ contract NestMiningV1 {
             _C_NestPool.unfreezeNest(address(msg.sender), _nestAmount); 
             _C_NestPool.withdrawEthAndToken(address(msg.sender), _ethAmount, token, _tokenAmount);
             _C_NestPool.withdrawNest(address(msg.sender), _nestAmount);
+        }
+
+        {
+            uint256 _ethAmount = _C_NestPool.balanceOfEthInPool(address(msg.sender));
+            if (_ethAmount > 0) {
+                _C_NestPool.withdrawEth(address(msg.sender), _ethAmount);
+            }
         }
 
         _sheet.state = MiningV1Data.PRICESHEET_STATE_CLOSED;
@@ -748,7 +763,8 @@ contract NestMiningV1 {
 
     /* ========== MINING ========== */
     
-    function _mineNest() private view returns (uint256) {
+    function _mineNest() private view returns (uint256) 
+    {
         uint256 _period = block.number.sub(MiningV1Data.MINING_NEST_GENESIS_BLOCK_HEIGHT).div(MiningV1Data.MINING_NEST_YIELD_CUTBACK_PERIOD);
         uint256 _nestPerBlock;
         if (_period > 9) {
@@ -778,15 +794,18 @@ contract NestMiningV1 {
     }
     */
 
-    function minedNestAmount() external view returns (uint256) {
+    function minedNestAmount() external view returns (uint256) 
+    {
        return uint256(state.minedNestAmount);
     }
 
-    function latestMinedHeight() external view returns (uint64) {
+    function latestMinedHeight() external view returns (uint64) 
+    {
        return uint64(state.latestMiningHeight);
     }
 
-    function _mineNToken(address ntoken) private view returns (uint256) {
+    function _mineNToken(address ntoken) private view returns (uint256) 
+    {
         (uint256 _genesis, uint256 _last) = INToken(ntoken).checkBlockInfo();
 
         uint256 _period = block.number.sub(_genesis).div(MiningV1Data.MINING_NEST_YIELD_CUTBACK_PERIOD);
