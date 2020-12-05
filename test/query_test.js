@@ -78,7 +78,11 @@ describe("Nest Protocol", function () {
             NestStaking.address, NTokenController.address, NNToken.address, 
             NNRewardPool.address, NestQuery.address, NestDAO.address);
         await tx.wait();
-        console.log(`> [INIT] NestPool.setContracts()`);
+        console.log(`> [INIT] NestPool.setContracts() ...... OK`);
+
+        tx = await NestQuery.loadContracts();
+        await tx.wait();
+        console.log(`> [INIT] NestQuery.loadContracts() ...... OK`);
 
         tx = await NestPool.setNTokenToToken(CUSDT.address, NestToken.address);
 
@@ -182,13 +186,14 @@ describe("Nest Protocol", function () {
             await MockNestMining.mock.latestPriceOf
                 .withArgs(_C_USDT)
                 .returns(ETH("10"), USDT("5750"), BigNumber.from(1002));
-            const tx = await NestQuery.connect(userA).query(_C_USDT, userB.address, {value: ETH(1)});
+            const tx = await NestQuery.connect(userA).query(_C_USDT, userB.address, {value: ETH(1), gasPrice:0 });
             const rt = await tx.wait();
             const ev = rt.events.find((ev) => {
                 if (ev.event == "PriceQueried") {
                     return true;
                 }
             });     
+            console.log("event=", ev);
             expect(ev.args.ethAmount).to.equal(ETH(10));
             expect(ev.args.tokenAmount).to.equal(USDT(5750));
             expect(ev.args.bn).to.equal(1002);
@@ -269,7 +274,7 @@ describe("Nest Protocol", function () {
             await NestQuery.resume();
             await DeFiMock.query(_C_USDT, {value:ETH(1).div(10)});
         });
-        
+
 /*
         it("can deactivate a DeFi client", async () => {
             await advanceTime(provider, 10);

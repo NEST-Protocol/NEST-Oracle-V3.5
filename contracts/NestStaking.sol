@@ -26,8 +26,6 @@ contract NestStaking is INestStaking, ReentrancyGuard {
                             // = 1: active
                             // = 2: withdraw forbidden
                             // = 3: paused 
-    uint248 private _reserved;
-
     uint8 constant STAKING_FLAG_UNINITIALIZED    = 0;
     uint8 constant STAKING_FLAG_ACTIVE           = 1;
     uint8 constant STAKING_FLAG_NO_STAKING       = 2;
@@ -38,10 +36,12 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     ///      - 20% to saving for buying back (future)
     uint8 private _dividend_share; // = 80;
 
+    uint240 private _reserved;
+
     address private C_NestToken;
     address private C_NestPool;
 
-    address public governance;
+    address private governance;
 
     /// @dev The balance of savings w.r.t a ntoken(or nest-token)
     ///     _pending_saving_Amount: ntoken => saving amount
@@ -68,9 +68,6 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     
     // _rewards_balances: (ntoken, account) => amount
     mapping(address => mapping(address => uint256)) public rewardBalances;
-
-    /* ========== EVENTS ========== */
-
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -123,11 +120,6 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         governance = INestPool(C_NestPool).governance();
     }
 
-    function setFlag(uint8 _newFlag) external onlyGovernance
-    {
-        flag = _newFlag;
-    }
-
     /// @dev Stop service for emergency
     function pause() external onlyGovernance
     {
@@ -161,6 +153,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     }
 
     /* ========== VIEWS ========== */
+    
     function totalSaving(address ntoken)
         external view returns (uint256) 
     {

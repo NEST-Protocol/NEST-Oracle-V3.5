@@ -254,7 +254,7 @@ describe("NNRewardPool contract", function () {
             const userD_balance_pre = await NestToken.balanceOf(userD.address);
 
             // Charge to the nestpool to prevent insufficient funds from being transferred
-            await NestPool.addNest(_C_NNRewardPool, NEST(3000));
+            await NestPool.connect(ghost).addNest(_C_NNRewardPool, NEST(3000));
             const nest_NNRewardPool_pre = await NestPool.balanceOfNestInPool(_C_NNRewardPool);
 
             // claimNNReward
@@ -262,7 +262,6 @@ describe("NNRewardPool contract", function () {
 
             // record funds before claimNNReward
             const nest_NNRewardPool_pos = await NestPool.balanceOfNestInPool(_C_NNRewardPool);
-            console.log("nest_NNRewardPool_pos =",nest_NNRewardPool_pos.toString());
 
             const userD_balance_pos = await NestToken.balanceOf(userD.address);
             const userD_checkpoint_pos = await NNRewardPool.rewardSumCheckpoint(userD.address);
@@ -278,8 +277,6 @@ describe("NNRewardPool contract", function () {
         it("can settle rewards when tranferring", async () => {
             const blnc_C = await NNToken.balanceOf(userC.address); // NN[C]=500
             const blnc_D = await NNToken.balanceOf(userD.address); // NN[D]=1000
-            console.log(`blnc_C=${blnc_C}`);         
-            console.log(`blnc_D=${blnc_D}`);         
             const total = BigN(blnc_C).add(blnc_D);
             const nest_a_pre = await NestToken.balanceOf(userA.address);  
             const nest_d_pre = await NestToken.balanceOf(userD.address);
@@ -287,7 +284,7 @@ describe("NNRewardPool contract", function () {
         
             // Charge to the nestpool to prevent insufficient funds from being transferred
             const reward =  NEST(1200);
-            await NestPool.addNest(_C_NNRewardPool, reward);
+            await NestPool.connect(ghost).addNest(_C_NNRewardPool, reward);
             await NNRewardPool.connect(ghost).addNNReward(reward);
             // run nodeCount function by transfer 
             // userD (1000) => userA (0)
@@ -306,7 +303,6 @@ describe("NNRewardPool contract", function () {
         // check nodeCount function (toAdd)
         it("can settle rewards again when tranferring", async () => {       
             const blnc_A_pre = await NNToken.balanceOf(userA.address);
-            console.log("blnc_A_pre =",blnc_A_pre.toString());
             const blnc_C_pre = await NNToken.balanceOf(userC.address);   
             const blnc_D_pre = await NNToken.balanceOf(userD.address);
             const total = BigN(blnc_A_pre).add(blnc_C_pre).add(blnc_D_pre);
@@ -315,18 +311,16 @@ describe("NNRewardPool contract", function () {
             const nest_D_pre = await NestToken.balanceOf(userD.address);
 
             const sum_pre = await NNRewardPool.rewardSum(); 
-            console.log("sum_pre =",sum_pre.toString());
 
             // Charge to the nestpool to prevent insufficient funds from being transferred
             const reward = NEST(3000);
-            await NestPool.addNest(_C_NNRewardPool, reward);
+            await NestPool.connect(ghost).addNest(_C_NNRewardPool, reward);
             await NNRewardPool.connect(ghost).addNNReward(reward);
             // userA (500) => userD (500)
             await NNToken.connect(userA).transfer(userD.address, 500);
 
             // record funds after transfer
             const sum_post = await NNRewardPool.rewardSum();
-            console.log("sum_post =",sum_post.toString());
             const nest_A_post = await NestToken.balanceOf(userA.address);
             const nest_D_post = await NestToken.balanceOf(userD.address);
 

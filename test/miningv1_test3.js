@@ -72,7 +72,7 @@ describe("NestToken contract", function () {
         CWBTC = await deployWBTC();
         [NestToken, IterableMapping] = await deployNEST();
         NNToken = await deployNN();
-        CNWBTC = await deployNWBTC(owner.address);
+        CNWBTC = await deployNWBTC(owner);
 
         let contracts = {
             USDT: CUSDT,

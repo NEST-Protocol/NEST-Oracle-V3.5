@@ -147,11 +147,6 @@ describe("NestStaking contract", function () {
 
         const dividend_share_percentage = BigN(80);
 
-        it("should have correct settings", async () => {
-            let gov = await NestStaking.governance();
-            expect(gov).to.equal(owner.address);
-        });
-
         it ("should add rewards correctly", async () => {
             const amount = ETH(100);
             let tx = await NestStaking.addETHReward(_C_NestToken, {value: amount});

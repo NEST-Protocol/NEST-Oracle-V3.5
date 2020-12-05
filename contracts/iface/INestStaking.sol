@@ -45,6 +45,8 @@ interface INestStaking {
     /// @dev Only for governance
     function loadGovernance() external; 
 
+    /* ========== EVENTS ========== */
+
     // Events
     event RewardAdded(address ntoken, address sender, uint256 reward);
     event NTokenStaked(address ntoken, address indexed user, uint256 amount);

@@ -14,7 +14,7 @@
     "@openzeppelin/test-environment": "git+https://github.com/OpenZeppelin/openzeppelin-test-environment.git#80179acb79b31456e4ad8427523555d241300447",
     "@openzeppelin/test-helpers": "^0.5.9",
     "chai": "^4.2.0",
-    "ethereum-waffle": "^3.2.0",
+    "ethereum-waffle": "^3.2.1",
     "ethers": "^5.0.21",
     "hardhat": "^2.0.3",
     "hardhat-contract-sizer": "^2.0.2",
