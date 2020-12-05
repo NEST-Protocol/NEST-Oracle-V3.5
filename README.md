@@ -64,7 +64,7 @@ npx hardhat scripts/setup_testnet.js --network kovan
 
 #### Ropsten testnet
 
-
+Coming soon
 
 ##### Initialized parameters
 
