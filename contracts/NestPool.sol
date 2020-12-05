@@ -156,13 +156,6 @@ contract NestPool is INestPool {
         if (NestDAO != address(0)) {
             C_NestDAO = NestDAO;
         }
-
-        INestMining(C_NestMining).loadContracts();
-        INestStaking(C_NestStaking).loadContracts();
-        INNRewardPool(C_NNRewardPool).loadContracts();
-        INTokenController(C_NTokenController).loadContracts();
-        INestQuery(C_NestQuery).loadContracts();
-        INestDAO(C_NestDAO).loadContracts();
     }
 
     function getNTokenFromToken(address token) 

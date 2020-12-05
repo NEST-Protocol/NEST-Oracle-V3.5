@@ -237,6 +237,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
 
     /// @notice Activate a pay-per-query defi client with NEST tokens
     /// @dev No contract is allowed to call it
+    /// @param defi The addres of client (DeFi DApp)
     function activate(address defi) 
         override external noContract whenActive
     {
