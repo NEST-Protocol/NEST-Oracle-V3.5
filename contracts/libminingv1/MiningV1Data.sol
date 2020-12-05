@@ -135,6 +135,7 @@ library MiningV1Data {
     event TokenSold(address miner, address token, uint256 index, uint256 biteEthAmount, uint256 biteTokenAmount);
 
     event VolaComputed(uint32 h, uint32 pos, uint32 ethA, uint128 tokenA, int128 sigma_sq, int128 ut_sq);
+    event GovSet(address oldGov, address newGov);
 
     /* ========== STATE VARIABLES ========== */
 
@@ -159,7 +160,6 @@ library MiningV1Data {
         uint8   biteNestInflateFactor; // = 2;
 
         uint32  genesisBlock;       // = 6236588;
-
 
         uint128  latestMiningHeight;
         uint128  minedNestAmount;   
@@ -187,6 +187,10 @@ library MiningV1Data {
 
         mapping(address => mapping(uint256 => uint256)) minedAtHeight;
 
+        uint256  _reserved1;
+        uint256  _reserved2;
+        uint256  _reserved3;
+        uint256  _reserved4;
     }
 
 }

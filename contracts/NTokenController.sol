@@ -28,7 +28,7 @@ contract NTokenController is  ReentrancyGuard {
 
     /// @dev A number counter for generating ntoken name
     uint32 public ntokenCounter;
-    uint8  public flag;
+    uint8  public flag;         // 0: uninitialized | 1: active | 2: shutdown
     
     /// @dev Contract address of NestPool
     address private C_NestPool;
@@ -39,7 +39,7 @@ contract NTokenController is  ReentrancyGuard {
     ///     size: 2 x 256bit
     struct NTokenTag {
         address owner;          // the owner with the highest bid
-        uint128 nestStaked;     // NEST amount staked for opening a NToken
+        uint128 nestFee;        // NEST amount staked for opening a NToken
         uint64  startTime;      // the start time of service
         uint8   state;          // =0: normal | =1 disabled
         uint56  _reserved;      // padding space
@@ -49,10 +49,7 @@ contract NTokenController is  ReentrancyGuard {
     ///     token(address) => NTokenTag
     mapping(address => NTokenTag) private nTokenTagList;
 
-    // uint256 constant c_auction_duration = 5 days;
-    uint256 constant NTOKEN_NEST_STAKED_AMOUNT = 100_000;
-    // uint256 constant c_auction_bid_incentive_percentage = 50;
-    // uint256 constant c_auction_min_bid_increment = 10000;
+    uint256 public openFeeNestAmount = 0; // default = 0
 
     address private governance;
 
@@ -63,6 +60,10 @@ contract NTokenController is  ReentrancyGuard {
     /// @param ntoken   The address of the ntoken w.r.t. token for incentives
     /// @param owner    The address of miner who opened the oracle
     event NTokenOpened(address token, address ntoken, address owner);
+    event NTokenDisabled(address token);
+    event NTokenEnabled(address token);
+
+    event GovSet(address oldGov, address newGov);
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -73,15 +74,20 @@ contract NTokenController is  ReentrancyGuard {
         C_NestPool = NestPool;
     }
 
+    function setCounter(uint32 _ntokenCounter) public onlyGovernance
+    {
+        ntokenCounter = _ntokenCounter;
+    }
+
     modifier noContract() 
     {
         require(address(msg.sender) == address(tx.origin), "Nest:NTC:^(contract)");
         _;
     }
 
-    modifier whenOpenPairAllowed() 
+    modifier whenActive() 
     {
-        require(flag & 0x1 != 0, "Nest:NTC:!flag");
+        require(flag == 1, "Nest:NTC:!flag");
         _;
     }
 
@@ -105,6 +111,12 @@ contract NTokenController is  ReentrancyGuard {
     function setGovernance(address _gov) external onlyGovernance 
     { 
         governance = _gov;
+        emit GovSet(address(msg.sender), _gov);
+    }
+
+    function shutdown() external onlyGovernance
+    {
+        flag = 2;
     }
 
     /// @dev  It should be called immediately after the depolyment
@@ -112,78 +124,60 @@ contract NTokenController is  ReentrancyGuard {
     {
         C_NestToken = INestPool(C_NestPool).addrOfNestToken();
     }
-
-    function setFlag(uint8 newFlag) external onlyGovernance
-    {
-        flag = newFlag;
-    }
     
     /// @dev  Bad tokens should be banned 
     function disable(address token) external onlyGovernance
     {
         NTokenTag storage _to = nTokenTagList[token];
         _to.state = 1;
+        emit NTokenDisabled(token);
     }
 
     function enable(address token) external onlyGovernance
     {
         NTokenTag storage _to = nTokenTagList[token];
         _to.state = 0;
+        emit NTokenEnabled(token);
     }
 
-    /// @dev Withdraw all NEST only when emergency or governance
-    /// @param to  The address of recipient
-    /// @param amount  The amount of NEST tokens 
-    function withdrawNest(address to, uint256 amount) external onlyGovernance
-    {
-       require(ERC20(C_NestToken).transfer(to, amount), "transfer");
-    }
+    // / @dev Withdraw all NEST only when emergency or governance
+    // / @param to  The address of recipient
+    // / @param amount  The amount of NEST tokens 
+    // function withdrawNest(address to, uint256 amount) external onlyGovernance
+    // {
+    //    require(ERC20(C_NestToken).transfer(to, amount), "transfer");
+    // }
 
-    /// @dev  The balance of NEST
-    /// @return  The amount of NEST tokens for this contract
-    function balanceNest() external view returns (uint256) 
-    {
-        return ERC20(C_NestToken).balanceOf(address(this));
-    }
+    // /// @dev  The balance of NEST
+    // /// @return  The amount of NEST tokens for this contract
+    // function balanceNest() external view returns (uint256) 
+    // {
+    //     return ERC20(C_NestToken).balanceOf(address(this));
+    // }
 
     /* ========== OPEN ========== */
 
     /// @notice  Open a NToken for a token by anyone (contracts aren't allowed)
     /// @dev  Create and map the (Token, NToken) pair in NestPool
     /// @param token  The address of token contract
-    function open(address token) 
-        external 
-        noContract 
-        whenOpenPairAllowed
+    function open(address token) external noContract whenActive
     {
-        require(INestPool(C_NestPool).getNTokenFromToken(token) == address(0x0), 
+        require(INestPool(C_NestPool).getNTokenFromToken(token) == address(0x0),
             "Nest:NTC:EX(token)");
-        require(nTokenTagList[token].state == 0, 
+        require(nTokenTagList[token].state == 0,
             "Nest:NTC:DIS(token)");
 
-        // is token not a ntoken?
-        bool isNToken = false;
-        try INToken(token).checkBidder() returns(address) {
-            isNToken = true;
-        } catch {
-            isNToken = false;
-        }
-
-        // is token valid ?
-        ERC20 tokenERC20 = ERC20(token);
-        uint256 _nestAmount = NTOKEN_NEST_STAKED_AMOUNT.mul(1 ether);
-
-         nTokenTagList[token] = NTokenTag(address(msg.sender),   // owner
-            uint128(_nestAmount),                               // nestStaked
+        nTokenTagList[token] = NTokenTag(address(msg.sender),   // owner
+            uint128(0),                                         // nestFee
             uint64(block.timestamp),                            // startTime
             0,                                                  // state
             0                                                   // _reserved
         );
         
         //  create ntoken
-        NToken nToken = new NToken(strConcat("NToken", 
-                getAddressStr(ntokenCounter)), 
-                strConcat("N", getAddressStr(ntokenCounter)), 
+        NToken ntoken = new NToken(strConcat("NToken",
+                getAddressStr(ntokenCounter)),
+                strConcat("N", getAddressStr(ntokenCounter)),
                 address(governance),
                 // NOTE: here `bidder`, we use `C_NestPool` to separate new NTokens 
                 //   from old ones, whose bidders are the miners creating NTokens
@@ -191,19 +185,17 @@ contract NTokenController is  ReentrancyGuard {
         );
 
         ntokenCounter = ntokenCounter + 1;  // safe math
-        INestPool(C_NestPool).setNTokenToToken(token, address(nToken));
+        INestPool(C_NestPool).setNTokenToToken(token, address(ntoken));
 
+        // is token valid ?
+        ERC20 tokenERC20 = ERC20(token);
         tokenERC20.safeTransferFrom(address(msg.sender), address(this), 1);
         require(tokenERC20.balanceOf(address(this)) >= 1, 
             "Nest:NTC:!TEST(token)");
         tokenERC20.safeTransfer(address(msg.sender), 1);
-        require(isNToken == false, "Nest:NTC:(ntoken)!");
-
-        require(ERC20(C_NestToken).transferFrom(address(msg.sender), address(this), _nestAmount), 
-            "Nest:NTC:!DEPO(nest)");
 
         // raise an event
-        emit NTokenOpened(token, address(nToken), address(msg.sender));
+        emit NTokenOpened(token, address(ntoken), address(msg.sender));
 
     }
 

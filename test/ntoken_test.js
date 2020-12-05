@@ -6,7 +6,7 @@ const {usdtdec, wbtcdec, nestdec, ethdec,
     ETH, USDT, WBTC, MBTC, NEST, BigNum, BigN,
     show_eth, show_usdt, show_64x64} = require("../scripts/utils.js");
 
-const {deployUSDT, deployWBTC, deployNN, 
+const {deployUSDT, deployWBTC, deployNN, deployERC20,
     deployNEST, 
     deployNestProtocol, 
     printContracts,
@@ -21,9 +21,6 @@ describe("NestToken contract", function () {
     let userB;
     let userC;
     let userD;
-    let dev;
-    let NNodeA;
-    let NNodeB;
 
     before(async function () {
 
@@ -64,6 +61,7 @@ describe("NestToken contract", function () {
         _C_NTokenController = NTokenController.address;
         _C_NestQuery = NestQuery.address;
         _C_NestDAO = NestDAO.address;
+
     });
 
     describe("Deployment", function () {
@@ -159,50 +157,46 @@ describe("NestToken contract", function () {
             expect(ev.args.owner).to.equal(userB.address);
             _C_NWBTC = await NestPool.getNTokenFromToken(_C_WBTC);
             expect(_C_NWBTC).to.equal(ev.args.ntoken);
-            expect(await NTokenController.balanceNest()).to.equal(NEST(100_000));
+
+            CNWBTC = await ethers.getContractAt("NToken",  _C_NWBTC);
+            console.log(` NToken.name=${await CNWBTC.name()}, symbol=${await CNWBTC.symbol()}`);
+            // expect(await NTokenController.balanceNest()).to.equal(NEST(100_000));
         });
 
-        it("cannot open a ntoken for a NToken", async () => {
-            expect(NTokenController.connect(userB).open(_C_NWBTC)).to.be.reverted;
+        it("cannot open an existing ntoken", async () => {
+            await expect(NTokenController.connect(userB).open(_C_NWBTC))
+                .to.be.reverted;
         });
 
-        it("can withdraw NEST by the governer", async () => {
-            const nest_userA_pre = await NestToken.balanceOf(userA.address);
-            const amount = await NTokenController.balanceNest();
-            await NTokenController.withdrawNest(userA.address, amount);
-            const nest_userA_post = await NestToken.balanceOf(userA.address);
-            expect(nest_userA_post.sub(nest_userA_pre)).to.equal(amount);
+        it("cannot open a disabled ntoken", async () => {
+            CWETH = await deployERC20(100_000_000, "WETH", "WETH", 18);
+            await NTokenController.disable(CWETH.address);
+            await expect(NTokenController.connect(userB).open(CWETH.address))
+                .to.be.reverted;
         });
 
-        it("cannot withdraw NEST by anyone other than the governer", async () => {
-            expect(NTokenController.connect(userB).withdrawNest(userA.address, 1)).to.be.reverted;
+        it("can open an enabled ntoken", async () => {
+            CWETH = await deployERC20("10000000000000000000000000000", "WETH", "WETH", 18);
+            console.log("CWETH.total=", (await CWETH.totalSupply()).toString());
+            await CWETH.transfer(userB.address, ETH(10));
+            await CWETH.connect(userB).approve(_C_NTokenController, ETH(1000));
+            await NTokenController.disable(CWETH.address);
+            await NTokenController.enable(CWETH.address);
+
+            await NTokenController.setCounter(93);
+
+            await NTokenController.connect(userB).open(CWETH.address);
+            _C_NWETH = await NestPool.getNTokenFromToken(CWETH.address);
+            CNWETH = await ethers.getContractAt("NToken",  _C_NWETH);
+            expect(await CNWETH.name()).to.equal("NToken0093");
         });
 
-
-        // it("should be able to clear a price sheet correctly", async () => {
-
-        //     const ethNum = BN(10);
-        //     const chunkNum = BN(1);
-        //     const chunkSize = BN(10);
-
-        //     console.log(`provider=`, provider);
-        //     const h = await provider.getBlockNumber();
-        //     console.log(`height=${h}`);
-
-        //     await goBlocks(provider, 25);
-        //     const usdtPrice = usdt(350);
-
-        //     const nest_userA_pre = await NestPool.getMinerNest(userA.address);
-        //     const eth_nestpool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
-        //     const ethPool_userA_pre = await NestPool.balanceOfEthInPool(userA.address);
-        //     const usdtPool_userA_pre = await NestPool.balanceOfTokenInPool(userA.address, _C_USDT);
-
-        //     const tx = await NestMining.connect(userA).clear(_C_USDT, 0, 1);
-
-        //     // G1:
-        //     const sheet = await NestMining.contentOfPriceSheet(_C_USDT, 0);
-        //     expect(sheet.state).to.equal(1);
-        // });
+        it("cannot open ntoken after shutdown ", async () => {
+            CWETH = await deployERC20(100_000_000, "WETH", "WETH", 18);
+            await NTokenController.shutdown();
+            await expect(NTokenController.connect(userB).open(CWETH.address))
+                .to.be.reverted;
+        });
 
     });
 

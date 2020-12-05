@@ -7,6 +7,19 @@ const {usdtdec, wbtcdec, nestdec, ethdec,
     ETH, USDT, WBTC, MBTC, NEST, BigNum, 
     show_eth, show_usdt, show_64x64, timeConverter} = require("./utils.js");
 
+exports.deployERC20 = async function (total, name, symbol, decimals) {
+
+        const ERC20Contract = await ethers.getContractFactory("UERC20");
+    
+        const CERC20 = await ERC20Contract.deploy(total, name, symbol, decimals);
+        
+        const tx = CERC20.deployTransaction;
+        await tx.wait(1);
+    
+        console.log(`>>> [DPLY]: USDT deployed, address=${CERC20.address}, block=${tx.blockNumber}`);
+    
+        return CERC20;
+}
 
 exports.deployUSDT = async function () {
 
@@ -36,7 +49,7 @@ exports.deployWBTC = async function () {
     return CWBTC;
 }
 
-exports.deployNWBTC = async function () {
+exports.deployNWBTC = async function (owner) {
 
     const NTokenContract = await ethers.getContractFactory("NestNToken");
 
