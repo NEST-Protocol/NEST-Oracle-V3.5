@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { WeiPerEther, BigNumber } = require("ethers");
-const { BN, time, balance, constants, expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
+// const { BN, time, balance, constants, expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
+const {deployMockContract} = require('@ethereum-waffle/mock-contract');
 
 const {usdtdec, wbtcdec, nestdec, ethdec, 
     ETH, USDT, WBTC, MBTC, NEST, BigNum, BigN, 
@@ -13,23 +14,6 @@ const {deployUSDT, deployWBTC, deployNN,
     printContracts,
     setupNest} = require("../scripts/deploy.js");
 
-// function toBN(value) {
-//     const hex = BigNumber.from(value).toHexString();
-//     if (hex[0] === "-") {
-//         return (new BN("-" + hex.substring(3), 16));
-//     }
-//     return new BN(hex.substring(2), 16);
-// }
-
-// const show_64x64 = function (s) {
-//     const sep = BigNum(2).pow(BigNum(64));
-//     const prec = BigNum(10).pow(BigNum(8));
-//     const s1 = BigNum(s).div(sep);
-//     const s2 = BigNum(s).mod(sep);
-//     const s3 = s2.mul(prec).div(sep);
-//     return (s1 + '.' + toBN(s3).toString(10, 8));
-// }
-
 let provider = ethers.provider;
 
 describe("Nest Protocol", function () {
@@ -39,11 +23,6 @@ describe("Nest Protocol", function () {
     let owner;
     let userA;
     let userB;
-    let userC;
-    let userD;
-    let dev;
-    let NNodeA;
-    let NNodeB;
 
     before(async function () {
 
@@ -91,6 +70,18 @@ describe("Nest Protocol", function () {
 
         _C_DeFi = DeFiMock.address;
 
+        const INestMining = require("../artifacts/contracts/iface/INestMining.sol/INestMining");
+        MockNestMining = await deployMockContract(owner, INestMining.abi);
+        await MockNestMining.mock.loadContracts.returns();
+
+        tx = await NestPool.setContracts(NestToken.address, MockNestMining.address, 
+            NestStaking.address, NTokenController.address, NNToken.address, 
+            NNRewardPool.address, NestQuery.address, NestDAO.address);
+        await tx.wait();
+        console.log(`> [INIT] NestPool.setContracts()`);
+
+        tx = await NestPool.setNTokenToToken(CUSDT.address, NestToken.address);
+
     });
 
     describe("Deployment", function () {
@@ -104,11 +95,6 @@ describe("Nest Protocol", function () {
         //   // to our Signer's owner.
         //   expect(await NestToken.owner()).to.equal(owner.address);
         // });
-
-        it("should link contracts", async function () {
-
-
-        });
 
         it("should assign the total supply of tokens to the owner", async function () {
             const ownerBalance = await NestToken.balanceOf(owner.address);
@@ -139,9 +125,9 @@ describe("Nest Protocol", function () {
 
         it("should transfer fail", async () => {
             let amount = NEST("10000000001");
-            await expectRevert.unspecified(
+            await expect(
                 NestToken.connect(owner).transfer(userA.address, amount)
-            );
+            ).to.be.reverted;
         });
 
         it("should approve correctly, NEST(10,000,000,000) [userA -> _C_NestStaking]", async () => {
@@ -175,6 +161,132 @@ describe("Nest Protocol", function () {
     });
 
     describe('Nest Query', function () {
+
+        it("can activate a client", async () => {
+            await NestToken.connect(userA).approve(_C_NestQuery, NEST(1000000));
+            await NestQuery.connect(userA).activate(userA.address);
+            const op = await NestQuery.clientOp(userA.address);
+            expect(op).to.equal(userA.address);
+        });
+
+        it("can deactivate a client", async () => {
+            await NestQuery.connect(userA).deactivate(userA.address);
+            const op = await NestQuery.clientOp(userA.address);
+            expect(op).to.equal(BigN(0));
+        });
+
+        it("can query from a client", async () => {
+            await NestQuery.connect(userA).activate(userA.address);
+            await ethers.provider.send("evm_increaseTime", [60 * 1000]);
+            await ethers.provider.send("evm_mine");
+            await MockNestMining.mock.latestPriceOf
+                .withArgs(_C_USDT)
+                .returns(ETH("10"), USDT("5750"), BigNumber.from(1002));
+            const tx = await NestQuery.connect(userA).query(_C_USDT, userB.address, {value: ETH(1)});
+            const rt = await tx.wait();
+            const ev = rt.events.find((ev) => {
+                if (ev.event == "PriceQueried") {
+                    return true;
+                }
+            });     
+            expect(ev.args.ethAmount).to.equal(ETH(10));
+            expect(ev.args.tokenAmount).to.equal(USDT(5750));
+            expect(ev.args.bn).to.equal(1002);
+            await NestQuery.connect(userA).deactivate(userA.address);
+        });
+
+        it("can query avg and vola from a client", async () => {
+            await NestQuery.connect(userA).activate(userA.address);
+            await ethers.provider.send("evm_increaseTime", [60 * 1000]);
+            await ethers.provider.send("evm_mine");
+            await MockNestMining.mock.latestPriceOf
+                .withArgs(_C_USDT)
+                .returns(ETH("10"), USDT("5840"), BigNumber.from(1003));
+
+            await MockNestMining.mock.priceAvgAndSigmaOf
+                .withArgs(_C_USDT)
+                .returns(USDT("587"), USDT("601"), 1234, 1004);
+
+            const tx = await NestQuery.connect(userA).queryPriceAvgVola(_C_USDT, userB.address, {value: ETH(1)});
+            const rt = await tx.wait();
+            const ev = rt.events.find((ev) => {
+                if (ev.event == "PriceAvgVolaQueried") {
+                    return true;
+                }
+            });
+
+            expect(ev.args.client).to.equal(userA.address);
+            expect(ev.args.token).to.equal(_C_USDT);
+            expect(ev.args.avgPrice).to.equal(USDT("601"));
+            expect(ev.args.vola).to.equal(1234);
+            expect(ev.args.bn).to.equal(1003);
+            await NestQuery.connect(userA).deactivate(userA.address);
+        });
+
+        it("can query price list from a client", async () => {
+            await NestQuery.connect(userA).activate(userA.address);
+            await ethers.provider.send("evm_increaseTime", [60 * 1000]);
+            await ethers.provider.send("evm_mine");
+            await MockNestMining.mock.priceListOfToken
+                .withArgs(_C_USDT, 2)
+                .returns([1100, ETH(10), USDT(580), 1105, ETH(10), USDT(587)], 1105);
+
+            await MockNestMining.mock.priceAvgAndSigmaOf
+                .withArgs(_C_USDT)
+                .returns(USDT("587"), USDT("601"), 1234, 1004);
+
+            const tx = await NestQuery.connect(userA).queryPriceList(_C_USDT, 2, userB.address, {value: ETH(1)});
+            const rt = await tx.wait();
+            const ev = rt.events.find((ev) => {
+                if (ev.event == "PriceListQueried") {
+                    return true;
+                }
+            });
+
+            expect(ev.args.client).to.equal(userA.address);
+            expect(ev.args.token).to.equal(_C_USDT);
+            expect(ev.args.num).to.equal(2);
+            expect(ev.args.bn).to.equal(1105);
+
+            await NestQuery.connect(userA).deactivate(userA.address);
+
+        });
+
+        it("can activate a DeFi client", async () => {
+            await NestToken.connect(userA).approve(_C_NestQuery, NEST(1000000));
+            await NestQuery.connect(userA).activate(_C_DeFi);
+        });
+
+        it("can perform a query by a DeFi client", async () => {
+            await ethers.provider.send("evm_increaseTime", [60 * 1000]);
+            await ethers.provider.send("evm_mine");
+            await DeFiMock.query(_C_USDT, {value:ETH(1).div(10)});
+        });
+
+        it("cannot query when paused", async () => {
+            await NestQuery.pause();
+            await expect(DeFiMock.query(_C_USDT, {value:ETH(1).div(10)})).to.be.reverted;
+            await NestQuery.resume();
+            await DeFiMock.query(_C_USDT, {value:ETH(1).div(10)});
+        });
+        
+/*
+        it("can deactivate a DeFi client", async () => {
+            await advanceTime(provider, 10);
+            await NestQuery.connect(userA).deactivate(_C_DeFi);
+            expect(DeFiMock.query(_C_USDT, {value:ETH(1).div(10)})).to.be.reverted;
+        });
+
+        it("can remove a DeFi client by the governer", async () => {
+            await NestQuery.remove(_C_DeFi);
+            expect(DeFiMock.query(_C_USDT, {value:ETH(1).div(10)})).to.be.reverted;
+        });
+
+        it("can query a price", async () => {
+            await MockNestMining.mock.latestPriceOf.returns({ethAmount: ETH(10), tokenAmount: USDT(5750), blockNum: 1002});
+            const rs = await NestQuery.query(_C_USDT);
+
+        });
 
         it("can post 7 price sheets", async () => {
             const nestPrice = NEST(1000);
@@ -279,34 +391,14 @@ describe("Nest Protocol", function () {
             console.log("avg=", show_64x64(price[1]));
         });
 
-        it("can activate a DeFi client", async () => {
-            await NestToken.connect(userA).approve(_C_NestQuery, NEST(1000000));
-            await NestQuery.connect(userA).activate(_C_DeFi);
-
-        });
-
-        it("can perform a query by a DeFi client", async () => {
-            await advanceTime(provider, 10);
-            await DeFiMock.query(_C_USDT, {value:ETH(1).div(10)});
-        });
-
-
-        it("can deactivate a DeFi client", async () => {
-            await advanceTime(provider, 10);
-            await NestQuery.connect(userA).deactivate(_C_DeFi);
-            expect(DeFiMock.query(_C_USDT, {value:ETH(1).div(10)})).to.be.reverted;
-        });
-
-        it("can remove a DeFi client by the governer", async () => {
-            await NestQuery.remove(_C_DeFi);
-            expect(DeFiMock.query(_C_USDT, {value:ETH(1).div(10)})).to.be.reverted;
-        });
 
         it("can withdraw NEST from the contract", async () => {
             const blns = await NestQuery.balanceNest();
             console.log("nest balance=", blns);
             await NestQuery.withdrawNest(userA.address, blns);
         });
+
+        */
         // it("should be able to clear a price sheet correctly", async () => {
 
         //     const ethNum = BN(10);
