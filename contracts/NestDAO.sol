@@ -105,6 +105,13 @@ contract NestDAO is INestDAO {
         emit FlagSet(address(msg.sender), uint256(DAO_FLAG_ACTIVE));
     }
 
+
+    function totalRewards(address ntoken)
+        external view returns (uint256) 
+    {
+       return  ethLedger[ntoken];
+    }
+
     /* ========== MAIN ========== */
 
     function addETHReward(address ntoken) 
