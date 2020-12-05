@@ -76,12 +76,13 @@ contract NestDAO is INestDAO {
 
     /* ========== GOVERNANCE ========== */
 
-    function setGovernance(address _gov) external onlyGovernance
-    {
-        governance = _gov;
+    /// @dev Ensure that all governance-addresses be consistent with each other
+    function loadGovernance() override external onlyGovernance 
+    { 
+        governance = INestPool(C_NestPool).governance();
     }
 
-    /// @notice 
+    /// @dev The function loads all nest-contracts, it is supposed to be called by NestPool
     function loadContracts() override external onlyGovOrBy(C_NestPool)
     {
         C_NestToken = INestPool(C_NestPool).addrOfNestToken();
@@ -132,6 +133,7 @@ contract NestDAO is INestDAO {
     /// @dev Redeem ntokens for ethers
     function redeem(address ntoken, uint256 amount) external
     {
+        // TODO:
         return;
     }
 

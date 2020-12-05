@@ -9,7 +9,6 @@ import "./lib/SafeERC20.sol";
 import './lib/TransferHelper.sol';
 import "./lib/ReentrancyGuard.sol";
 
-
 import "./iface/INestPool.sol";
 import "./iface/INestStaking.sol";
 import "./iface/INToken.sol";
@@ -25,58 +24,69 @@ contract NestQuery is INestQuery, ReentrancyGuard {
 
     using SafeMath for uint256;
 
+    /// @notice The flag is the running status of NestQuery contract
+    /// @dev The flag is in {0, 1, 2}
+    /// @return The value of flag
+    uint8   public flag;
+    uint248 private _reserved;
+
+    // flag == 0: the contract needs initialization
+    // flag == 1: the contract is active after initialization
+    // flag == 2: the contract is shutdown, user interfaces like query() are closed,
+    //              while the governor has privileges to rescue
+    uint8  constant QUERY_FLAG_UNINITIALIZED = 0;
+    uint8  constant QUERY_FLAG_ACTIVE        = 1;
+    uint8  constant QUERY_FLAG_PAUSED        = 2;
+
+    /// @dev The four paramters are encoded into a uin256 slot to save GAS. Currently only four
+    ///        uint32 pieces are used, leaving sufficient spaces for later upgrading.
     struct Params {
-        uint32 singleFeeEth;        // Twei = 1e12
-        uint32 activationTime;      // second
-        uint32 activationFeeNest;   // 1 NEST = 1e18
+        uint32 singleFeeEthTWei;            // Twei = 1e12
+        uint32 activationTime;              // second
+        uint32 activationFeeNestNum;        // 1 NEST = 1e18
         uint32 _reserved2;
     }
 
+    uint256 private paramsEncoded;
+
+    /// @dev The default values of parameters. They shall be setup via `setParams()` before 
+    ///     the contract starts to rotates.
     uint32  constant CLIENT_QUERY_FEE_ETH_TWEI = (0.01 ether) / 1e12;
     uint32  constant CLIENT_ACTIVATION_NEST_AMOUNT = 100_000;
     uint32  constant CLIENT_MONTHLY_FEE_NEST_AMOUNT = 1_000;
     uint32  constant CLIENT_ACTIVATION_DURATION_SECOND = 10;
 
-    uint8   public flag;
-    uint248 private _reserved;
-
-    uint8  constant QUERY_FLAG_UNINITIALIZED = 0;
-    uint8  constant QUERY_FLAG_ACTIVE        = 1;
-    uint8  constant QUERY_FLAG_PAUSED        = 2;
-
-    uint256 private paramsEncoded;
-
+    /// @dev The governor's address, which is loaded from NestPool.
     address public governance;
 
     struct Client {
         uint64 startTime;
         uint64 endTime;  // endTime==0 for non-monthly clients
         uint32 fee;
-        uint32 typ;     // =1: PPQ | =2: PPM
+        uint32 typ;     // =1: PPQ | =2: PPM (forbidden for the moment)
         uint64 _reserved;
     }
 
-
+    /// @dev The contract variables for other contracts' addresses, loaded from NestPool
     address    private C_NestToken;
     address    private C_NestMining;
     address    private C_NestPool;
     address    private C_NestStaking;
     address    private C_NestDAO;
 
+    /// @dev Here we only support pay-per-query clients. The other type is forbidden, commented out below.
     uint32 constant CLIENT_TYPE_PAY_PER_QUERY = 1;
     // uint32 constant CLIENT_TYPE_PAY_PER_MONTH = 2;
 
-
-    mapping(address => uint256) private clientList;
-    mapping(address => address) private clientOp;
-
+    mapping(address => uint256) public clientList;
+    mapping(address => address) public clientOp;
 
     receive() external payable { }
 
     // NOTE: to support open-zeppelin/upgrades, leave it blank
     constructor() public { }
 
-    /// @dev It is called by the proxy (open-zeppelin/upgrades), only ONCE!
+    /// @dev It is supposedly called by the proxy (open-zeppelin/upgrades), only ONCE!
     function initialize(address NestPool) external 
     { 
         require(flag == QUERY_FLAG_UNINITIALIZED, "Nest:Qury:!flag");
@@ -111,6 +121,12 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         }
         _;
     }
+    
+    modifier onlyBy(address _contract)
+    {
+        require(msg.sender == _contract, "Nest:Qury:!Auth");
+        _;
+    }
 
     modifier noContract() 
     {
@@ -120,10 +136,11 @@ contract NestQuery is INestQuery, ReentrancyGuard {
 
      /* ========== GOVERNANCE ========== */
 
-    function setGovernance(address _gov) external onlyGovernance 
+    /// @dev To ensure that all of governance-addresses be consist with each other, every contract
+    ///        besides NestPool must load newest `governance` from NestPool.
+    function loadGovernance() override external onlyGovernance 
     { 
-        emit GovSet(address(msg.sender), governance, _gov);
-        governance = _gov;
+        governance = INestPool(C_NestPool).governance();
     }
 
     /// @notice Setup the parameters for queryings, one price for all token
@@ -173,32 +190,34 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         C_NestToken = INestPool(C_NestPool).addrOfNestToken();
         C_NestMining = INestPool(C_NestPool).addrOfNestMining();
         C_NestStaking = INestPool(C_NestPool).addrOfNestStaking();
-        console.log("C_NestStaking=", C_NestStaking);
         C_NestDAO = INestPool(C_NestPool).addrOfNestDAO();
     }
 
-    function setFlag(uint8 newFlag) external onlyGovernance
+    /// @dev Remove a client if something goes wrong
+    /// @param defi The address of a client (defi DApp)
+    function remove(address defi) 
+        external 
+        onlyGovernance
     {
-        flag = newFlag;
-        emit FlagSet(address(msg.sender), uint256(newFlag));
+        clientList[defi] = encodeClient(0, 0, 0, 0);
+        clientOp[defi] = address(0);
     }
 
-    /// @dev  The balance of NEST
-    /// @return  The amount of NEST tokens for this contract
-    function balanceNest() override external view returns (uint256) 
-    {
-        return ERC20(C_NestToken).balanceOf(address(this));
-    }
+    // /// @dev  The balance of NEST
+    // /// @return  The amount of NEST tokens for this contract
+    // function balanceNest() override external view returns (uint256) 
+    // {
+    //     return ERC20(C_NestToken).balanceOf(address(this));
+    // }
 
-    /// @dev  The balance of NEST
-    /// @return  The amount of ethers withheld by this contract
-    function balanceEth() override external view returns (uint256) 
-    {
-        return address(this).balance;
-    }
+    // /// @dev  The balance of NEST
+    // /// @return  The amount of ethers withheld by this contract
+    // function balanceEth() override external view returns (uint256) 
+    // {
+    //     return address(this).balance;
+    // }
 
     /* ========== EMERGENCY ========== */
-
 
     /// @dev Stop service for emergency
     function pause() external onlyGovernance
@@ -214,42 +233,22 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         emit FlagSet(address(msg.sender), uint256(QUERY_FLAG_ACTIVE));
     }
 
-    /// @dev Withdraw NEST only when emergency or governance
-    /// @param to  The address of recipient
-    /// @param amount  The amount of NEST tokens 
-    function withdrawNest(address to, uint256 amount) override external onlyGovernance
-    {
-       require(ERC20(C_NestToken).transfer(to, amount), "Nest:Qury:!transfer");
-    }
-
-    /// @dev Withdraw ethers only when emergency or governance
-    /// @param to  The address of recipient
-    /// @param amount  The amount of ethers 
-    function withdrawEth(address to, uint256 amount) override external onlyGovernance
-    {
-       TransferHelper.safeTransferETH(to, amount);
-    }
-
     /* ========== CLIENT ========== */
 
     /// @notice Activate a pay-per-query defi client with NEST tokens
-    /// 
-    function activate(
-            address defi
-        ) 
-        override 
-        external 
-        noContract 
-        whenActive
+    /// @dev No contract is allowed to call it
+    /// @param defi The addres of client (DeFi DApp)
+    function activate(address defi) 
+        override external noContract whenActive
     {
         if (defi == address(0)) {
             defi = address(msg.sender);
         }
         Client memory _c = decodeClient(clientList[defi]);
         require (_c.typ == 0, "Nest:Qury:EX(client)");
-        (, uint32 _actTime, uint256 _actFee, ) = decode_4x32_256(paramsEncoded);  
+        (, uint32 _actTime, uint256 _actFee, ) = decode_4x32_256(paramsEncoded);          
         uint256 _nestFee = _actFee.mul(1e18);
-        uint256 _start = uint64(block.timestamp.add(_actTime));
+        uint256 _start = uint64(block.timestamp.add(10));
         uint256 _end = 0;
         uint256 _mfee = 0;
         clientList[defi] = encodeClient(uint64(_start), uint64(_end), uint32(_mfee), 0x1);
@@ -261,6 +260,8 @@ contract NestQuery is INestQuery, ReentrancyGuard {
             _nestFee), "Nest:Qury:!transfer");
     }
 
+    /// @notice Deactivate a pay-per-query defi client
+    /// @param defi The address of a client (DeFi DApp)
     function deactivate(address defi) 
         override 
         external 
@@ -271,17 +272,14 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         }
         require(address(msg.sender) == clientOp[defi], "Nest:Qury:!Op");
         clientList[defi] = encodeClient(0, 0, 0, 0);
-    }
-
-    function remove(address defi) 
-        external 
-        onlyGovernance
-    {
-        clientList[defi] = encodeClient(0, 0, 0, 0);
         clientOp[defi] = address(0);
     }
 
     /// @notice Query for PPQ (pay-per-query) clients
+    /// @dev Consider that if a user call a DeFi that queries NestQuery, DeFi should
+    ///     pass the user's wallet address to query() as `payback`.
+    /// @param token The address of token contract
+    /// @param payback The address of change
     function query(address token, address payback) 
         override 
         public 
@@ -292,7 +290,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     {
         // check parameters
         Client memory c = decodeClient(clientList[address(msg.sender)]);
-        require (c.typ == CLIENT_TYPE_PAY_PER_QUERY, "Nest:Qury:=!(client.typ)");
+        require(c.typ == CLIENT_TYPE_PAY_PER_QUERY, "Nest:Qury:=!(client.typ)");
         require(c.startTime != 0 && uint256(c.startTime) < block.timestamp 
             && uint256(c.endTime) == 0, "Nest:Qury:!(client.time)");
 
@@ -311,11 +309,18 @@ contract NestQuery is INestQuery, ReentrancyGuard {
             }
         }
     
-        emit PriceQueried(address(msg.sender), token, bn);
+        emit PriceQueried(address(msg.sender), token, ethAmount, tokenAmount, bn);
         return (ethAmount, tokenAmount, uint256(bn));
     }
 
     /// @notice Query for PPQ (pay-per-query) clients
+    /// @param token The address of token contract
+    /// @param payback The address of change
+    /// @return ethAmount The amount of ETH in pair (ETH, TOKEN)
+    /// @return tokenAmount The amount of TOKEN in pair (ETH, TOKEN)
+    /// @return avgPrice The average of last 50 prices 
+    /// @return vola The volatility of prices 
+    /// @return bn The block number when (ETH, TOKEN) takes into effective
     function queryPriceAvgVola(address token, address payback)
         override 
         external 
@@ -350,6 +355,11 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     
     /// @notice The main function called by DeFi clients, compatible to Nest Protocol v3.0 
     /// @dev  The payback address is ZERO, so the changes are kept in this contract
+    ///         The ABI keeps consist with Nest v3.0
+    /// @param tokenAddress The address of token contract address
+    /// @return ethAmount The amount of ETH in price pair (ETH, ERC20)
+    /// @return erc20Amount The amount of ERC20 in price pair (ETH, ERC20)
+    /// @return blockNum The block.number where the price is being in effect
     function updateAndCheckPriceNow(
             address tokenAddress
         ) 
@@ -365,7 +375,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     /// @notice A non-free function for querying price 
     /// @param token  The address of the token contract
     /// @param num    The number of price sheets in the list
-    /// @param payback The account for change
+    /// @param payback The address for change
     /// @return The array of prices, each of which is (blockNnumber, ethAmount, tokenAmount)
     function queryPriceList(address token, uint8 num, address payback) 
         override public payable 
@@ -374,7 +384,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     {
         // check client 
         Client memory c = decodeClient(clientList[address(msg.sender)]);
-        require (c.typ == CLIENT_TYPE_PAY_PER_QUERY, "Nest:Qury:=!(client.typ)");
+        require(c.typ == CLIENT_TYPE_PAY_PER_QUERY, "Nest:Qury:=!(client.typ)");
         require(c.startTime != 0 && uint256(c.startTime) < block.timestamp 
             && uint256(c.endTime) == 0, "Nest:Qury:!(client.time)");
 
@@ -403,7 +413,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         return data;
     }
 
-    /// @notice A view function returning the historical price list from a specific block height
+    /// @notice A view function returning the historical price list from the current block
     /// @param token  The address of the token contract
     /// @param num    The number of price sheets in the list
     /// @return The array of prices, each of which is (blockNnumber, ethAmount, tokenAmount)
@@ -423,8 +433,29 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         return data;
     }
 
+    /* ========== INTER-CALLS ========== */
+
+    // /// @dev Withdraw NEST only when emergency or governance
+    // /// @param to  The address of recipient
+    // /// @param amount  The amount of NEST tokens 
+    // function withdrawNest(uint256 amount) 
+    //     override external onlyBy(C_NestDAO)
+    // {
+    //     ERC20(C_NestToken).transfer(address(msg.sender), amount);
+    // }
+
+    // /// @dev Withdraw ethers only when emergency or governance
+    // /// @param to  The address of recipient
+    // /// @param amount  The amount of ethers 
+    // function withdrawEth(uint256 amount) 
+    //     override external onlyBy(C_NestDAO)
+    // {
+    //    TransferHelper.safeTransferETH(address(msg.sender), amount);
+    // }
+
      /* ========== HELPERS ========== */
 
+    /// @dev For saving GAS
     function encode_4x32_256(uint32 p1, uint32 p2, uint32 p3, uint32 p4) 
         internal 
         pure 
@@ -439,6 +470,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         }
     }
 
+    /// @dev For saving GAS
     function decode_4x32_256(uint256 enc) 
         internal 
         pure 
@@ -455,6 +487,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         }
     }
 
+    /// @dev For saving GAS
     function encodeClient(uint64 _start, uint64 _end, uint32 _fee, uint32 _typ) 
         internal pure returns (uint256 enc) 
     {
@@ -470,6 +503,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     }
 
     
+    /// @dev For saving GAS
     function decodeClient(uint256 enc) 
         internal pure returns (Client memory client) 
     {

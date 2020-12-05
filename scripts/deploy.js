@@ -429,11 +429,35 @@ exports.setupNest = async function (deployer, addrList) {
                     NestStaking.address, NTokenController.address, NNToken.address, 
                     NNRewardPool.address, NestQuery.address, NestDAO.address);
     await tx.wait();
-    console.log(`> [INIT] NestPool.setContracts()`);
+    console.log(`> [INIT] NestPool.setContracts() ...... OK`);
+
+    tx = await NestMining.loadContracts();
+    await tx.wait();
+    console.log(`> [INIT] NestMining.loadContracts() ...... OK`);
+    
+    tx = await NestStaking.loadContracts();
+    await tx.wait();
+    console.log(`> [INIT] NestStaking.loadContracts() ...... OK`);
+
+    tx = await NTokenController.loadContracts();
+    await tx.wait();
+    console.log(`> [INIT] NTokenController.loadContracts() ...... OK`);
+
+    tx = await NNRewardPool.loadContracts();
+    await tx.wait();
+    console.log(`> [INIT] NNRewardPool.loadContracts() ...... OK`);
+
+    tx = await NestQuery.loadContracts();
+    await tx.wait();
+    console.log(`> [INIT] NestQuery.loadContracts() ...... OK`);
+
+    tx = await NestDAO.loadContracts();
+    await tx.wait();
+    console.log(`> [INIT] NestDAO.loadContracts() ...... OK`);
     
     tx = await NestPool.setNTokenToToken(CUSDT.address, NestToken.address);
     await tx.wait();
-    console.log(`> [INIT] deployer: set (USDT <-> NEST) to NestPool`);
+    console.log(`> [INIT] set (USDT <-> NEST) in NestPool ...... OK`);
 
 }
 

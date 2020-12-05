@@ -2,7 +2,12 @@
 
 pragma solidity ^0.6.12;
 
+import "../lib/SafeERC20.sol";
+
 interface INestPool {
+
+    // function getNTokenFromToken(address token) view external returns (address);
+    // function setNTokenToToken(address token, address ntoken) external; 
 
     function addNest(address miner, uint256 amount) external;
     function addNToken(address contributor, address ntoken, uint256 amount) external;
@@ -34,7 +39,8 @@ interface INestPool {
 
 
     function balanceOfNestInPool(address miner) external view returns (uint256);
-    // function transferNestInPool(address from, address to, uint256 amount) external;
+    function balanceOfEthInPool(address miner) external view returns (uint256);
+    function balanceOfTokenInPool(address miner, address token)  external view returns (uint256);
 
     function addrOfNestToken() external view returns (address);
     function addrOfNestMining() external view returns (address);
@@ -46,5 +52,8 @@ interface INestPool {
     function addrOfNestDAO() external view returns (address);
 
     function addressOfBurnedNest() external view returns (address);
+
+    function setGovernance(address _gov) external; 
+    function governance() external view returns(address);
 
 }
