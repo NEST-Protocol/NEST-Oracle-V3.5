@@ -1,5 +1,21 @@
 NestStaking 模块接口函数
 
+## Changelog 更新日志
+
+### 2020-12-03
+1. 增加了紧急情况下停止查询函数(仅管理员可以调用) pause()
+
+2. 增加了恢复紧急情况下停止查询函数(仅管理员可以调用) resume()
+
+3. 增加了管理员提取指定数额收益(ETH)函数 withdrawSavingByGov()
+
+4. 增加了读取指定 ntoken 地址上资金余额函数 totalSaving()
+
+5. 增加了读取已支付的奖励总额函数 totalStaked()
+
+6. 增加了读取指定用户存入资金余额的函数 stakedBalanceOf()
+
+
 ### totalStaked()
 功能: 查询指定 ntoken 地址下资金的余额
 
