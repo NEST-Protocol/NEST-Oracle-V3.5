@@ -46,6 +46,7 @@ contract NestMiningV1 {
 
     uint8 constant MINING_FLAG_UNINITIALIZED    = 0;
     uint8 constant MINING_FLAG_SETUP_NEEDED     = 1;
+    uint8 constant MINING_FLAG_UPGRADE_NEEDED   = 2;
     uint8 constant MINING_FLAG_ACTIVE           = 3;
     // uint8 constant STATE_FLAG_MINING_STOPPED   = 4;
     // uint8 constant STATE_FLAG_CLOSING_STOPPED  = 5;
@@ -138,6 +139,13 @@ contract NestMiningV1 {
 
         flag = MINING_FLAG_ACTIVE;
         version = uint64(block.number);
+    }
+
+    function upgrade() external onlyGovernance
+    {
+        require(flag == MINING_FLAG_UPGRADE_NEEDED, "Nest:Mine:!flag");
+
+        flag = MINING_FLAG_ACTIVE;
     }
 
     function init() external onlyGovernance
@@ -371,6 +379,8 @@ contract NestMiningV1 {
             state.minedAtHeight[token][block.number] = (_ntokenH * (1<< 128) + _ethH);
         }
 
+        // calculate averge and volatility
+        state._stat(token);
         return; 
     }
 
@@ -518,8 +528,8 @@ contract NestMiningV1 {
             }
         }
 
-        stat(token);
-        stat(_ntoken);
+        state._stat(token);
+        state._stat(_ntoken);
         return; 
     }
 
@@ -939,4 +949,23 @@ contract NestMiningV1 {
         }
     }
 */
+    /// @dev The function will be disabled when the upgrading is completed
+    function post2Only4Upgrade(
+            address token,
+            uint256 ethNum,
+            uint256 tokenAmountPerEth,
+            uint256 ntokenAmountPerEth
+        )
+        external 
+        noContract
+    {
+       // only avialble in upgrade phase
+        require (state.flag == MINING_FLAG_UPGRADE_NEEDED, "Nest:Mine:!flag");
+        state._post2Only4Upgrade(token, ethNum, tokenAmountPerEth, ntokenAmountPerEth);
+        address _ntoken = INestPool(state.C_NestPool).getNTokenFromToken(token);
+
+        // calculate average price and volatility
+        state._stat(token);
+        state._stat(_ntoken);
+    }
 }

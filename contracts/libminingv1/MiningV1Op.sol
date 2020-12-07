@@ -333,4 +333,77 @@ library MiningV1Op {
         }
     }
 
+    //
+    function _post2Only4Upgrade(
+            MiningV1Data.State storage state,
+            address token,
+            uint256 ethNum,
+            uint256 tokenAmountPerEth,
+            uint256 ntokenAmountPerEth
+        )
+        external 
+    {
+        // check parameters 
+        require(ethNum == state.miningEthUnit, "Nest:Mine:!(ethNum)");
+        require(tokenAmountPerEth > 0 && ntokenAmountPerEth > 0, "Nest:Mine:!(price)");
+        address _ntoken = INestPool(state.C_NestPool).getNTokenFromToken(token);
+
+        // no eth fee, no freezing
+
+        // push sheets
+        {
+            uint8 typ1;
+            uint8 typ2; 
+            if (_ntoken == address(state.C_NestToken)) {
+                typ1 = MiningV1Data.PRICESHEET_TYPE_USD;
+                typ2 = MiningV1Data.PRICESHEET_TYPE_NEST;
+            } else {
+                typ1 = MiningV1Data.PRICESHEET_TYPE_TOKEN;
+                typ2 = MiningV1Data.PRICESHEET_TYPE_NTOKEN;
+            }
+            MiningV1Data.PriceSheet[] storage _sheetToken = state.priceSheetList[token];
+            // append a new price sheet
+            _sheetToken.push(MiningV1Data.PriceSheet(
+                uint160(msg.sender),            // miner 
+                uint32(block.number),           // atHeight
+                uint32(ethNum),                 // ethNum
+                uint32(ethNum),                 // remainNum
+                uint8(0),                       // level
+                uint8(typ1),     // typ
+                uint8(MiningV1Data.PRICESHEET_STATE_POSTED), // state 
+                uint8(0),                       // _reserved
+                uint32(ethNum),                 // ethNumBal
+                uint32(ethNum),                 // tokenNumBal
+                uint32(state.nestStakedNum1k),        // nestNum1k
+                uint128(tokenAmountPerEth)      // tokenAmountPerEth
+            ));
+
+            MiningV1Data.PriceSheet[] storage _sheetNToken = state.priceSheetList[_ntoken];
+            // append a new price sheet for ntoken
+            _sheetNToken.push(MiningV1Data.PriceSheet(
+                uint160(msg.sender),            // miner 
+                uint32(block.number),           // atHeight
+                uint32(ethNum),                 // ethNum
+                uint32(ethNum),                 // remainNum
+                uint8(0),                       // level
+                uint8(typ2),     // typ
+                uint8(MiningV1Data.PRICESHEET_STATE_POSTED), // state 
+                uint8(0),                       // _reserved
+                uint32(ethNum),                 // ethNumBal
+                uint32(ethNum),                 // tokenNumBal
+                uint32(state.nestStakedNum1k),        // nestNum1k
+                uint128(ntokenAmountPerEth)      // tokenAmountPerEth
+            ));
+            emit MiningV1Data.PricePosted(msg.sender, token, (_sheetToken.length - 1), ethNum.mul(1 ether), tokenAmountPerEth.mul(ethNum)); 
+            emit MiningV1Data.PricePosted(msg.sender, _ntoken, (_sheetNToken.length - 1), ethNum.mul(1 ether), ntokenAmountPerEth.mul(ethNum)); 
+        }
+
+        // no mining
+
+        // calculate average price and volatility
+
+
+        return; 
+    }
+
 }
