@@ -83,6 +83,11 @@ async function main() {
         NNRewardPool.address, NestQuery.address, NestDAO.address);
     receipt = await tx.wait();
     console.log(`>>>[STUP] NestPool.setContracts() ..... ok`);
+
+    tx = await NNToken.setContracts(NNRewardPool.address);
+    receipt = await tx.wait();
+    console.log(`>>>[STUP] NNToken.setContracts() ..... ok`);
+
     bn = tx.blockNumber;
     ts = (await ethers.provider.getBlock(bn)).timestamp;
     nw = (await ethers.provider.getNetwork()).name;

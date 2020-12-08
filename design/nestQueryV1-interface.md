@@ -1,5 +1,22 @@
 NestQuery 模块接口函数
 
+## Changelog 更新日志
+### 2020-12-07
+1. 增加了激活查询报价单的接口函数 whenActive()
+
+2. 增加了查询本合约地址下 NEST 余额函数 balanceNest()
+
+3. 增加了查询本合约地址下 ETH 余额函数 balanceEth()
+
+4. 增加了紧急情况下停止查询函数(仅管理员可以调用) pause()
+
+5. 增加了恢复紧急情况下停止查询函数(仅管理员可以调用) resume()
+
+6. 增加了提取 NEST 到指定地址的函数(仅管理员可以调用) withdrawNest()  
+
+7. 增加了提取 ETH 到指定地址的函数(仅管理员可以调用) withdrawEth() 
+
+
 ### activate()
 功能: 激活查询功能,需要支付一定数量的 NEST
 
