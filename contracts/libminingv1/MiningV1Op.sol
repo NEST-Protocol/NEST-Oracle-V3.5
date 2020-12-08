@@ -225,7 +225,7 @@ library MiningV1Op {
             || _sheet.remainNum == 0, "Nest:Mine:!(height)");
 
         require(address(_sheet.miner) == address(msg.sender), "Nest:Mine:!(miner)");
-
+        require(uint256(_sheet.state) != MiningV1Data.PRICESHEET_STATE_CLOSED, "Nest:Mine:!unclosed");
         INestPool _C_NestPool = INestPool(state.C_NestPool);
         address _ntoken = _C_NestPool.getNTokenFromToken(token);
 
@@ -292,6 +292,9 @@ library MiningV1Op {
         for (uint i=0; i<indices.length; i++) {
             MiningV1Data.PriceSheet memory _sheet = prices[indices[i]];
             if (uint256(_sheet.miner) != uint256(msg.sender)) {
+                continue;
+            }
+            if(_sheet.state == MiningV1Data.PRICESHEET_STATE_CLOSED) {
                 continue;
             }
             uint256 h = uint256(_sheet.height);
@@ -399,8 +402,6 @@ library MiningV1Op {
         }
 
         // no mining
-
-        // calculate average price and volatility
 
 
         return; 
