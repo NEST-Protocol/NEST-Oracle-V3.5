@@ -137,7 +137,7 @@ contract NestMiningV1 {
         // genesisBlock = 6236588 on testnet or mainnet
         state.genesisBlock = genesisBlockNumber;
 
-        flag = MINING_FLAG_ACTIVE;
+        flag = MINING_FLAG_UPGRADE_NEEDED;
         version = uint64(block.number);
     }
 
@@ -546,6 +546,7 @@ contract NestMiningV1 {
             || _sheet.remainNum == 0, "Nest:Mine:!(height)");
 
         require(address(_sheet.miner) == address(msg.sender), "Nest:Mine:!(miner)");
+        require(uint256(_sheet.state) != MiningV1Data.PRICESHEET_STATE_CLOSED, "Nest:Mine:!unclosed");
 
         INestPool _C_NestPool = INestPool(state.C_NestPool);
         address _ntoken = _C_NestPool.getNTokenFromToken(token);
@@ -582,6 +583,9 @@ contract NestMiningV1 {
         state.priceSheetList[token][index] = _sheet;
 
         emit MiningV1Data.PriceClosed(address(msg.sender), token, index);
+
+        state._stat(token);
+
     }
 
  
@@ -605,6 +609,9 @@ contract NestMiningV1 {
         noContract
     {
         state._closeList(token, indices);
+
+        state._stat(token);
+
     }
 
 
@@ -620,6 +627,7 @@ contract NestMiningV1 {
         noContract
     {
         state._biteToken(token, index, biteNum, newTokenAmountPerEth);
+        state._stat(token);
     }
 
     /// @notice Call the function to buy TOKEN/NTOKEN from a posted price sheet
@@ -634,7 +642,7 @@ contract NestMiningV1 {
         noContract
     {
         state._biteEth(token, index, biteNum, newTokenAmountPerEth);
-
+        state._stat(token);
     }
     
     /* ========== PRICE QUERIES ========== */
