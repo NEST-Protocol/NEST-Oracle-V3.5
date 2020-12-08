@@ -12,6 +12,7 @@ const {deployUSDT, deployWBTC, deployNN,
 const {usdtdec, wbtcdec, nestdec, ethdec, 
         ETH, USDT, WBTC, MBTC, NEST, BigNum,BigN, 
         show_eth, show_usdt, show_64x64, advanceBlock,goBlocks} = require("./utils.js");
+const { NestMining } = require("./.contracts_localhost.js");
         
 let provider = ethers.provider;
 
@@ -58,6 +59,10 @@ const main = async function () {
     const ethNum = BigN(params.miningEthUnit);
     const biteFactor = params.biteInflateFactor;
     const nestStakedNum1k = params.nestStakedNum1k;
+
+    await NestMining.connect(NestPool.address).loadContracts();
+    const NToken = await NestPool.getNTokenFromToken(CUSDT.address);
+    console.log("NToken = ",NToken);
    
     let tx = await NestMining.connect(userA).post2(CUSDT.address, ethNum, USDT(450), NEST(1000), { value: ETH(ethNum.mul(2).add(1))});
     console.log('> [INIT]: NestMining.post2() userA post2 ...... ok');
@@ -72,15 +77,15 @@ const main = async function () {
 
 
     tx = await NestMining.connect(userB).biteToken(CUSDT.address, index_post_usdt.sub(1), ethNum, USDT(300), { value: ETH(ethNum.mul(biteFactor).add(ethNum).add(1)) });
-    //await tx.wait();
-    await tx.wait(21);
+    await tx.wait();
+    //await tx.wait(21);
     console.log('> [INIT]: NestMining.biteToken() bitetoken() ...... ok');
     
     const index_biteToken = await NestMining.lengthOfPriceSheets(CUSDT.address);
     console.log('> [INIT]: NestMining.lengthOfPriceSheets() lengthOfPriceSheets() ...... ok');
 
 
-    //await goBlocks(provider, 21);
+    await goBlocks(provider, 21);
 
     const pricesheet_post_usdt = await NestMining.fullPriceSheet(CUSDT.address, index_post_usdt.sub(1));
 
