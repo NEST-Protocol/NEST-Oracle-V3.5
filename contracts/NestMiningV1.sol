@@ -968,7 +968,7 @@ contract NestMiningV1 {
         noContract
     {
        // only avialble in upgrade phase
-        require (state.flag == MINING_FLAG_UPGRADE_NEEDED, "Nest:Mine:!flag");
+        require (flag == MINING_FLAG_UPGRADE_NEEDED, "Nest:Mine:!flag");
         state._post2Only4Upgrade(token, ethNum, tokenAmountPerEth, ntokenAmountPerEth);
         address _ntoken = INestPool(state.C_NestPool).getNTokenFromToken(token);
 

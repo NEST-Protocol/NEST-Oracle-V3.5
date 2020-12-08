@@ -140,14 +140,6 @@ library MiningV1Data {
     /* ========== STATE VARIABLES ========== */
 
     struct State {
-
-        uint8  flag;                // =0: initialized
-                                    // =1: active 
-                                    // =2: stop mining, 
-                                    // =3: stop sheet closing
-                                    // =4: stop assets withdrawing
-                                    // =5: stop price querying
-                                    // =127: shutdown completely
         
         uint8   version;            // = 1
         uint8   miningEthUnit;      // = 10;
