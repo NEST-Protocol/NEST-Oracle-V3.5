@@ -106,7 +106,7 @@ contract NestMiningV1 {
             amount = amount.mul(MiningV1Data.MINING_NTOKEN_YIELD_CUTBACK_RATE).div(100);
         }
         
-        state.governance = msg.sender;
+        governance = msg.sender;
 
         state.version = 1;
         flag = MINING_FLAG_SETUP_NEEDED;
@@ -176,7 +176,7 @@ contract NestMiningV1 {
 
     function _onlyGovernance() private view 
     {
-        require(msg.sender == state.governance, "Nest:Mine:!GOV");
+        require(msg.sender == governance, "Nest:Mine:!GOV");
     }
 
     modifier onlyGovernance() 
@@ -203,7 +203,7 @@ contract NestMiningV1 {
 
     modifier onlyGovOrBy(address _contract) 
     {
-        require(msg.sender == state.governance || msg.sender == _contract, "Nest:Mine:!sender");
+        require(msg.sender == governance || msg.sender == _contract, "Nest:Mine:!sender");
         _;
     }
 
@@ -229,9 +229,9 @@ contract NestMiningV1 {
     //     state._NN_address = NN_address;
     // }
 
-    function loadGovernance() external onlyGovernance
+    function loadGovernance() external
     {
-        governance = INestPool(state.C_NestPool).governance();
+        governance = INestPool(C_NestPool).governance();
     }
 
     function loadContracts() external onlyGovOrBy(C_NestPool)
@@ -271,7 +271,7 @@ contract NestMiningV1 {
     function addrOfGovernance() view external
         returns (address) 
     {   
-        return state.governance;
+        return governance;
     }
 
     function parameters() view external 
@@ -291,7 +291,7 @@ contract NestMiningV1 {
 
 
     /// @notice Post a price sheet for TOKEN
-    /// @dev  It is for TOKEN (except USDx)
+    /// @dev  It is for TOKEN (except USDx) whose total supply is below 1,000,000 * 1e18
     /// @param token The address of TOKEN contract
     /// @param ethNum The numbers of ethers to post sheets
     /// @param tokenAmountPerEth The price of TOKEN
@@ -311,6 +311,7 @@ contract NestMiningV1 {
         INestPool _C_NestPool = INestPool(state.C_NestPool);
         address _ntoken = _C_NestPool.getNTokenFromToken(token);
         require(_ntoken != address(0) &&  _ntoken != address(state.C_NestToken), "Nest:Mine:!(ntoken)");
+        require(INToken(_ntoken).totalSupply() < MiningV1Data.MINING_NTOKEN_NON_DUAL_POST_THRESHOLD, "Nest:Mine:!ntoken");
 
         // calculate eth fee
         uint256 _ethFee = ethNum.mul(state.miningFeeRate).mul(1e18).div(1000);

@@ -217,7 +217,7 @@ contract NestPool is INestPool {
         _token_ledger[token][to] = _token_ledger[token][to].add(amount);
     }
 
-    function transferEthInPool(address token, address from, address to, uint256 amount) 
+    function transferEthInPool(address from, address to, uint256 amount) 
         external onlyByNest
     {
         if (amount == 0) {
