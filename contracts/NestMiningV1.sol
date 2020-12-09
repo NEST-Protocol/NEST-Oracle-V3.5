@@ -311,6 +311,7 @@ contract NestMiningV1 {
         INestPool _C_NestPool = INestPool(state.C_NestPool);
         address _ntoken = _C_NestPool.getNTokenFromToken(token);
         require(_ntoken != address(0) &&  _ntoken != address(state.C_NestToken), "Nest:Mine:!(ntoken)");
+        require(INToken(_ntoken).totalSupply() < MiningV1Data.MINING_NTOKEN_NON_DUAL_POST_THRESHOLD, "Nest:Mine:!ntoken");
 
         // calculate eth fee
         uint256 _ethFee = ethNum.mul(state.miningFeeRate).mul(1e18).div(1000);
