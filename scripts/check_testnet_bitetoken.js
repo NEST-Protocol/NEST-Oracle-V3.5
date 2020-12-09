@@ -54,13 +54,16 @@ const main = async function () {
                 MiningV1Calc: contractsDeployed.MiningV1Calc, 
                 MiningV1Op: contractsDeployed.MiningV1Op} 
         });
+
+    await NestMining.loadContracts();
   
     const params = await NestMining.parameters();
     const ethNum = BigN(params.miningEthUnit);
     const biteFactor = params.biteInflateFactor;
     const nestStakedNum1k = params.nestStakedNum1k;
 
-    await NestMining.connect(NestPool.address).loadContracts();
+  
+
     const NToken = await NestPool.getNTokenFromToken(CUSDT.address);
     console.log("NToken = ",NToken);
    
