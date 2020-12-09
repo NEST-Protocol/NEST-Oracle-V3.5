@@ -88,6 +88,10 @@ async function main() {
     receipt = await tx.wait();
     console.log(`>>>[STUP] NNToken.setContracts() ..... ok`);
 
+    //tx = await NestMining.loadContracts();
+    //receipt = await tx.wait();
+    //console.log(`>>>[STUP] NestMining.loadContracts() ..... ok`);
+
     bn = tx.blockNumber;
     ts = (await ethers.provider.getBlock(bn)).timestamp;
     nw = (await ethers.provider.getNetwork()).name;
