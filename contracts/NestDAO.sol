@@ -3,6 +3,7 @@
 pragma solidity ^0.6.12;
 
 import "./lib/SafeMath.sol";
+import "./iface/INestMining.sol";
 import "./iface/INestPool.sol";
 import "./iface/INestDAO.sol";
 
@@ -16,6 +17,7 @@ contract NestDAO is INestDAO {
                             // = 1: active
                             // = 2: withdraw forbidden
                             // = 3: paused 
+    uint32 private startedBlock;
     uint248 private _reserved;
 
     uint8 constant DAO_FLAG_UNINITIALIZED    = 0;
@@ -31,8 +33,15 @@ contract NestDAO is INestDAO {
     address private C_NestStaking;
     address private C_NestQuery;
 
+    uint256 constant DAO_REPURCHASE_PRICE_DEVIATION = 5;  // %5
+
+    struct Item {
+        uint128 redeemedAmount;
+        uint128 quotaAmount;
+        uint32  lastBlock;
+    }
     /// @dev Mapping from ntoken => amount (of ntokens owned by DAO)
-    mapping(address => uint256) public ntokenLedger;
+    mapping(address => Item) public ntokenLedger;
 
     /// @dev Mapping from ntoken => amount (of ethers owned by DAO)
     mapping(address => uint256) public ethLedger;
@@ -77,7 +86,7 @@ contract NestDAO is INestDAO {
     /* ========== GOVERNANCE ========== */
 
     /// @dev Ensure that all governance-addresses be consistent with each other
-    function loadGovernance() override external onlyGovernance 
+    function loadGovernance() override external 
     { 
         governance = INestPool(C_NestPool).governance();
     }
@@ -127,7 +136,8 @@ contract NestDAO is INestDAO {
         external 
         onlyGovOrBy(C_NestMining)
     {
-        ntokenLedger[C_NestToken] += amount;
+        Item storage it = ntokenLedger[C_NestToken];
+        it.redeemedAmount = uint128(uint256(it.redeemedAmount) + amount);
     }
 
     /// @dev Collect ethers from NestStaking & NestQuery
@@ -140,8 +150,34 @@ contract NestDAO is INestDAO {
     /// @dev Redeem ntokens for ethers
     function redeem(address ntoken, uint256 amount) external
     {
-        // TODO:
-        return;
+        uint256 bal = ethLedger[ntoken];
+        require(bal > 0, "Nest:DAO:!bal");
+
+        Item memory it = ntokenLedger[ntoken];
+        uint256 _acc;
+        {
+            uint256 n = (ntoken == C_NestToken) ? (1000) : (10);
+            uint256 intv = (it.lastBlock == 0) ? 
+                (block.number).sub(startedBlock) : (block.number).sub(uint256(it.lastBlock));
+            _acc = (n * intv > 300_000)? 300_000 : (n * intv);
+        }
+
+        (uint256 price, uint256 avgPrice, int128 vola, uint32 bn) = 
+            INestMining(C_NestMining).priceAvgAndSigmaOf(ntoken);
+        {
+            uint256 diff = price > avgPrice? (price - avgPrice) : (avgPrice - price);
+            require(diff.mul(100) < avgPrice.mul(DAO_REPURCHASE_PRICE_DEVIATION), "Nest:DAO:!diff");
+        }
+
+
+        uint256 quota = _acc.add(it.quotaAmount);
+        require (amount < (quota*1e18), "Nest:DAO:!quota");
+        require (amount.mul(1e18).div(price) < bal, "Nest:DAO:!bal2");
+
+        ERC20(C_NestToken).transferFrom(address(msg.sender), address(this), amount);
+        it.redeemedAmount += uint128(amount);
+        it.quotaAmount = uint128(quota.sub(amount));
+        it.lastBlock = uint32(block.number);
     }
 
 }
