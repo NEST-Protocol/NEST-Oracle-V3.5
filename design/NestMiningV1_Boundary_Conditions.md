@@ -1,6 +1,6 @@
 # NestMiningV1 boundary conditions
 
-## 本文档主要考虑外部输入为极端情况下的  NestMining 合约运行情况
+## 外部输入为极端情况下的  NestMining 合约运行情况
 
 ### post()
 功能： 提交　ETH-TOKEN　报价单
