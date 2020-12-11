@@ -1,4 +1,5 @@
-# 本文档梳理以下合约函数调用权限
+# 合约函数调用权限
+
 1. NestMining 合约函数调用权限
 2. NestPool 合约函数调用权限
 3. NestQuery 合约函数调用权限
@@ -8,7 +9,398 @@
 
 ## Changelog 更新日志
 
-### 2020-12-09
+### 2020-12-10
+
+增加合约函数调用权限分类
+
+
+### 合约函数调用权限分类
+
+#### NestMining 合约
+
+##### 仅允许管理者调用 （onlyGovernance）函数
+   
+1. setup()
+
+2. upgrade()
+
+3. init()
+
+4. incVersion()
+
+5. setParameters()
+
+
+##### 任何 用户 / 合约 均可调用
+  
+1. initialize()
+
+2. addrOfGovernance()  (只读函数 view)
+
+3. parameters()  (只读函数 view)
+
+4. minedNestAmount()  (只读函数 view)
+
+5. latestMinedHeight()  (只读函数 view)
+
+6. withdrawEth()  (防止重入引入互斥锁)
+
+7. withdrawEthAndToken()  (防止重入引入互斥锁)
+
+8. withdrawNest()  (防止重入引入互斥锁)
+
+9. withdrawEthAndTokenAndNest()  (防止重入引入互斥锁)
+
+10. lengthOfPriceSheets()  (只读函数 view)
+
+11. priceSheet()  (只读函数 view)
+
+12. stat()
+    
+  
+##### 不允许合约调用 （noContract）
+
+1. post()  (可携带资金)
+
+2. post2()  (可携带资金)
+
+3. close()
+
+4. closeAndWithdraw() 
+
+5. closeList()
+
+6. biteToken()  (可携带资金)
+
+7. biteEth()  (可携带资金)
+
+8. fullPriceSheet()  (只读函数 view)
+
+9. unVerifiedSheetList()  (只读函数 view)
+
+10. unClosedSheetListOf()  (只读函数 view)
+
+11. sheetListOf() (只读函数 view)
+
+12. post2Only4Upgrade()
+
+
+##### 只读 (view),允许任意用户直接调用；不允许除 NestQuery 合约外的其他合约调用
+
+1. latestPriceOf()
+
+2. priceOf() 
+
+3. priceAvgAndSigmaOf()
+
+4. priceOfTokenAtHeight() 
+
+5. priceListOfToken() 
+
+
+##### 其他情况
+
+1. loadContracts()
+  
+权限：管理者或者 nestpool 合约地址可以调用。
+
+
+2. _mineNest()
+
+权限：private 函数，仅能被本合约内部函数调用;只读 （view）。
+
+
+3. _mineNToken()
+
+权限：private 函数，仅能被本合约内部函数调用;只读 （view）。
+
+
+
+
+
+#### NestPool 合约
+
+##### 仅允许管理者调用 （onlyGovernance）函数
+   
+1. setGovernance()
+
+2. setContracts()
+
+3. drainEth()
+
+4. drainNest()
+
+5. drainToken()
+
+
+##### 任何 用户 / 合约 均可调用，只读函数 view
+  
+1. getNTokenFromToken()  
+
+2. balanceOfNestInPool()  
+
+3. balanceOfEthInPool()  
+
+4. balanceOfTokenInPool()  
+
+5. assetsList()  
+
+6. addrOfNestMining()  
+
+7. addrOfNestToken()  
+
+8. addrOfNTokenController()
+
+9. addrOfNNRewardPool()
+
+10. addrOfNNToken() 
+
+11. addrOfNestStaking()
+
+12. addrOfNestQuery()
+
+13. addrOfNestDAO()
+
+14. getMinerEthAndToken() 
+
+
+##### 仅获得授权的几个地址可以执行此函数（ NestMining / NTokenController / NestDAO / NestStaking / NNRewardPool / NestQuery）
+
+1. transferNestInPool()
+
+2. transferEthInPool() 
+
+3. withdrawEth()
+
+4. withdrawToken()
+
+5. withdrawNest()
+
+
+##### 仅 NestMining 合约地址可以执行此函数
+
+1. freezeEth()
+
+2. unfreezeEth()
+
+3. freezeNest()
+
+4. unfreezeNest()
+
+5. freezeToken()
+
+6. unfreezeToken()
+
+7. freezeEthAndToken()
+
+8. unfreezeEthAndToken()
+
+9. addNest()
+
+10. addNToken()
+
+11. depositEth()  (可携带资金)
+
+12. withdrawEthAndToken()
+
+13. withdrawNTokenAndTransfer()
+
+
+##### 其他情况
+
+1. setNTokenToToken()
+  
+权限：管理者或 NTokenController 才可调用。
+
+
+
+
+#### NestQuery 合约
+
+##### 仅允许管理者调用 （onlyGovernance）函数
+   
+1. setParams()
+
+2. remove()
+
+3. pause()
+
+4. resume()
+
+
+##### 任何 用户 / 合约 均可调用
+  
+1. initialize()  
+
+2. loadGovernance()
+
+3. params()  (只读函数 view)  
+
+4. deactivate()  (价格查询功能必须处于激活状态)
+
+
+##### 不允许合约调用 (noContract)
+
+1. activate() (价格查询功能必须处于激活状态)
+
+
+##### 禁止重入 (nonReentrant), 价格查询功能必须开启
+
+1. query()  
+
+2. queryPriceAvgVola() 
+
+3. updateAndCheckPriceNow()  
+
+4. queryPriceList() 
+
+
+##### 其他情况
+
+1. loadContracts()
+  
+权限：管理者 或者 NestPool 合约地址才可以调用。
+
+
+
+
+
+#### NestStaking 合约
+
+##### 仅允许管理者调用 （onlyGovernance）函数
+   
+1. pause()
+
+2. resume()
+
+3. withdrawSavingByGov  (禁止重入)
+
+
+##### 任何 用户 / 合约 均可调用
+  
+1. initialize() 
+
+2. loadGovernance()
+
+3. totalSaving()  (只读函数 view)  
+
+4. totalRewards() (只读函数 view)
+
+5. totalStaked()  (只读函数 view)
+
+6. stakedBalanceOf()  (只读函数 view)
+
+7. rewardPerToken()  (只读函数 view) 
+
+8. accrued()  (只读函数 view)
+
+9. earned() (只读函数 view)
+
+10. stake()  (禁止重入、存入功能激活、收益更新) 
+
+11. stakeFromNestPool()  (禁止重入、存入功能激活、收益更新) 
+
+12. unstake()  (禁止重入、存入功能激活、收益更新) 
+
+13. claim()  (禁止重入、存入功能激活、收益更新)
+
+14. addETHReward()
+
+
+##### 其他情况
+
+1. loadContracts()
+  
+权限：仅允许 管理者 或者 NestPool 合约地址调用
+
+
+2. _rewardPerTokenAndAccrued()
+
+权限： 仅允许本合约内部函数调用，只读函数。
+
+
+
+
+#### NNRewardPool 合约
+
+##### 仅允许管理者调用 （onlyGovernance）函数
+   
+1. shutdown()
+ 
+
+##### 任何 用户 / 合约 均可调用
+  
+1. loadGovernance() 
+
+2. unclaimedNNReward()
+
+
+##### 不允许合约调用 (noContract)
+
+1. claimNNReward()
+
+
+##### 其他情况
+
+1. loadContracts()
+  
+权限：仅允许 管理者 或者 NestPool 合约调用
+
+
+2. addNNReward()
+
+权限：仅 NestNMining 合约地址可以调用
+
+
+3. settleNNReward()
+
+权限：仅可以被本合约内部函数调用 
+
+
+4. nodeCount()
+
+权限：仅允许 NNToken 地址调用
+
+
+
+
+
+#### NTokenController 合约
+
+##### 仅允许管理者调用 （onlyGovernance）函数
+   
+1. setCounter()
+
+2. shutdown()
+
+3. disable()
+
+4. enable()
+
+
+##### 任何 用户 / 合约 均可调用
+  
+1. loadGovernance()   
+
+2. NTokenTagOf()   (只读函数 view)  
+
+3. strConcat()       
+
+4. getAddressStr()
+
+
+##### 不允许合约调用 (noContract)
+
+1. open()  (当前合约激活)
+
+
+##### 其他情况
+
+1. loadContracts()
+  
+权限：允许 管理者额 或者 NestPool 合约调用
+
+
 
 
 //======================================  NestMining  ================================//
@@ -19,7 +411,7 @@
 #### initialize()
 功能：构造函数，初始化使用。用于确定每个区块挖矿产生的 ntoken 数量。
 
-权限：允许外部调用，函数仅可调用一次。
+权限：允许外部调用。
 
 
 #### setup()
@@ -168,7 +560,7 @@
 2. 所有用户/合约均可调用。
  
 
-#### latestMinedHeight
+#### latestMinedHeight()
 功能：返回最新的报价区块高度。
 
 权限：
@@ -188,7 +580,7 @@
 功能：取回 NestPool 合约中，对应用户地址下的指定数量的 ETH，转移到用户外部地址。
 
 权限：
-1. 任何人均可调用。
+1. 任何人/合约均可调用。
 2. 防止重入（引入互斥锁）。
 
 
@@ -587,7 +979,7 @@
 功能：用于链接各管理者地址，初始化时使用。
 
 权限：
-1. 仅管理者可以调用。
+1. 任何 用户 / 合约 均可调用。
 
 
 #### setParams()
@@ -629,14 +1021,14 @@
 
 权限：
 1. 不允许合约调用。
-2. 价格查询功能必须开启。
+2. 价格查询功能必须处于激活状态
 
 
 #### deactivate()
 功能：关闭价格查询功能。
 
 权限：
-1. 价格查询功能必须开启。
+1. 价格查询功能必须处于激活状态
 
 
 #### query()
@@ -654,6 +1046,7 @@
 权限：
 1. 价格查询功能必须开启。
 2. 禁止重入。 
+3. 可携带资金。
 
 
 #### updateAndCheckPriceNow()
