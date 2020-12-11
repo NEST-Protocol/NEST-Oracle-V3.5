@@ -203,17 +203,18 @@ describe("NestToken contract", function () {
     describe('NWBTC NToken', function () {
 
         it("userA should approve correctly", async () => {
-            await CNWBTC.transfer(userA.address, NWBTC('100000000'));
-            await CNWBTC.connect(userA).approve(_C_NestPool, NWBTC('10000000'));
-            await CNWBTC.connect(userA).approve(_C_NTokenController, NWBTC('100'));
+            await CNWBTC.transfer(userA.address, NWBTC('400000'));
+            await CNWBTC.connect(userA).approve(_C_NestPool, NWBTC('4000000'));
+            await CNWBTC.connect(userA).approve(_C_NTokenController, NWBTC('1000000'));
         })
 
         it("userB should approve correctly", async () => {
-            await CNWBTC.transfer(userB.address, NWBTC('100000000'));
-            await CNWBTC.connect(userB).approve(_C_NestPool, NWBTC('10000000'));
-            await CNWBTC.connect(userB).approve(_C_NTokenController, NWBTC('100'));
+            await CNWBTC.transfer(userB.address, NWBTC('400000'));
+            await CNWBTC.connect(userB).approve(_C_NestPool, NWBTC('4000000'));
+            await CNWBTC.connect(userB).approve(_C_NTokenController, NWBTC('1000000'));
         })
     });
+
 
     describe('NNToken', function () {
 

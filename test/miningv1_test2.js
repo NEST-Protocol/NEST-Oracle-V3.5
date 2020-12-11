@@ -203,15 +203,15 @@ describe("NestToken contract", function () {
     describe('NWBTC NToken', function () {
 
         it("userA should approve correctly", async () => {
-            await CNWBTC.transfer(userA.address, NWBTC('100000000'));
-            await CNWBTC.connect(userA).approve(_C_NestPool, NWBTC('10000000'));
-            await CNWBTC.connect(userA).approve(_C_NTokenController, NWBTC('100'));
+            await CNWBTC.transfer(userA.address, NWBTC('400000'));
+            await CNWBTC.connect(userA).approve(_C_NestPool, NWBTC('4000000'));
+            await CNWBTC.connect(userA).approve(_C_NTokenController, NWBTC('1000000'));
         })
 
         it("userB should approve correctly", async () => {
-            await CNWBTC.transfer(userB.address, NWBTC('100000000'));
-            await CNWBTC.connect(userB).approve(_C_NestPool, NWBTC('10000000'));
-            await CNWBTC.connect(userB).approve(_C_NTokenController, NWBTC('100'));
+            await CNWBTC.transfer(userB.address, NWBTC('400000'));
+            await CNWBTC.connect(userB).approve(_C_NestPool, NWBTC('4000000'));
+            await CNWBTC.connect(userB).approve(_C_NTokenController, NWBTC('1000000'));
         })
     });
 
@@ -259,7 +259,7 @@ describe("NestToken contract", function () {
 
             const NToken = await NestPool.getNTokenFromToken(token);
             // const balance = await CNWBTC.balanceOf(NToken);
-
+            console.log("NToken = ",NToken);
             // record funds before posting
             const userA_nest_in_exAddress_pre = await NestToken.balanceOf(userA.address);
             const userA_nest_pool_pre = await NestPool.balanceOfNestInPool(userA.address);
