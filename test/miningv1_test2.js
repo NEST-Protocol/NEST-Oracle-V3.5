@@ -396,6 +396,7 @@ describe("NestToken contract", function () {
             const nest_pool_pre = await NestPool.balanceOfNestInPool(_C_NestPool);
             const token_pool_pre = await NestPool.balanceOfTokenInPool(_C_NestPool, token);
             const NToken_pool_pre = await NestPool.balanceOfTokenInPool(_C_NestPool, NToken);
+            console.log("NToken_pool_pre = ", NToken_pool_pre.toString());
             const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
 
             const eth_reward_NestStakingOfNToken_pre = await NestStaking.totalRewards(NToken);
@@ -417,6 +418,13 @@ describe("NestToken contract", function () {
             const freezeTokenAmount = BigN(tokenAmountPerEth).mul(ethNum);
             const freezeNTokenAmount = BigN(NTokenAmountPerEth).mul(ethNum);
             const freezeNestAmount = NEST(BigN(nestStakedNum1k).mul(1000).mul(2));
+
+            // add nest
+            const NN_NEST_REWARD_PERCENTAGE = 15;
+            const NNRewardPool_nest = NEST(400).mul(NN_NEST_REWARD_PERCENTAGE).div(100);
+
+            const DAO_NEST_REWARD_PERCENTAGE = 5;
+            const NestDAO_nest = NEST(400).mul(DAO_NEST_REWARD_PERCENTAGE).div(100);
 
             // record funds after posting
             const userA_nest_in_exAddress_pos = await NestToken.balanceOf(userA.address);
@@ -464,9 +472,19 @@ describe("NestToken contract", function () {
 
             expect(token_pool_pre.add(freezeTokenAmount)).to.equal(token_pool_pos);
 
-            expect(NToken_pool_pre.add(freezeNTokenAmount).add(freezeNestAmount)).to.equal(NToken_pool_pos);
+            expect(NToken_pool_pre
+                   .add(freezeNTokenAmount)
+                   .add(freezeNestAmount)
+                   .sub(NNRewardPool_nest)
+                   .sub(NestDAO_nest))
+                   .to.equal(NToken_pool_pos);
 
-            expect(nest_pool_pre.add(freezeNTokenAmount).add(freezeNestAmount)).to.equal(nest_pool_pos);
+            expect(nest_pool_pre
+                   .add(freezeNTokenAmount)
+                   .add(freezeNestAmount)
+                   .sub(NNRewardPool_nest)
+                   .sub(NestDAO_nest))
+                   .to.equal(nest_pool_pos);
 
 
             // check reward funds

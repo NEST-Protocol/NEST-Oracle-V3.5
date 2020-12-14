@@ -146,6 +146,8 @@ describe("NestToken contract", function () {
     describe('NEST Token', function () {
         it("should have correct totalSupply", async () => {
             const expectedTotalSupply = NEST("10000000000");
+            const amount = NEST("200000");
+            await NestPool.initNestLedger(amount);
             const totalSupply = await NestToken.totalSupply();
             expect(totalSupply).to.equal(expectedTotalSupply);
         })
@@ -195,7 +197,6 @@ describe("NestToken contract", function () {
 
         it("should be able to close two price sheets", async () => {
             await goBlocks(provider, 25);
-
             await NestMining.connect(userA).close(_C_USDT, 0);
             await NestMining.connect(userA).close(_C_NestToken, 0);
         });

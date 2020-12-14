@@ -431,6 +431,13 @@ describe("NestToken contract", function () {
             const freezeNTokenAmount = BigN(NTokenAmountPerEth).mul(ethNum);
             const freezeNestAmount = NEST(BigN(nestStakedNum1k).mul(1000).mul(2));
 
+            // add nest
+            const NN_NEST_REWARD_PERCENTAGE = 15;
+            const NNRewardPool_nest = NEST(400).mul(NN_NEST_REWARD_PERCENTAGE).div(100);
+
+            const DAO_NEST_REWARD_PERCENTAGE = 5;
+            const NestDAO_nest = NEST(400).mul(DAO_NEST_REWARD_PERCENTAGE).div(100);
+
             // record funds after posting
             const userA_nest_in_exAddress_pos = await NestToken.balanceOf(userA.address);
             const userA_nest_pool_pos = await NestPool.balanceOfNestInPool(userA.address);
@@ -478,9 +485,19 @@ describe("NestToken contract", function () {
 
             expect(token_pool_pre.add(freezeTokenAmount)).to.equal(token_pool_pos);
 
-            expect(NToken_pool_pre.add(freezeNTokenAmount).add(freezeNestAmount)).to.equal(NToken_pool_pos);
+            expect(NToken_pool_pre
+                   .add(freezeNTokenAmount)
+                   .add(freezeNestAmount)
+                   .sub(NNRewardPool_nest)
+                   .sub(NestDAO_nest))
+                   .to.equal(NToken_pool_pos);
 
-            expect(nest_pool_pre.add(freezeNTokenAmount).add(freezeNestAmount)).to.equal(nest_pool_pos);
+            expect(nest_pool_pre
+                   .add(freezeNTokenAmount)
+                   .add(freezeNestAmount)
+                   .sub(NNRewardPool_nest)
+                   .sub(NestDAO_nest))
+                   .to.equal(nest_pool_pos);
 
             // check reward funds
             expect(eth_reward_NestStaking_pre.add(eth_reward_NestStaking)).to.equal(eth_reward_NestStaking_pos);
@@ -1259,7 +1276,7 @@ describe("NestToken contract", function () {
             // check nestPool
             expect(eth_pool_pre.sub(unfreezeEthAmount)).to.equal(eth_pool_post);
             expect(token_pool_pre.sub(unfreezeTokenAmount)).to.equal(token_pool_post);
-            expect(nest_pool_pre.sub(unfreezeNestAmount)).to.equal(nest_pool_post);
+            expect(nest_pool_pre.sub(unfreezeNestAmount).sub(reward)).to.equal(nest_pool_post);
 
         });
 
@@ -1356,7 +1373,7 @@ describe("NestToken contract", function () {
              // check nestPool
              expect(eth_pool_pre.sub(unfreezeEthAmount)).to.equal(eth_pool_post);
              expect(token_pool_pre.sub(unfreezeTokenAmount)).to.equal(token_pool_post);
-             expect(nest_pool_pre.sub(unfreezeNestAmount)).to.equal(nest_pool_post);
+             expect(nest_pool_pre.sub(unfreezeNestAmount).sub(reward)).to.equal(nest_pool_post);
  
          });
  
@@ -1804,7 +1821,7 @@ describe("NestToken contract", function () {
             // check nestPool
             expect(eth_pool_pre.sub(unfreezeEthAmount)).to.equal(eth_pool_post);
             expect(token_pool_pre.sub(unfreezeTokenAmount)).to.equal(token_pool_post);
-            expect(nest_pool_pre.sub(unfreezeNestAmount)).to.equal(nest_pool_post);
+            expect(nest_pool_pre.sub(unfreezeNestAmount).sub(reward)).to.equal(nest_pool_post);
         });
 
         // check the updated priceSheet when doing close function
@@ -1840,8 +1857,12 @@ describe("NestToken contract", function () {
             const NTokenAmountPerEth = NEST(1000);
             const newTokenAmountPerEth = USDT(300);
             const msgValue = ETH(BigN(50));
+            const MINER_NEST_REWARD_PERCENTAGE = 80;
+
 
             //  post2 
+            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
+            
             await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
            
             const index = await NestMining.lengthOfPriceSheets(token);
@@ -1887,6 +1908,10 @@ describe("NestToken contract", function () {
 
             const unfreezeNestAmount_bite = NEST(BigN(postSheet1.nestNum1k).mul(1000));
 
+            // calculate fee
+            const rate = MINER_NEST_REWARD_PERCENTAGE;
+            const reward = NEST(BigN(postSheet.ethNum).mul(400).mul(rate)).div(postSheet.ethNum).div(100);
+
 
             // calculate total funds
             const unfreezeEthAmount = unfreezeEthAmount_post.add(unfreezeEthAmount_bite);
@@ -1912,7 +1937,7 @@ describe("NestToken contract", function () {
             // check nestPool
             expect(eth_pool_pre.sub(unfreezeEthAmount)).to.equal(eth_pool_post);
             expect(token_pool_pre.sub(unfreezeTokenAmount)).to.equal(token_pool_post);
-            expect(nest_pool_pre.sub(unfreezeNestAmount)).to.equal(nest_pool_post);
+            expect(nest_pool_pre.sub(unfreezeNestAmount).sub(reward)).to.equal(nest_pool_post);
 
         });
 

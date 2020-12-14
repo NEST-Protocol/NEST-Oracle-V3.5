@@ -193,7 +193,7 @@ describe("Nest Protocol", function () {
                     return true;
                 }
             });     
-            console.log("event=", ev);
+            //console.log("event=", ev);
             expect(ev.args.ethAmount).to.equal(ETH(10));
             expect(ev.args.tokenAmount).to.equal(USDT(5750));
             expect(ev.args.bn).to.equal(1002);
@@ -275,7 +275,7 @@ describe("Nest Protocol", function () {
             await DeFiMock.query(_C_USDT, {value:ETH(1).div(10)});
         });
 
-/*
+
         it("can deactivate a DeFi client", async () => {
             await advanceTime(provider, 10);
             await NestQuery.connect(userA).deactivate(_C_DeFi);
@@ -286,7 +286,7 @@ describe("Nest Protocol", function () {
             await NestQuery.remove(_C_DeFi);
             expect(DeFiMock.query(_C_USDT, {value:ETH(1).div(10)})).to.be.reverted;
         });
-
+        /*
         it("can query a price", async () => {
             await MockNestMining.mock.latestPriceOf.returns({ethAmount: ETH(10), tokenAmount: USDT(5750), blockNum: 1002});
             const rs = await NestQuery.query(_C_USDT);
@@ -402,8 +402,8 @@ describe("Nest Protocol", function () {
             console.log("nest balance=", blns);
             await NestQuery.withdrawNest(userA.address, blns);
         });
+         */
 
-        */
         // it("should be able to clear a price sheet correctly", async () => {
 
         //     const ethNum = BN(10);
