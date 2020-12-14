@@ -4,6 +4,7 @@
 3. NestStaking 合约函
 4. NNRewardPool 合约函数
 5. NTokenController 合约函数
+6. NestDAO.sol 合约函数
 
 
 ## Changelog 更新日志
@@ -98,3 +99,26 @@
 
 
 注： flag 参数值经初始化构造函数后，flag 为 0。此后,变化值不可逆.
+
+
+
+### 本部分说明 NestDAO 合约 flag 值变化情况
+1. : 0 ==> 1
+执行函数：初始化函数 initialize()
+说明： NestDAO 初始化时 flag 默认值为 0，调用 initialize() 函数后将 flag 设置为 DAO_FLAG_INITIALIZED 状态（此值为 1）
+
+2. flag：1 ==> 2
+执行函数：初始化函数 initialize() ==> start()
+说明： 执行 start() 后，,flag 的值变为 NNREWARD_FLAG_DAO_FLAG_ACTIVEACTIVE (此值为 2)。
+
+
+3. flag：2 / 4 ==> 4
+执行函数：pause()
+说明： 执行 pause() 后，,flag 的值变为 DAO_FLAG_PAUSED (此值为 4)。
+
+4. flag： 2 / 4 ==> 2  
+执行函数顺序： resume()
+说明： 执行 resume() 后，，flag 的值变为 DAO_FLAG_ACTIVE (此值为 2)。
+
+
+注： flag 参数值经初始化，由 0 变为 1。再经 start() 函数对 NestStaking 合约授权转移代币，flag 值变为 2。此后，可以在 2 和 4 之间互相转化，但不可为 0 和 1。
