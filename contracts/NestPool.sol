@@ -157,6 +157,15 @@ contract NestPool is INestPool {
         }
     }
 
+    /// @dev Set the total amount of NEST in the pool. After Nest v3.5 upgrading, all 
+    ///    of the unmined NEST will be transferred to this pool. 
+    function initNestLedger(uint256 amount) 
+        external onlyGovernance 
+    {
+        require(_token_ledger[address(C_NestToken)][address(this)] == 0, "Nest:Pool:!init"); 
+        _token_ledger[address(C_NestToken)][address(this)] = amount;
+    }
+
     function getNTokenFromToken(address token) 
         override view public returns (address) 
     {
@@ -174,22 +183,17 @@ contract NestPool is INestPool {
 
     /* ========== ONLY FOR EMERGENCY ========== */
 
-    function drainEth(address to, uint256 amount) 
-        external onlyGovernance
-    {
-        TransferHelper.safeTransferETH(to, amount);
-    }
+    // function drainEth(address to, uint256 amount) 
+    //     external onlyGovernance
+    // {
+    //     TransferHelper.safeTransferETH(to, amount);
+    // }
 
     function drainNest(address to, uint256 amount) 
         external onlyGovernance
     {
-        require(C_NestToken.transfer(to, amount),"Nest:Pool:!transfer");
-    }
-
-    function drainToken(address token, address to, uint256 amount) 
-        external onlyGovernance
-    {
-        ERC20(token).safeTransfer(to, amount);
+        require(_token_ledger[address(C_NestToken)][address(this)] >= amount, "Nest:Pool:!amount");
+        C_NestToken.transfer(to, amount);
     }
 
     function transferNestInPool(address from, address to, uint256 amount) 
@@ -378,6 +382,7 @@ contract NestPool is INestPool {
         override public onlyBy(C_NestMining)
     {
         mapping(address => uint256) storage _nest_ledger = _token_ledger[address(C_NestToken)];
+        _nest_ledger[address(this)] = _nest_ledger[address(this)].sub(amount);
         _nest_ledger[miner] = _nest_ledger[miner].add(amount);
         minedNestAmount = minedNestAmount.add(amount);
     }
@@ -393,9 +398,16 @@ contract NestPool is INestPool {
     // NOTE: Guarded by onlyMiningContract
 
     function depositEth(address miner) 
-        override payable external onlyBy(C_NestMining) 
+        override payable external onlyGovOrBy(C_NestMining) 
     {
         _eth_ledger[miner] =  _eth_ledger[miner].add(msg.value);
+    }
+
+    function depositNToken(address miner, address from, address ntoken, uint256 amount) 
+        override external onlyGovOrBy(C_NestMining) 
+    {
+        ERC20(ntoken).transferFrom(from, address(this), amount);
+        _token_ledger[ntoken][miner] =  _token_ledger[ntoken][miner].add(amount);
     }
 
     /* ========== WITHDRAW ========== */

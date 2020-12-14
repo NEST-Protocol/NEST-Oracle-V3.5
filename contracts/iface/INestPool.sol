@@ -13,6 +13,7 @@ interface INestPool {
     function addNToken(address contributor, address ntoken, uint256 amount) external;
 
     function depositEth(address miner) external payable;
+    function depositNToken(address miner,  address from, address ntoken, uint256 amount) external;
 
     function freezeEth(address miner, uint256 ethAmount) external; 
     function unfreezeEth(address miner, uint256 ethAmount) external;

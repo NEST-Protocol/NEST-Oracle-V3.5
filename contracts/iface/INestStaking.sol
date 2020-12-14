@@ -33,7 +33,8 @@ interface INestStaking {
 
     /// @dev Claim the reward the user earned
     /// @param ntoken The address of NToken
-    function claim(address ntoken) external;
+    /// @return The amount of ethers as rewards
+    function claim(address ntoken) external returns (uint256);
 
     /// @dev Add ETH reward to the staking pool
     /// @param ntoken The address of NToken
