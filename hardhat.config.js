@@ -50,4 +50,6 @@ module.exports = {
       url: `https://eth-kovan.alchemyapi.io/v2/${config.alchemy.kovan.apiKey}`,
       accounts: [config.account.kovan.key, config.account.kovan.userA, config.account.kovan.userB],
       gasPrice:10e11
+    },
+  },
 }

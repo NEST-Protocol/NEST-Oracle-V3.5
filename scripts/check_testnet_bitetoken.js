@@ -62,6 +62,7 @@ const main = async function () {
   
     const params = await NestMining.parameters();
     const biteFactor = params.biteInflateFactor;
+    const ethNum = BigN(params.miningEthUnit);
     const nestStakedNum1k = params.nestStakedNum1k;
 
     const NToken = await NestPool.getNTokenFromToken(CUSDT.address);
@@ -79,10 +80,10 @@ const main = async function () {
     tx = await NestMining.connect(userB).biteToken(CUSDT.address, index_post_usdt.sub(1), ethNum, USDT(300), { value: ETH(ethNum.mul(biteFactor).add(ethNum).add(1)) });
     console.log('> [INIT]: NestMining.biteToken() bitetoken() ...... ok');
     
-    await tx.wait(21);
+    //await tx.wait(21);
     console.log('> [INIT]: waited 21 blocks ...... ok');
-    //await tx.wait();
-    //await goBlocks(provider, 21);
+    await tx.wait();
+    await goBlocks(provider, 21);
    
     const index_biteToken = await NestMining.lengthOfPriceSheets(CUSDT.address);
     console.log('> [INIT]: NestMining.lengthOfPriceSheets() lengthOfPriceSheets() ...... ok');
@@ -97,6 +98,10 @@ const main = async function () {
     const pricesheet_post_ntoken = await NestMining.fullPriceSheet(NestToken.address, index_post_ntoken.sub(1));
 
     const ethAmount_post_ntoken = ETH(pricesheet_post_ntoken.ethNumBal);
+    
+    const ntokenAmount_post_ntoken = NEST(BigN(pricesheet_post_ntoken.tokenNumBal).mul(1000));
+   
+
     const nestAmount_post = NEST(BigN(nestStakedNum1k).mul(2).mul(1000));
     const totalNestAmount = ntokenAmount_post_ntoken.add(nestAmount_post);
    
@@ -106,6 +111,7 @@ const main = async function () {
     const ethAmount_bitetoken = ETH(pricesheet_bitetoken.ethNumBal);
    
     const tokenAmount_bitetoken = USDT(BigN(pricesheet_bitetoken.tokenNumBal).mul(300));
+    const NestAmount_bitetoken = NEST(BigN(pricesheet_bitetoken.nestNum1k).mul(1000));
     
     tx = await NestMining.connect(userA).close(CUSDT.address, index_post_usdt.sub(1));
     await tx.wait();
