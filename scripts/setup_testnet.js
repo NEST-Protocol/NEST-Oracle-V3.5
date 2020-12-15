@@ -11,6 +11,12 @@ const { deployUSDT, deployWBTC, deployNN,
 
 const contractsDeployed_localhost = require("./.contracts_localhost.js");
 const contractsDeployed_kovan = require("./.contracts_kovan.js");
+<<<<<<< Updated upstream
+=======
+const contractsDeployed_ropsten = require("./.contracts_ropsten.js");
+
+const { expect } = require("chai");
+>>>>>>> Stashed changes
 
 async function main() {
 
@@ -19,6 +25,8 @@ async function main() {
             return contractsDeployed_localhost;
         } else if (network.name === "kovan") {
             return contractsDeployed_kovan;
+        }else if (network.name === "ropsten") {
+            return contractsDeployed_ropsten;
         }
     }();
 
@@ -59,7 +67,28 @@ async function main() {
             biteNestInflateFactor: 2,
         });
     } else if (network.name === "kovan") {
+<<<<<<< Updated upstream
         tx = await NestMining.setup(1, 22397738, NEST(1000), {
+=======
+        genesis = 1;
+        lastB = 22452594;
+        mined = NEST(1000);
+        params = {
+            miningEthUnit: 1,
+            nestStakedNum1k: 1,
+            biteFeeRate: 0,
+            miningFeeRate: 1,
+            priceDurationBlock: 20,
+            maxBiteNestedLevel: 3,
+            biteInflateFactor: 2,
+            biteNestInflateFactor: 2,
+        };
+    }else if (network.name === "ropsten") {
+        genesis = 1;
+        lastB = 9264265;
+        mined = NEST(1000);
+        params = {
+>>>>>>> Stashed changes
             miningEthUnit: 1,
             nestStakedNum1k: 1,
             biteFeeRate: 1,
@@ -88,12 +117,37 @@ async function main() {
     nw = (await ethers.provider.getNetwork()).name;
     console.log(`>>>       network=${nw}, block=${bn}, time=${timeConverter(ts)} `);
 
+<<<<<<< Updated upstream
     params = await NestMining.parameters();
     console.log(`>>> [INFO] parameters=`, params);
 
     tx = await NestPool.setNTokenToToken(CUSDT.address, NestToken.address);
     receipt = await tx.wait();
     console.log(`>>> [STUP] deployer: set (USDT <-> NEST) to NestPool ...... ok`);
+=======
+    const NTokenContract = await ethers.getContractFactory("NestNToken");
+
+    const CNWBTC = await NTokenContract.deploy("900000000000000000000000", "NWBTC", "NWBTC", owner.address);
+    console.log(`>>> [DPLY]: NWBTC deployed, address=${CNWBTC.address}, block=${tx.blockNumber}`);
+
+    tx = CNWBTC.deployTransaction;
+    await tx.wait(1);
+
+    NestUpgrade = await deployUpgrade(owner, NestPool.address);
+
+    tx = await NestPool.setGovernance(NestUpgrade.address);
+    tx.wait(1);
+    console.log(`>>> [STUP] NestPool.governance ==> NestUpgrade (${NestUpgrade.address}) ...... OK`);
+    bn = tx.blockNumber;
+    ts = (await ethers.provider.getBlock(bn)).timestamp;
+    nw = (await ethers.provider.getNetwork()).name;
+    console.log(`>>>       network=${nw}, block=${bn}, time=${timeConverter(ts)} `);
+
+    tx = await NestUpgrade.upgradeAndSetup(genesis, lastB, mined, params, 
+        [CUSDT.address, CWBTC.address], [NestToken.address, CNWBTC.address]);
+    tx.wait(1);
+    console.log(`>>> [STUP] NestUpgrade.setup() ...... OK`);
+>>>>>>> Stashed changes
     bn = tx.blockNumber;
     ts = (await ethers.provider.getBlock(bn)).timestamp;
     nw = (await ethers.provider.getNetwork()).name;

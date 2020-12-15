@@ -1,8 +1,6 @@
-//const  contractsDeployed_localhost = require("./.contracts_localhost.js");
+const  contractsDeployed_localhost = require("./.contracts_localhost.js");
 const  contractsDeployed_kovan = require("./.contracts_kovan.js");
-
-//const contractsDeployed = contractsDeployed_localhost;
-const contractsDeployed = contractsDeployed_kovan;
+const  contractsDeployed_ropsten = require("./.contracts_ropsten.js");
 
 const {deployUSDT, deployWBTC, deployNN, 
     deployNEST, 
@@ -20,6 +18,16 @@ let provider = ethers.provider;
 
 
 const main = async function () {
+
+    const contractsDeployed = function () {
+        if (network.name === "localhost") {
+            return contractsDeployed_localhost;
+        } else if (network.name === "kovan") {
+            return contractsDeployed_kovan;
+        } else if (network.name === "ropsten") {
+            return contractsDeployed_ropsten;
+        }
+    } ();
 
     [owner, userA, userB, userC, userD, dev, NNodeA, NNodeB] = await ethers.getSigners();
 
@@ -63,7 +71,7 @@ const main = async function () {
     const balnaceOfNest_NestPool = await NestPool.balanceOfNestInPool(NestPool.address);
     console.log('> [INIT]: NestPool.balanceOfNestInPool() balnaceOfNest_userA ...... ok');
 
-    console.log("balnaceOfNest_NestPool = ",balnaceOfNest_NestPool.toString());
+    //console.log("balnaceOfNest_NestPool = ",balnaceOfNest_NestPool.toString());
   
     const balnaceOfToken_userA = await NestPool.balanceOfTokenInPool(userA.address, CUSDT.address);
     console.log('> [INIT]: NestPool.balanceOfTokenInPool() balanceOfTokenInPool_userA ...... ok');

@@ -41,15 +41,15 @@ module.exports = {
     enabled: (process.env.REPORT_GAS) ? true : false
   },
   networks: {
-    /*goerli: {
-      url: `https://goerli.infura.io/v3/${config.infura.goerli.apiKey}`,
-      accounts: [config.account.goerli.key],
-      gas: 100000
-    },*/
+    ropsten: {
+      url: `https://eth-ropsten.alchemyapi.io/v2/${config.alchemy.ropsten.apiKey}`,
+      accounts: [config.account.ropsten.key, config.account.ropsten.userA, config.account.ropsten.userB],
+      gasPrice: 10e9
+    },
     kovan: {
       url: `https://eth-kovan.alchemyapi.io/v2/${config.alchemy.kovan.apiKey}`,
       accounts: [config.account.kovan.key, config.account.kovan.userA, config.account.kovan.userB],
-      gasPrice:10e9
+      gasPrice: 10e10
     },
   },
 }
