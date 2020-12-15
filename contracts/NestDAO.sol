@@ -8,6 +8,7 @@ import "./lib/ReentrancyGuard.sol";
 
 
 import "./iface/INestMining.sol";
+import "./iface/INToken.sol";
 import "./iface/INestPool.sol";
 import "./iface/INestDAO.sol";
 import "./iface/INestStaking.sol";
@@ -25,6 +26,8 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     uint32 private startedBlock;
     uint248 private _reserved;
 
+    uint256 public ntokenRepurchaseThreshold;
+
     uint8 constant DAO_FLAG_UNINITIALIZED    = 0;
     uint8 constant DAO_FLAG_INITIALIZED      = 1;
     uint8 constant DAO_FLAG_ACTIVE           = 2;
@@ -40,6 +43,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     address private C_NestQuery;
 
     uint256 constant DAO_REPURCHASE_PRICE_DEVIATION = 5;  // price deviation < 5% 
+    uint256 constant DAO_REPURCHASE_NTOKEN_TOTALSUPPLY = 200_000_000;  // price deviation < 5% 
 
     struct Ledger {
         uint128 rewardedAmount;
@@ -68,6 +72,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         governance = msg.sender;
         flag = DAO_FLAG_INITIALIZED;
         C_NestPool = NestPool;
+        ntokenRepurchaseThreshold = DAO_REPURCHASE_NTOKEN_TOTALSUPPLY;
     }
 
 
@@ -112,6 +117,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     {  
         require(flag == DAO_FLAG_INITIALIZED, "Nest:DAO:!flag");
         ERC20(C_NestToken).approve(C_NestStaking, uint(-1));
+        startedBlock = uint32(block.number);
         flag = DAO_FLAG_ACTIVE;
         emit FlagSet(address(msg.sender), uint256(DAO_FLAG_ACTIVE));
     }
@@ -130,6 +136,10 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         emit FlagSet(address(msg.sender), uint256(DAO_FLAG_ACTIVE));
     }
 
+    function setParams(uint256 _ntokenRepurchaseThreshold) external onlyGovernance
+    {
+        ntokenRepurchaseThreshold = _ntokenRepurchaseThreshold;
+    }
 
     function totalRewards(address ntoken)
         external view returns (uint256) 
@@ -197,6 +207,8 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         // check if ntoken is a NTOKEN
         address _ntoken = INestPool(C_NestPool).getNTokenFromToken(ntoken);
         require (_ntoken == ntoken, "Nest:DAO:!ntoken");
+
+        require(INToken(ntoken).totalSupply() >= ntokenRepurchaseThreshold, "Nest:DAO:!total");
 
         // check if there is sufficient ethers for repurchase
         uint256 bal = ethLedger[ntoken];
