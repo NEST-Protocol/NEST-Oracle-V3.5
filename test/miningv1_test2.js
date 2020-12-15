@@ -143,6 +143,8 @@ describe("NestToken contract", function () {
         it("should have correct totalSupply", async () => {
             const expectedTotalSupply = NEST("10000000000");
             const totalSupply = await NestToken.totalSupply();
+            const amount = NEST("20000000");
+            await NestPool.initNestLedger(amount);
             expect(totalSupply).to.equal(expectedTotalSupply);
         })
 
@@ -259,7 +261,7 @@ describe("NestToken contract", function () {
 
             const NToken = await NestPool.getNTokenFromToken(token);
             // const balance = await CNWBTC.balanceOf(NToken);
-            console.log("NToken = ",NToken);
+            //console.log("NToken = ",NToken);
             // record funds before posting
             const userA_nest_in_exAddress_pre = await NestToken.balanceOf(userA.address);
             const userA_nest_pool_pre = await NestPool.balanceOfNestInPool(userA.address);
@@ -396,7 +398,7 @@ describe("NestToken contract", function () {
             const nest_pool_pre = await NestPool.balanceOfNestInPool(_C_NestPool);
             const token_pool_pre = await NestPool.balanceOfTokenInPool(_C_NestPool, token);
             const NToken_pool_pre = await NestPool.balanceOfTokenInPool(_C_NestPool, NToken);
-            console.log("NToken_pool_pre = ", NToken_pool_pre.toString());
+            //console.log("NToken_pool_pre = ", NToken_pool_pre.toString());
             const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
 
             const eth_reward_NestStakingOfNToken_pre = await NestStaking.totalRewards(NToken);
@@ -474,16 +476,12 @@ describe("NestToken contract", function () {
 
             expect(NToken_pool_pre
                    .add(freezeNTokenAmount)
-                   .add(freezeNestAmount)
-                   .sub(NNRewardPool_nest)
-                   .sub(NestDAO_nest))
+                   .add(freezeNestAmount))
                    .to.equal(NToken_pool_pos);
 
             expect(nest_pool_pre
                    .add(freezeNTokenAmount)
-                   .add(freezeNestAmount)
-                   .sub(NNRewardPool_nest)
-                   .sub(NestDAO_nest))
+                   .add(freezeNestAmount))
                    .to.equal(nest_pool_pos);
 
 
@@ -1266,9 +1264,9 @@ describe("NestToken contract", function () {
             expect(sheet[2].height).to.equal(0);
 
             // it depend on the previous operation
-            expect(sheet[0].height).to.equal(61);
-            expect(sheet[1].height).to.equal(63);
-            expect(sheet[3].height).to.equal(91);
+            expect(sheet[0].height).to.equal(62);
+            expect(sheet[1].height).to.equal(64);
+            expect(sheet[3].height).to.equal(92);
 
             // _sheet.miner != miner (userB.address != userA.address)
             expect(sheet[4].height).to.equal(0);

@@ -55,7 +55,7 @@ exports.deployNWBTC = async function (owner) {
     const NTokenContract = await ethers.getContractFactory("NestNToken");
     console.log(`>>> [DPLY] NWBTC .......2`);
 
-    const CNWBTC = await NTokenContract.deploy("NWBTC", "NWBTC", owner.address);
+    const CNWBTC = await NTokenContract.deploy("900000000000000000000000", "NWBTC", "NWBTC", owner.address);
     console.log(`>>> [DPLY] NWBTC .......3`);
 
     const tx = CNWBTC.deployTransaction;

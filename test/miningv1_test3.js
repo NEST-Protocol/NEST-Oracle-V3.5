@@ -143,6 +143,8 @@ describe("NestToken contract", function () {
         it("should have correct totalSupply", async () => {
             const expectedTotalSupply = NEST("10000000000");
             const totalSupply = await NestToken.totalSupply();
+            const amount = NEST("20000000");
+            await NestPool.initNestLedger(amount);
             expect(totalSupply).to.equal(expectedTotalSupply);
         })
 
@@ -487,16 +489,12 @@ describe("NestToken contract", function () {
 
             expect(NToken_pool_pre
                    .add(freezeNTokenAmount)
-                   .add(freezeNestAmount)
-                   .sub(NNRewardPool_nest)
-                   .sub(NestDAO_nest))
+                   .add(freezeNestAmount))
                    .to.equal(NToken_pool_pos);
 
             expect(nest_pool_pre
                    .add(freezeNTokenAmount)
-                   .add(freezeNestAmount)
-                   .sub(NNRewardPool_nest)
-                   .sub(NestDAO_nest))
+                   .add(freezeNestAmount))
                    .to.equal(nest_pool_pos);
 
             // check reward funds
@@ -1276,7 +1274,7 @@ describe("NestToken contract", function () {
             // check nestPool
             expect(eth_pool_pre.sub(unfreezeEthAmount)).to.equal(eth_pool_post);
             expect(token_pool_pre.sub(unfreezeTokenAmount)).to.equal(token_pool_post);
-            expect(nest_pool_pre.sub(unfreezeNestAmount).sub(reward)).to.equal(nest_pool_post);
+            expect(nest_pool_pre.sub(unfreezeNestAmount)).to.equal(nest_pool_post);
 
         });
 
@@ -1373,7 +1371,7 @@ describe("NestToken contract", function () {
              // check nestPool
              expect(eth_pool_pre.sub(unfreezeEthAmount)).to.equal(eth_pool_post);
              expect(token_pool_pre.sub(unfreezeTokenAmount)).to.equal(token_pool_post);
-             expect(nest_pool_pre.sub(unfreezeNestAmount).sub(reward)).to.equal(nest_pool_post);
+             expect(nest_pool_pre.sub(unfreezeNestAmount)).to.equal(nest_pool_post);
  
          });
  
@@ -1821,7 +1819,7 @@ describe("NestToken contract", function () {
             // check nestPool
             expect(eth_pool_pre.sub(unfreezeEthAmount)).to.equal(eth_pool_post);
             expect(token_pool_pre.sub(unfreezeTokenAmount)).to.equal(token_pool_post);
-            expect(nest_pool_pre.sub(unfreezeNestAmount).sub(reward)).to.equal(nest_pool_post);
+            expect(nest_pool_pre.sub(unfreezeNestAmount)).to.equal(nest_pool_post);
         });
 
         // check the updated priceSheet when doing close function
@@ -1937,7 +1935,7 @@ describe("NestToken contract", function () {
             // check nestPool
             expect(eth_pool_pre.sub(unfreezeEthAmount)).to.equal(eth_pool_post);
             expect(token_pool_pre.sub(unfreezeTokenAmount)).to.equal(token_pool_post);
-            expect(nest_pool_pre.sub(unfreezeNestAmount).sub(reward)).to.equal(nest_pool_post);
+            expect(nest_pool_pre.sub(unfreezeNestAmount)).to.equal(nest_pool_post);
 
         });
 

@@ -148,8 +148,6 @@ contract NestMiningV1 {
         flag = MINING_FLAG_ACTIVE;
     }
 
-<<<<<<< HEAD
-=======
     // function init() external onlyGovernance
     // {
     //     state.miningEthUnit = 10;
@@ -166,7 +164,6 @@ contract NestMiningV1 {
     //     state.latestMiningHeight = uint128(block.number);
     //     flag = MINING_FLAG_SETUP_NEEDED;
     // }
->>>>>>> b47f0844fd505f4c9cdba39a12d545e43807c6da
 
     function incVersion() external onlyGovernance
     {

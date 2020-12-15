@@ -102,6 +102,8 @@ describe("NestStaking contract", function () {
         it("should have correct totalSupply, NEST(10,000,000,000)", async () => {
             const expectedTotalSupply = NEST('10000000000');
             let totalSupply = await NestToken.totalSupply();
+            const amount = NEST("20000000");
+            await NestPool.initNestLedger(amount);
             expect(totalSupply).to.equal(expectedTotalSupply);
         });
 

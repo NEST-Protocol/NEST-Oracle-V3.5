@@ -279,6 +279,7 @@ describe("NestToken contract", function () {
         });
 
         */
+       /*
         //=============================  drainNest in nestpool  ===========================//
         it('should transfer funds correctly!', async () => {
             const token = _C_WBTC;
@@ -312,6 +313,7 @@ describe("NestToken contract", function () {
 
         });
 
+        */
         /*
         //=============================  drainToken in nestpool  ===========================//
         it('should transfer funds correctly!', async () => {
