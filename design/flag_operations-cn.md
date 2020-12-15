@@ -9,7 +9,9 @@
 
 ## Changelog 更新日志
 
-### 2020-12-10
+### 2020-12-14
+
+增加 NestDAO 合约 flag 值变化情况
 
 
 ### 本部分说明 NestMining 合约 flag 值变化情况
@@ -103,7 +105,7 @@
 
 
 ### 本部分说明 NestDAO 合约 flag 值变化情况
-1. : 0 ==> 1
+1. flag: 0 ==> 1
 执行函数：初始化函数 initialize()
 说明： NestDAO 初始化时 flag 默认值为 0，调用 initialize() 函数后将 flag 设置为 DAO_FLAG_INITIALIZED 状态（此值为 1）
 

@@ -12,7 +12,8 @@ contract NestNToken is INTokenLegacy {
     
     mapping (address => uint256) private _balances;                                 //  账本
     mapping (address => mapping (address => uint256)) private _allowed;             //  授权账本
-    uint256 private _totalSupply = 1e9 ether;                                       //  总量
+    //uint256 private _totalSupply = 1e9 ether;                                       //  总量
+    uint256 private _totalSupply = 9e5 ether;                                       //  总量
     string public name;                                                             //  名称
     string public symbol;                                                           //  简称
     uint8 public decimals = 18;                                                     //  精度

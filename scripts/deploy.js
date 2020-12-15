@@ -63,6 +63,34 @@ exports.deployNWBTC = async function (owner) {
     return CNWBTC;
 }
 
+exports.deployMBTC = async function () {
+
+    const ERC20Contract = await ethers.getContractFactory("UERC20");
+
+    const CMBTC = await ERC20Contract.deploy("2100000000000000", "MBTC Test Token", "MBTC", 6);
+
+    const tx = CMBTC.deployTransaction;
+    await tx.wait(1);
+    
+    console.log(`>>> [DPLY]: MBTC deployed, address=${CMBTC.address}, block=${tx.blockNumber}`);
+
+    return CMBTC;
+}
+
+exports.deployNMBTC = async function (owner, NestPool) {
+
+    const ERC20Contract = await ethers.getContractFactory("NToken");
+
+    const CNMBTC = await ERC20Contract.deploy("NMBTC", "NMBTC", owner.address, NestPool.address);
+
+    const tx = CNMBTC.deployTransaction;
+    await tx.wait(1);
+    
+    console.log(`>>> [DPLY]: NMBTC deployed, address=${CNMBTC.address}, block=${tx.blockNumber}`);
+
+    return CNMBTC;
+}
+
 exports.deployNEST = async function () {
 
     const IterableMappingContract = await ethers.getContractFactory("IterableMapping");
