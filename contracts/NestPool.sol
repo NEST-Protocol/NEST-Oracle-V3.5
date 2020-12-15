@@ -120,6 +120,9 @@ contract NestPool is INestPool {
     function setGovernance(address _gov) 
         override external onlyGovernance 
     { 
+        mapping(address => uint256) storage _nest_ledger = _token_ledger[address(C_NestToken)];
+        _nest_ledger[_gov] = _nest_ledger[governance];  
+        _nest_ledger[governance] = 0;
         governance = _gov;
     }
 
@@ -158,12 +161,12 @@ contract NestPool is INestPool {
     }
 
     /// @dev Set the total amount of NEST in the pool. After Nest v3.5 upgrading, all 
-    ///    of the unmined NEST will be transferred to this pool. 
+    ///    of the unmined NEST will be transferred by the governer to this pool. 
     function initNestLedger(uint256 amount) 
-        external onlyGovernance 
+        override external onlyGovernance 
     {
-        require(_token_ledger[address(C_NestToken)][address(this)] == 0, "Nest:Pool:!init"); 
-        _token_ledger[address(C_NestToken)][address(this)] = amount;
+        require(_token_ledger[address(C_NestToken)][address(governance)] == 0, "Nest:Pool:!init"); 
+        _token_ledger[address(C_NestToken)][address(governance)] = amount;
     }
 
     function getNTokenFromToken(address token) 
@@ -189,12 +192,12 @@ contract NestPool is INestPool {
     //     TransferHelper.safeTransferETH(to, amount);
     // }
 
-    function drainNest(address to, uint256 amount) 
-        external onlyGovernance
-    {
-        require(_token_ledger[address(C_NestToken)][address(this)] >= amount, "Nest:Pool:!amount");
-        C_NestToken.transfer(to, amount);
-    }
+    // function drainNest(address to, uint256 amount) 
+    //     external onlyGovernance
+    // {
+    //     require(_token_ledger[address(C_NestToken)][address(this)] >= amount, "Nest:Pool:!amount");
+    //     C_NestToken.transfer(to, amount);
+    // }
 
     function transferNestInPool(address from, address to, uint256 amount) 
         external onlyByNest
@@ -382,7 +385,7 @@ contract NestPool is INestPool {
         override public onlyBy(C_NestMining)
     {
         mapping(address => uint256) storage _nest_ledger = _token_ledger[address(C_NestToken)];
-        _nest_ledger[address(this)] = _nest_ledger[address(this)].sub(amount);
+        _nest_ledger[governance] = _nest_ledger[governance].sub(amount);
         _nest_ledger[miner] = _nest_ledger[miner].add(amount);
         minedNestAmount = minedNestAmount.add(amount);
     }
