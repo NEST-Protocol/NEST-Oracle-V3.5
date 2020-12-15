@@ -1,7 +1,26 @@
 # NestMining 报价挖矿合约
 
-## 提供调用接口函数
+## Changelog 更新日志
+### 2020-12-07
 
+1. 增加了初始化参数查询接口 parameters()
+
+2. 增加了查询距上一个报价区块的累积 mineNest 数量之和函数 minedNestAmount()
+
+3. 增加了取出 NestPool 合约中给定数量的、属于用户自己的 eth 函数 withdrawEth()
+
+4. 增加了同时取出 NestPool 合约中给定数量的、属于用户自己的 eth 和 token 函数 withdrawEthAndToken()
+
+5. 增加了同时取出 NestPool 合约中给定数量的、属于用户自己的 nest 函数 withdrawNest()
+
+6. 增加了同时取出 NestPool 合约中给定数量的、属于用户自己的 nest 函数 withdrawNest()
+
+7. 增加了同时取出 NestPool 合约中给定数量的、属于用户自己的 eth、nest 及 token 函数 withdrawEthAndTokenAndNest()
+
+8. 增加了用于过渡 nest v3.0 到 nest v3.5 的函数 post2Only4Upgrade()
+
+
+## 提供调用接口函数
 ### post()
 功能： 提交　ETH-TOKEN　报价单
 

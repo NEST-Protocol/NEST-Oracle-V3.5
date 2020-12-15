@@ -6,4 +6,6 @@ interface INTokenController {
 
     /// @dev Only for governance
     function loadContracts() external; 
+
+    function loadGovernance() external;
 }

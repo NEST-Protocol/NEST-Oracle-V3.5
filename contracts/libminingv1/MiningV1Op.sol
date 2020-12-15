@@ -298,7 +298,7 @@ library MiningV1Op {
                 continue;
             }
             uint256 h = uint256(_sheet.height);
-            if (h + state.priceDurationBlock < block.number) { // safe_math: untainted values
+            if (h + state.priceDurationBlock < block.number || _sheet.remainNum == 0) { // safe_math: untainted values
                 _ethAmount = _ethAmount.add(uint256(_sheet.ethNumBal).mul(1 ether));
                 _tokenAmount = _tokenAmount.add(uint256(_sheet.tokenNumBal).mul(_sheet.tokenAmountPerEth));
                 _nestAmount = _nestAmount.add(uint256(_sheet.nestNum1k).mul(1000 * 1e18));

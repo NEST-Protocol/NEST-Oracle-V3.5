@@ -12,27 +12,27 @@ const {deployUSDT, deployWBTC, deployNN,
 async function main() {
      console.log(`>>> [DPLY] start deploy address .......`);
     [owner, userA, userB, userC, userD, dev, NNodeA, NNodeB] = await ethers.getSigners();
-    console.log(`>>> [DPLY] get address .......ok`);
+    console.log(`> [INIT]: Starting to deploy address ... ok`);
 
     CUSDT = await deployUSDT();
-    console.log(`>>> [DPLY] deployUSDT .......ok`);
+    console.log(`> [INIT]: Starting to deployUSDT ... ok`);
 
     CWBTC = await deployWBTC();
-    console.log(`>>> [DPLY] deployWBTC .......ok`);
+    console.log(`> [INIT]: Starting to deployWBTC ... ok`);
 
     [NestToken, IterableMapping] = await deployNEST();
-    console.log(`>>> [DPLY] deployNEST .......ok`);
+    console.log(`> [INIT]: Starting to deployNEST ... ok`);
     
     NNToken = await deployNN();
-    console.log(`>>> [DPLY] deployNN .......ok`);
+    console.log(`> [INIT]: Starting to deployNN ... ok`);
 
     let contracts = {USDT: CUSDT, WBTC: CWBTC, NEST: NestToken, NN: NNToken, IterableMapping: IterableMapping}; 
     let addrOfNest = await deployNestProtocolWithProxy(owner, contracts);
     console.log(`>>> [DPLY] deployNestProtocolWithProxy .......ok`);
 
     printContracts("js", addrOfNest);
-    console.log(`>>> [DPLY] deploy address done .......`);
-
+    
+    console.log(`> [INIT]: achieved to deploy address ... ok`);
     // await setupNest(owner, CNest);
 }
 
@@ -42,4 +42,3 @@ main()
     .catch( err => {
         console.error(err);
         process.exit( 1 );
-    });

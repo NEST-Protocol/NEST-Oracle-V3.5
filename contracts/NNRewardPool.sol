@@ -102,7 +102,7 @@ contract NNRewardPool is INNRewardPool {
 
     /// @dev To ensure that all of governance-addresses be consistent, every contract
     ///        besides NestPool must load newest `governance` from NestPool.
-    function loadGovernance() override external onlyGovernance 
+    function loadGovernance() override external 
     { 
         governance = INestPool(C_NestPool).governance();
     }

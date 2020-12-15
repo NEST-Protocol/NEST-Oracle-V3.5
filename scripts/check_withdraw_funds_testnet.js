@@ -1,6 +1,6 @@
-const  contractsDeployed_localhost = require("./.contracts_localhost.js");
-const  contractsDeployed_kovan = require("./.contracts_kovan.js");
-const  contractsDeployed_ropsten = require("./.contracts_ropsten.js");
+const contractsDeployed_localhost = require("./.contracts_localhost.js");
+const contractsDeployed_kovan = require("./.contracts_kovan.js");
+const contractsDeployed_ropsten = require("./.contracts_ropsten.js");
 
 const {deployUSDT, deployWBTC, deployNN, 
     deployNEST, 
@@ -33,7 +33,6 @@ const main = async function () {
 
     console.log(`> [INIT]: Starting to check Nest-Protocol v3.5 ...`);
 
-    CUSDT = await ethers.getContractAt("UERC20", contractsDeployed.USDT);
 
     const NestToken = await ethers.getContractAt("IBNEST", contractsDeployed.NEST,
         {

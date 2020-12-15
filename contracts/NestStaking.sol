@@ -115,7 +115,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     }
 
     /// @dev To ensure that all of governance-addresses be consist with each other
-    function loadGovernance() override external onlyGovernance 
+    function loadGovernance() override external 
     { 
         governance = INestPool(C_NestPool).governance();
     }
@@ -329,6 +329,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         nonReentrant 
         whenActive
         updateReward(ntoken, msg.sender) 
+        returns (uint256)
     {
         uint256 _reward = rewardBalances[ntoken][msg.sender];
         if (_reward > 0) {
@@ -345,6 +346,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
 
              TransferHelper.safeTransferETH(msg.sender, _reward);
         }
+        return _reward;
     }
 
     /* ========== INTER-CALLS ========== */
