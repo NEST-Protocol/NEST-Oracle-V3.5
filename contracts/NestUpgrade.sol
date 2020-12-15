@@ -71,6 +71,7 @@ contract NestUpgrade {
     {
         require(flag < 2, "Nest:Upg:!flag");
         INestPool _C_NestPool = INestPool(C_NestPool);
+        C_NestToken = _C_NestPool.addrOfNestToken();
 
         uint256 nest = ERC20(C_NestToken).balanceOf(address(this));
         _C_NestPool.initNestLedger(nest);

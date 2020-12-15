@@ -59,10 +59,15 @@ const main = async function () {
                 MiningV1Op: contractsDeployed.MiningV1Op} 
         });
     console.log(`> [INIT]: deployed NestMiningV1 address ...`);
-       
+
     let tx = await NestToken.transfer(userA.address, NEST("200000"));
     await tx.wait();
     console.log(`> [INIT]: transfer Nest to userA about nest ...`);
+   
+    const amount = NEST("20000000");
+    tx = await NestToken.transfer(NestPool.address, amount);
+    await NestPool.initNestLedger(amount);
+    console.log(`> [INIT]: transfer NestPool about nest ...`);
 
     tx = await NestToken.transfer(userB.address, NEST("200000"));
     await tx.wait();
