@@ -148,22 +148,22 @@ contract NestMiningV1 {
         flag = MINING_FLAG_ACTIVE;
     }
 
-    function init() external onlyGovernance
-    {
-        state.miningEthUnit = 10;
-        state.nestStakedNum1k = 1;
-        state.biteFeeRate = 1;    // 0.1%
-        state.miningFeeRate = 10;  // change => 0.3% in mainnet
-        state.priceDurationBlock = 25;
-        state.maxBiteNestedLevel = 3;
-        state.biteInflateFactor = 2;
-        state.biteNestInflateFactor = 2;
+    // function init() external onlyGovernance
+    // {
+    //     state.miningEthUnit = 10;
+    //     state.nestStakedNum1k = 1;
+    //     state.biteFeeRate = 1;    // 0.1%
+    //     state.miningFeeRate = 10;  // change => 0.3% in mainnet
+    //     state.priceDurationBlock = 25;
+    //     state.maxBiteNestedLevel = 3;
+    //     state.biteInflateFactor = 2;
+    //     state.biteNestInflateFactor = 2;
 
-        state.genesisBlock = 1;  // for testing
+    //     state.genesisBlock = 1;  // for testing
 
-        state.latestMiningHeight = uint128(block.number);
-        flag = MINING_FLAG_SETUP_NEEDED;
-    }
+    //     state.latestMiningHeight = uint128(block.number);
+    //     flag = MINING_FLAG_SETUP_NEEDED;
+    // }
 
     function incVersion() external onlyGovernance
     {
