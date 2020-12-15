@@ -45,7 +45,7 @@ contract NestPool is INestPool {
     address public C_NestStaking;
     address public C_NestQuery;
 
-    // eth ledger for all miners, if address == 0, it is the balance of pool
+    // eth ledger for all miners
     mapping(address => uint256) _eth_ledger;
     // token => miner => amount 
     mapping(address => mapping(address => uint256)) _token_ledger;

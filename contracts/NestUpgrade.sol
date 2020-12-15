@@ -14,6 +14,19 @@ import "./iface/INNRewardPool.sol";
 import "./iface/INTokenController.sol";
 import "hardhat/console.sol";
 
+
+/*
+    Upgrade: 
+    1. nest3Admin: Nest_3_MiningContract.takeOutNest(NestPool.address);
+    2. nest3Admin: Nest_3_Abonus.turnOutAllEth(amount, nest3Admin);
+    3. gov: NestPool.setGovernance(NestUpgrade.address);
+    4. gov: NestUpgrade.upgradeAndSetup(...);
+    5. nest3Admin: NestDAO.addETHReward(amount);
+
+    10. gov: NestMining.upgrade()
+    100: gov: NestDAO.start();
+ */
+
 contract NestUpgrade {
 
     address governance;
@@ -39,15 +52,16 @@ contract NestUpgrade {
     {
         governance = msg.sender;
         C_NestPool = NestPool;
+        flag = 0;
     }
     
     function shutdown() public onlyGovernance
     {
-        flag = 1;
+        flag = 2;
     }
 
     /// @dev Upgrade from Nest v3.0 to v3.5
-    function setup(
+    function upgradeAndSetup(
             uint32 genesisBlockNumber, 
             uint128 latestMiningHeight,
             uint128 minedNestTotalAmount,
@@ -55,8 +69,11 @@ contract NestUpgrade {
             address[] memory tokenL, 
             address[] memory ntokenL) public onlyGovernance
     {
-        require(flag < 1, "Nest:Upg:!flag");
+        require(flag < 2, "Nest:Upg:!flag");
         INestPool _C_NestPool = INestPool(C_NestPool);
+
+        uint256 nest = ERC20(C_NestToken).balanceOf(address(this));
+        _C_NestPool.initNestLedger(nest);
 
         C_NestMining = _C_NestPool.addrOfNestMining();
         C_NestStaking = _C_NestPool.addrOfNestStaking();
@@ -65,12 +82,12 @@ contract NestUpgrade {
         C_NestQuery = _C_NestPool.addrOfNestQuery();
         C_NestDAO = _C_NestPool.addrOfNestDAO();
 
-        console.log("C_NestMining=", C_NestMining);
-        console.log("C_NestStaking=", C_NestStaking);
-        console.log("C_NNRewardPool=", C_NNRewardPool);
-        console.log("C_NTokenController=", C_NTokenController);
-        console.log("C_NestQuery=", C_NestQuery);
-        console.log("C_NestDAO=", C_NestDAO);
+        // console.log("C_NestMining=", C_NestMining);
+        // console.log("C_NestStaking=", C_NestStaking);
+        // console.log("C_NNRewardPool=", C_NNRewardPool);
+        // console.log("C_NTokenController=", C_NTokenController);
+        // console.log("C_NestQuery=", C_NestQuery);
+        // console.log("C_NestDAO=", C_NestDAO);
 
         INestMining(C_NestMining).loadGovernance();
         INestStaking(C_NestStaking).loadGovernance();
@@ -97,11 +114,6 @@ contract NestUpgrade {
 
     }
 
-    function upgrade() external onlyGovernance 
-    {
-        // TODO:
-        return;
-    }
 
 
 }
