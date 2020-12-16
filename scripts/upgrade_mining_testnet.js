@@ -12,6 +12,8 @@ const {deployUSDT, deployWBTC, deployNN,
 
 const contractsDeployed_localhost = require("./.contracts_localhost.js");
 const contractsDeployed_kovan = require("./.contracts_kovan.js");
+const contractsDeployed_ropsten = require("./.contracts_ropsten.js");
+
 
 
 async function main() {
@@ -21,6 +23,8 @@ async function main() {
             return contractsDeployed_localhost;
         } else if (network.name === "kovan") {
             return contractsDeployed_kovan;
+        }else if (network.name === "ropsten") {
+            return contractsDeployed_ropsten;
         }
     } ();    
     [owner, userA, userB, userC, userD, dev, NNodeA, NNodeB] = await ethers.getSigners();

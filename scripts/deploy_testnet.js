@@ -28,9 +28,10 @@ async function main() {
 
     let contracts = {USDT: CUSDT, WBTC: CWBTC, NEST: NestToken, NN: NNToken, IterableMapping: IterableMapping}; 
     let addrOfNest = await deployNestProtocolWithProxy(owner, contracts);
+    console.log(`> [INIT]: achieved to deploy address ... ok`);
+    
     printContracts("js", addrOfNest);
     
-    console.log(`> [INIT]: achieved to deploy address ... ok`);
     // await setupNest(owner, CNest);
 }
 

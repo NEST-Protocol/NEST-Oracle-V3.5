@@ -2,6 +2,7 @@
 const { commify } = require("ethers/lib/utils");
 const  contractsDeployed_localhost= require("./.contracts_localhost.js");
 const  contractsDeployed_kovan = require("./.contracts_kovan.js");
+const  contractsDeployed_ropsten = require("./.contracts_ropsten.js");
 
 
 const {usdtdec, wbtcdec, nestdec, ethdec, 
@@ -15,6 +16,8 @@ const main = async function () {
             return contractsDeployed_localhost;
         } else if (network.name === "kovan") {
             return contractsDeployed_kovan;
+        } else if (network.name === "ropsten") {
+            return contractsDeployed_ropsten;
         }
     } ();    
 
