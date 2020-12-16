@@ -93,8 +93,8 @@ npx hardhat scripts/setup_testnet.js --network ropsten
 
 
 | Parameter | Value |
-| network | kovan |
 | ------------ | ------------|
+| network | kovan |
 | genesisBlockNumber | 6236588 |
 | latestMiningHeight | 22598957 |
 | minedNestTotalAmount | NEST(1000) |
@@ -109,8 +109,8 @@ npx hardhat scripts/setup_testnet.js --network ropsten
    
 
 | Parameter | Value |
-| network | ropsten |
 | ------------ | ------------|
+| network | ropsten |
 | genesisBlockNumber | 6236588 |
 | latestMiningHeight | 9269160 |
 | minedNestTotalAmount | NEST(1000) |
