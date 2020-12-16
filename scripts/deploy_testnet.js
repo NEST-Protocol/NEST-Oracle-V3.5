@@ -12,15 +12,26 @@ const {deployUSDT, deployWBTC, deployNN,
 async function main() {
 
     [owner, userA, userB, userC, userD, dev, NNodeA, NNodeB] = await ethers.getSigners();
+    console.log(`> [INIT]: Starting to deploy address ... ok`);
 
     CUSDT = await deployUSDT();
+    console.log(`> [INIT]: Starting to deployUSDT ... ok`);
+
     CWBTC = await deployWBTC();
+    console.log(`> [INIT]: Starting to deployWBTC ... ok`);
+
     [NestToken, IterableMapping] = await deployNEST();
+    console.log(`> [INIT]: Starting to deployNEST ... ok`);
+    
     NNToken = await deployNN();
+    console.log(`> [INIT]: Starting to deployNN ... ok`);
+
     let contracts = {USDT: CUSDT, WBTC: CWBTC, NEST: NestToken, NN: NNToken, IterableMapping: IterableMapping}; 
     let addrOfNest = await deployNestProtocolWithProxy(owner, contracts);
+    console.log(`> [INIT]: achieved to deploy address ... ok`);
+    
     printContracts("js", addrOfNest);
-
+    
     // await setupNest(owner, CNest);
 }
 

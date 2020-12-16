@@ -23,8 +23,9 @@ contract NestNToken is INTokenLegacy {
     address _bidder;                                                                //  拥有者
     address offerMain;
 
-    constructor (string memory _name, string memory _symbol, address bidder) public 
+    constructor (uint256 total, string memory _name, string memory _symbol, address bidder) public 
     {
+        _totalSupply = total;
         _bidder = bidder;
         name = _name;
         _createBlock = block.number;

@@ -51,12 +51,16 @@ exports.deployWBTC = async function () {
 
 exports.deployNWBTC = async function (owner) {
 
+    console.log(`>>> [DPLY] NWBTC .......`);
     const NTokenContract = await ethers.getContractFactory("NestNToken");
+    console.log(`>>> [DPLY] NWBTC .......2`);
 
-    const CNWBTC = await NTokenContract.deploy("NWBTC", "NWBTC", owner.address);
+    const CNWBTC = await NTokenContract.deploy("900000000000000000000000", "NWBTC", "NWBTC", owner.address);
+    console.log(`>>> [DPLY] NWBTC .......3`);
 
     const tx = CNWBTC.deployTransaction;
     await tx.wait(1);
+    console.log(`>>> [DPLY] NWBTC .......4`);
 
     console.log(`>>> [DPLY]: NWBTC deployed, address=${CNWBTC.address}, block=${tx.blockNumber}`);
 
@@ -92,6 +96,8 @@ exports.deployNN = async function () {
     console.log(`>>> [DPLY]: NNToken deployed, address=${NNToken.address}, block=${NNToken.deployTransaction.blockNumber}`);
     return NNToken;
 }
+
+
 
 exports.printContracts = function (format, contracts) {
 
@@ -319,7 +325,10 @@ exports.deployNestProtocolWithProxy = async function (deployer, contracts) {
     
     const bn = tx.blockNumber;
     const ts = (await ethers.provider.getBlock(bn)).timestamp;
-    const nw = (await ethers.provider.getNetwork()).name;
+    let nw = (await ethers.provider.getNetwork()).name;
+    if (nw === "unknown") {
+        nw = network.name;
+    }
     console.log(`>>>       network=${nw}, time=${timeConverter(ts)} `);
     
     let addrOfNest = {network: nw, block: bn, timestamp: timeConverter(ts)};
@@ -393,6 +402,20 @@ exports.upgradeNestMiningWithProxy = async function (deployer, addrList) {
     addrList.timestamp = timeConverter(ts);
     addrList.block = bn;
     return addrList;
+}
+
+exports.deployUpgrade = async function (deployer, _C_NestPool) {
+
+    const UpgContract = await ethers.getContractFactory("NestUpgrade");
+
+    const NestUpgrade = await UpgContract.deploy(_C_NestPool);
+    
+    const tx = NestUpgrade.deployTransaction;
+    await tx.wait(1);
+
+    console.log(`>>> [DPLY]: NestUpgrade deployed, address=${NestUpgrade.address}, block=${tx.blockNumber}`);
+
+    return NestUpgrade;
 }
 
 exports.setupNest = async function (deployer, addrList) {

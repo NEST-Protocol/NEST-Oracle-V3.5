@@ -44,34 +44,59 @@ npx hardhat scripts/setup_testnet.js --network kovan
 
 | Contract | Address |
 | ------------ | ------------|
-| network | kovan |
-| block | null |
-|timestamp|2020-12-3 10:29:40|
-| USDT |  0x353d1072d364d039cb4240C27E8aC7e9f8c29fcF | 
-| WBTC |  0x7ea91E575bc2452922c8732E36D9AB69a1Af629a | 
-|NEST|0x2948e1Bc9dF602046e334A6Be9B6aF0f26d42265|
-| NN |  0x899d44e1b5716084be7674a1da3DeD731fBda3c4 | 
-| IterableMapping |  0xf153d2d20AF647D6b47259fd6557Af318151fba9 |  
-| NestPool |  0x4034645552A9bf1e453D9b658733E1965526E398 | 
-| MiningV1Calc |  0x532253f0Ab671A26a659c93a29dAf48ea27CFf60 | 
-| MiningV1Op |  0xcABCc7bDC525749C75A801c748e8E71b5644Ae3e | 
-| NestMining |  0xe0E4d947Fc48459110C5C86264ee469752065b86 | 
-| NestStaking |  0xe5684Db2654fa11c5c3D9f55D6fdd62b74bcfCAd | 
-| NNRewardPool |  0x015Ea0EFD9612706B10a024EdFA6349ecC953685 | 
-| NTokenController | 0x8f25c64872eb5f713f3E365596a0EDBd163A7D65 |
-| NestQuery | 0x0Ee4Fbf902073c7213155d48A6e0C213B7D3C139 |
-| NestDAO | 0xB8Ec9706aEe308152FA785144D209C36096d113d |
+| block | 22598957 |
+|timestamp| 2020-12-15 16:14:28 |
+| USDT |  0xcBf49379fE6708039c2b6cbB435eE1c331dA86d6 | 
+| WBTC |  0xB06B26Ff782C824C0579D20aB666F7640Ab92587 | 
+|NEST| 0x9039835C77e0D58877608fe17267450d84EdDa59 |
+| NN |  0xA604637bE34bad76168E62b93ccF2f06EEeCdcE7 | 
+| IterableMapping |  0xcbc1726D1d322D0aba92911C04a13400219c2648 |  
+| NestPool |  0x61eb0043ae08e80157742f78e0AeA2D216c5125e | 
+| MiningV1Calc |  0x8FBc707dfD7eEcF9e08d0C834C92824db6C48a16 | 
+| MiningV1Op |  0x994A6b43Ed9bea2a026b3aa19DFfDF6b7A50bfca | 
+| NestMining |  0x15810601D74fC81147f10b1BEff6Cf3e949a7add | 
+| NestStaking |  0x2F184A26bb92df4fAa596a71a048f5976075f23e | 
+| NNRewardPool |  0x84Fccb596731997603218fe998671B593c593ffb | 
+| NTokenController | 0x9c16960223ee83ab0398169F336BBe95B0c2F1aB |
+| NestQuery | 0xF984b908F27FC845dAC13b841e64e98195eDe884 |
+| NestDAO | 0x36b7e0cFEf206bE9E70d1Cd08F15dF067c6F6F32 |
 
 #### Ropsten testnet
+
+```shell
+npx hardhat scripts/deploy_testnet.js --network ropsten
+npx hardhat scripts/setup_testnet.js --network ropsten
+```
+
+| Contract | Address |
+| ------------ | ------------|
+| block | 9269298 |
+|timestamp| 2020-12-16 11:42:53 |
+| USDT |  0xb8094cfE8e7e1F86cE701B90732974bf7f445685 | 
+| WBTC |  0x0A55aB5c97660d5481c4befC164dAB9384DAe98d | 
+|NEST| 0x83A14BEbA0e93FfEd9dEdCFB2fFB41AD26BD11eC |
+| NN |  0x4D2B05366Bb2c57C8648311745358a0edE1392f2 | 
+| IterableMapping |  0xbaFB9df826550199ee97e77583F4723305BCe48a |  
+| NestPool |  0x4D7c1D2c332f3E7520D270aED5181E9296d8C722 | 
+| MiningV1Calc |  0x7648cB2e24cB3D53d065b78F087F014Af3FF4595 | 
+| MiningV1Op |  0x030290AC062E51B141E1eBD713a76585b92abaA0 | 
+| NestMining |  0x597a107db06Ca9A9fcd1f193B9f39743f926dc53 | 
+| NestStaking |  0xade85E22e757c19D87a88653011cEfec8ec2C45f | 
+| NNRewardPool |  0xE5D5B94F1054e87aB5F9Ad376af1cBB2B6c16c7D | 
+| NTokenController | 0x1eb958658c752510FC25C9c03eA6d5281fB64a32 |
+| NestQuery | 0xc726A3ae2c9bB2A904b4B62Cf59f5092ba8B6126 |
+| NestDAO | 0xfcDCE6D28498Cc8078db1D9Aa7B5a39390f689f1 |
 
 
 
 ##### Initialized parameters
 
+
 | Parameter | Value |
+| network | kovan |
 | ------------ | ------------|
 | genesisBlockNumber | 6236588 |
-| latestMiningHeight | 22397738 |
+| latestMiningHeight | 22598957 |
 | minedNestTotalAmount | NEST(1000) |
 | miningEthUnit | 1 |
 | nestStakedNum1k |1 |
@@ -83,9 +108,25 @@ npx hardhat scripts/setup_testnet.js --network kovan
 | biteNestInflateFactor | 2 |
    
 
+| Parameter | Value |
+| network | ropsten |
+| ------------ | ------------|
+| genesisBlockNumber | 6236588 |
+| latestMiningHeight | 9269160 |
+| minedNestTotalAmount | NEST(1000) |
+| miningEthUnit | 1 |
+| nestStakedNum1k |1 |
+| biteFeeRate | 1 |
+| miningFeeRate | 1 |
+| priceDurationBlock | 5 |
+| maxBiteNestedLevel | 3 |
+| biteInflateFactor | 2 |
+| biteNestInflateFactor | 2 |
 
 ## Changelog
 
+- 2020-12-16: update ropsten addresses
+- 2020-12-15: update kovan addresses
 - 2020-12-03: update kovan addresses
 - 2020-11-14: Upgrade framework to MiningV1
 - 2020-11-03: Migrate from truffle to hardhat

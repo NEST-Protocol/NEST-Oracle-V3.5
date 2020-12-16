@@ -81,6 +81,8 @@ library MiningV1Data {
     uint8 constant STATE_FLAG_PRICE_STOPPED    = 7;
     uint8 constant STATE_FLAG_SHUTDOWN         = 127;
 
+    uint256 constant MINING_NTOKEN_NON_DUAL_POST_THRESHOLD = 1_000_000 ether;
+
 
     /// @dev size: (2 x 256 byte)
     struct PriceSheet {    
@@ -140,14 +142,6 @@ library MiningV1Data {
     /* ========== STATE VARIABLES ========== */
 
     struct State {
-
-        uint8  flag;                // =0: initialized
-                                    // =1: active 
-                                    // =2: stop mining, 
-                                    // =3: stop sheet closing
-                                    // =4: stop assets withdrawing
-                                    // =5: stop price querying
-                                    // =127: shutdown completely
         
         uint8   version;            // = 1
         uint8   miningEthUnit;      // = 10;
@@ -164,8 +158,6 @@ library MiningV1Data {
         uint128  latestMiningHeight;
         uint128  minedNestAmount;   
         
-        address governance;
-
         address  _developer_address;
         address  _NN_address;
 

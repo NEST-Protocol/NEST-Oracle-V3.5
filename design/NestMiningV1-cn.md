@@ -10,7 +10,9 @@
 
 ## changelog 更新日志
 
-### 2020-11-18
+### 2020-12-07
+
+1. 增加了用于过渡 nest v3.0 到 nest v3.5 的函数 post2Only4Upgrade()
 
 
 ## Variables 设计变量
@@ -479,7 +481,7 @@ struct PriceInfo {
 
 
 ### latestPriceOf()
-功能：查询最近的一个稳定价格的区块中所有报价表的信息，包括：表单剩余 ethNum 总量；剩余 token 总量；表单所在区块高度
+功能：查询最近的一个稳定价格的区块中所有报价表的信息，包括：表单剩余 ethNum 总量；剩余 token 总量；区块价格生效所在区块高度
 
 函数：latestPriceOf( token)
      + token 查询者提供的 token 地址

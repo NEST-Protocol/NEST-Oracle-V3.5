@@ -138,7 +138,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
 
     /// @dev To ensure that all of governance-addresses be consist with each other, every contract
     ///        besides NestPool must load newest `governance` from NestPool.
-    function loadGovernance() override external onlyGovernance 
+    function loadGovernance() override external 
     { 
         governance = INestPool(C_NestPool).governance();
     }

@@ -2,6 +2,7 @@
 const { commify } = require("ethers/lib/utils");
 const  contractsDeployed_localhost= require("./.contracts_localhost.js");
 const  contractsDeployed_kovan = require("./.contracts_kovan.js");
+const  contractsDeployed_ropsten = require("./.contracts_ropsten.js");
 
 
 const {usdtdec, wbtcdec, nestdec, ethdec, 
@@ -15,6 +16,8 @@ const main = async function () {
             return contractsDeployed_localhost;
         } else if (network.name === "kovan") {
             return contractsDeployed_kovan;
+        } else if (network.name === "ropsten") {
+            return contractsDeployed_ropsten;
         }
     } ();    
 
@@ -59,10 +62,15 @@ const main = async function () {
                 MiningV1Op: contractsDeployed.MiningV1Op} 
         });
     console.log(`> [INIT]: deployed NestMiningV1 address ...`);
-       
+
     let tx = await NestToken.transfer(userA.address, NEST("200000"));
     await tx.wait();
     console.log(`> [INIT]: transfer Nest to userA about nest ...`);
+   
+    const amount = NEST("20000000");
+    tx = await NestToken.transfer(NestPool.address, amount);
+    await NestPool.initNestLedger(amount);
+    console.log(`> [INIT]: transfer NestPool about nest ...`);
 
     tx = await NestToken.transfer(userB.address, NEST("200000"));
     await tx.wait();

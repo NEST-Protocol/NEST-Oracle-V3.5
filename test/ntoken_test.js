@@ -145,7 +145,7 @@ describe("NestToken contract", function () {
         it("can open a new NToken correctly", async () => {
             await CWBTC.transfer(userB.address, WBTC(5));
             await CWBTC.connect(userB).approve(_C_NTokenController, WBTC(1000));
-            await NestToken.connect(userB).approve(_C_NTokenController, NEST(1_000_000));
+            await NestToken.connect(userB).approve(_C_NTokenController, NEST(1000000));
             const tx = await NTokenController.connect(userB).open(_C_WBTC);
             const receipt = await tx.wait();
             const ev = receipt.events.find((ev) => {
@@ -169,7 +169,7 @@ describe("NestToken contract", function () {
         });
 
         it("cannot open a disabled ntoken", async () => {
-            CWETH = await deployERC20(100_000_000, "WETH", "WETH", 18);
+            CWETH = await deployERC20(100000000, "WETH", "WETH", 18);
             await NTokenController.disable(CWETH.address);
             await expect(NTokenController.connect(userB).open(CWETH.address))
                 .to.be.reverted;
@@ -192,7 +192,7 @@ describe("NestToken contract", function () {
         });
 
         it("cannot open ntoken after shutdown ", async () => {
-            CWETH = await deployERC20(100_000_000, "WETH", "WETH", 18);
+            CWETH = await deployERC20(100000000, "WETH", "WETH", 18);
             await NTokenController.shutdown();
             await expect(NTokenController.connect(userB).open(CWETH.address))
                 .to.be.reverted;

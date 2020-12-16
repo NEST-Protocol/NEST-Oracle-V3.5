@@ -63,8 +63,6 @@ contract NTokenController is  ReentrancyGuard {
     event NTokenDisabled(address token);
     event NTokenEnabled(address token);
 
-    event GovSet(address oldGov, address newGov);
-
     /* ========== CONSTRUCTOR ========== */
 
     constructor(address NestPool) public 
@@ -108,11 +106,11 @@ contract NTokenController is  ReentrancyGuard {
         _;
     }
 
-    function setGovernance(address _gov) external onlyGovernance 
-    { 
-        governance = _gov;
-        emit GovSet(address(msg.sender), _gov);
+    function loadGovernance() external
+    {
+        governance = INestPool(C_NestPool).governance();
     }
+
 
     function shutdown() external onlyGovernance
     {
