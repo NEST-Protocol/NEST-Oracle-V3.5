@@ -12,7 +12,6 @@ const { deployUSDT, deployWBTC, deployNN,
 const contractsDeployed_localhost = require("./.contracts_localhost.js");
 const contractsDeployed_kovan = require("./.contracts_kovan.js");
 const contractsDeployed_ropsten = require("./.contracts_ropsten.js");
-
 const { expect } = require("chai");
 
 async function main() {
@@ -121,6 +120,13 @@ async function main() {
     nw = (await ethers.provider.getNetwork()).name;
     console.log(`>>>       network=${nw}, block=${bn}, time=${timeConverter(ts)} `);
 
+    params = await NestMining.parameters();
+    console.log(`>>> [INFO] parameters=`, params);
+
+    tx = await NestPool.setNTokenToToken(CUSDT.address, NestToken.address);
+    receipt = await tx.wait();
+    console.log(`>>> [STUP] deployer: set (USDT <-> NEST) to NestPool ...... ok`);
+
     const NTokenContract = await ethers.getContractFactory("NestNToken");
 
     const CNWBTC = await NTokenContract.deploy("900000000000000000000000", "NWBTC", "NWBTC", owner.address);
@@ -143,7 +149,8 @@ async function main() {
     tx = await NestUpgrade.upgradeAndSetup(genesis, lastB, mined, params, 
         [CUSDT.address, CWBTC.address], [NestToken.address, CNWBTC.address]);
     tx.wait(1);
-    console.log(`>>> [STUP] NestUpgrade.upgradeAndSetup() ...... OK`);
+    console.log(`>>> [STUP] NestUpgrade.setup() ...... OK`);
+
     bn = tx.blockNumber;
     ts = (await ethers.provider.getBlock(bn)).timestamp;
     nw = (await ethers.provider.getNetwork()).name;

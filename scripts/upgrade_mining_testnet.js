@@ -15,7 +15,6 @@ const contractsDeployed_kovan = require("./.contracts_kovan.js");
 const contractsDeployed_ropsten = require("./.contracts_ropsten.js");
 
 
-
 async function main() {
 
     const addrList = function () {

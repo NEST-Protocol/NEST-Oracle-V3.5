@@ -149,7 +149,7 @@ contract NNRewardPool is INNRewardPool {
     /* ========== ADDING REWARDS ========== */
 
 
-    /// @notice Add rewards for Nest-Nodes, only governance or NestMining (contract) are allowed
+    /// @notice Add rewards for Nest-Nodes, only NestMining (contract) are allowed
     /// @dev  The rewards need to pull from NestPool
     /// @param _amount The amount of Nest token as the rewards to each nest-node
     function addNNReward(uint256 _amount) override external onlyBy(C_NestMining)

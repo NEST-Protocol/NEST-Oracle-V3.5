@@ -61,8 +61,8 @@ const main = async function () {
     await NestDAO.loadContracts();
   
     const params = await NestMining.parameters();
-    const ethNum = BigN(params.miningEthUnit);
     const biteFactor = params.biteInflateFactor;
+    const ethNum = BigN(params.miningEthUnit);
     const nestStakedNum1k = params.nestStakedNum1k;
     
     const NToken = await NestPool.getNTokenFromToken(CUSDT.address);
@@ -84,12 +84,11 @@ const main = async function () {
     tx = await NestMining.connect(userB).biteToken(CUSDT.address, index_post_usdt.sub(1), ethNum, USDT(300), { value: ETH(ethNum.mul(biteFactor).add(ethNum).add(1)) });
     console.log('> [INIT]: NestMining.biteToken() bitetoken() ...... ok');
     
-    await tx.wait(6);
     //await tx.wait(21);
-    console.log('> [WAIT]: waited 21(kovan) / 6(ropsten)   blocks ...... ok');
-    //await tx.wait();
-    //await goBlocks(provider, 21);
-    
+    console.log('> [INIT]: waited 21 blocks ...... ok');
+    await tx.wait();
+    await goBlocks(provider, 21);
+   
     const index_biteToken = await NestMining.lengthOfPriceSheets(CUSDT.address);
     console.log('> [INIT]: NestMining.lengthOfPriceSheets() lengthOfPriceSheets() ...... ok');
     
