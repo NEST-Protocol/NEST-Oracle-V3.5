@@ -19,8 +19,6 @@ library MiningV1Data {
 
     // uint256 constant PRICE_DURATION_BLOCK = 25;
 
-
-
     // uint256 constant MINING_NEST_GENESIS_BLOCK_HEIGHT = 6236588;
     uint256 constant MINING_NEST_GENESIS_BLOCK_HEIGHT = 1; // for testing    
 
@@ -46,6 +44,8 @@ library MiningV1Data {
     uint256 constant MINING_NTOKEN_FEE_DIVIDEND_RATE        = 60;     // percentage = 80%
     uint256 constant MINING_NTOKEN_FEE_DAO_RATE             = 20;     // percentage = 20%
     uint256 constant MINING_NTOKEN_FEE_NEST_DAO_RATE        = 20;     // percentage = 20%
+
+    uint256 constant MINING_NTOKEN_YIELD_BLOCK_LIMIT = 300;
 
     // uint256[10] private _mining_ntoken_yield_per_block_amount;
 
