@@ -69,18 +69,18 @@ contract NestMiningV1 {
 
     // /* ========== CONSTANTS ========== */
 
-    uint256 constant MINING_NEST_YIELD_CUTBACK_PERIOD = 2400000; // ~ 1 years 
-    uint256 constant MINING_NEST_YIELD_CUTBACK_RATE = 80;     // percentage = 80%
+    // uint256 constant MINING_NEST_YIELD_CUTBACK_PERIOD = 2400000; // ~ 1 years 
+    // uint256 constant MINING_NEST_YIELD_CUTBACK_RATE = 80;     // percentage = 80%
 
-    // yield amount (per block) after the first ten years
-    uint256 constant MINING_NEST_YIELD_OFF_PERIOD_AMOUNT = 40 ether;  
-    // yield amount (per block) in the first year, it drops to 80% in the following nine years
-    uint256 constant MINING_NEST_YIELD_PER_BLOCK_BASE = 400 ether;  
+    // // yield amount (per block) after the first ten years
+    // uint256 constant MINING_NEST_YIELD_OFF_PERIOD_AMOUNT = 40 ether;  
+    // // yield amount (per block) in the first year, it drops to 80% in the following nine years
+    // uint256 constant MINING_NEST_YIELD_PER_BLOCK_BASE = 400 ether;  
 
-    uint256 constant MINING_NTOKEN_YIELD_CUTBACK_RATE = 80;
-    uint256 constant MINING_NTOKEN_YIELD_OFF_PERIOD_AMOUNT = 0.4 ether;
-    uint256 constant MINING_NTOKEN_YIELD_PER_BLOCK_BASE = 4 ether;
-    uint256 constant MINING_NTOKEN_YIELD_BLOCK_LIMIT = 300;
+    // uint256 constant MINING_NTOKEN_YIELD_CUTBACK_RATE = 80;
+    // uint256 constant MINING_NTOKEN_YIELD_OFF_PERIOD_AMOUNT = 0.4 ether;
+    // uint256 constant MINING_NTOKEN_YIELD_PER_BLOCK_BASE = 4 ether;
+    // uint256 constant MINING_NTOKEN_YIELD_BLOCK_LIMIT = 300;
 
 
     // event NTokenMining(uint256 height, uint256 yieldAmount, address ntoken);
@@ -786,8 +786,8 @@ contract NestMiningV1 {
             _ntokenPerBlock = state._mining_ntoken_yield_per_block_amount[_period];
         }
         uint256 _interval = block.number.sub(_last);
-        if (_interval > MINING_NTOKEN_YIELD_BLOCK_LIMIT) {
-            _interval = MINING_NTOKEN_YIELD_BLOCK_LIMIT;
+        if (_interval > MiningV1Data.MINING_NTOKEN_YIELD_BLOCK_LIMIT) {
+            _interval = MiningV1Data.MINING_NTOKEN_YIELD_BLOCK_LIMIT;
         }
 
         // NOTE: no NTOKEN rewards if the mining interval is greater than a pre-defined number
