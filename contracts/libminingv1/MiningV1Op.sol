@@ -258,12 +258,16 @@ library MiningV1Op {
             _C_NestPool.withdrawNest(address(msg.sender), _nestAmount);
         }
 
+        /*  
+        - Issue #23: 
+            Uncomment the following code to support withdrawing ethers cached 
         {
             uint256 _ethAmount = _C_NestPool.balanceOfEthInPool(address(msg.sender));
             if (_ethAmount > 0) {
                 _C_NestPool.withdrawEth(address(msg.sender), _ethAmount);
             }
         }
+        */
 
         _sheet.state = MiningV1Data.PRICESHEET_STATE_CLOSED;
 
