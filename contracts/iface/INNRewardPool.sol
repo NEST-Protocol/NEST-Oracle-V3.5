@@ -44,5 +44,5 @@ interface INNRewardPool {
     /// @param share The amount of Nest Token claimed by the nest node
     event NNRewardClaimed(address nnode, uint256 share);
 
-
+    event FlagSet(address gov, uint256 flag);
 }
