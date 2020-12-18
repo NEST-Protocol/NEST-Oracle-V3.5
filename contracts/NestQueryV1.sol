@@ -313,7 +313,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
 
         {
             address _ntoken = INestPool(C_NestPool).getNTokenFromToken(token); 
-            uint256 _ethFee = _single;
+            uint256 _ethFee = _single.mul(1e12);   // NOTE: the unit of _single is TWei
             INestDAO(C_NestDAO).addETHReward{value:_ethFee}(address(_ntoken));
 
             // return change
@@ -354,7 +354,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         {
             (uint256 _single, , , ) = decode_4x32_256(paramsEncoded);  
             address _ntoken = INestPool(C_NestPool).getNTokenFromToken(token); 
-            uint256 _ethFee = _single;
+            uint256 _ethFee = _single.mul(1e12);   // NOTE: the unit of _single is TWei
             INestDAO(C_NestDAO).addETHReward{value:_ethFee}(address(_ntoken));
 
             // charge back
@@ -410,7 +410,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
 
         // calculate the fee rate 
         (uint256 _single, , , ) = decode_4x32_256(paramsEncoded);  
-        uint256 _ethFee = _single;
+        uint256 _ethFee = _single.mul(1e12);  // NOTE: the unit of _single is TWei
 
         // transfer fee into NestDAO
         INestDAO(C_NestDAO).addETHReward{value:_ethFee}(address(_ntoken));

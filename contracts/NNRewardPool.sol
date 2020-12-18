@@ -44,10 +44,6 @@ contract NNRewardPool is INNRewardPool {
     /// @dev From nest-node address to checkpoints of reward-sum
     mapping(address => uint256) public rewardSumCheckpoint;
 
-    uint256 constant DEV_REWARD_PERCENTAGE   = 5;
-    uint256 constant NN_REWARD_PERCENTAGE    = 15;
-    uint256 constant MINER_REWARD_PERCENTAGE = 80;
-
     /* ========== ADDRESSES ============== */
 
     address public C_NNToken;
