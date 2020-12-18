@@ -10,6 +10,7 @@ import './lib/TransferHelper.sol';
 import "./lib/ReentrancyGuard.sol";
 
 import "./iface/INestPool.sol";
+import "./iface/INTokenController.sol";
 import "./iface/INToken.sol";
 import "./iface/IBonusPool.sol";
 import "./NToken.sol";
@@ -21,35 +22,36 @@ import "./NToken.sol";
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
 /// @author Paradox  - <paradox@nestprotocol.org>
 
-contract NTokenController is  ReentrancyGuard {
+contract NTokenController is INTokenController, ReentrancyGuard {
 
     using SafeMath for uint256;
     using SafeERC20 for ERC20;
 
-    /// @dev A number counter for generating ntoken name
-    uint32 public ntokenCounter;
-    uint8  public flag;         // 0: uninitialized | 1: active | 2: shutdown
-    
-    /// @dev Contract address of NestPool
-    address private C_NestPool;
-    /// @dev Contract address of NestToken
-    address private C_NestToken;
+    /* ========== STATE ============== */
 
-    /// @dev A struct for an ntoken
-    ///     size: 2 x 256bit
-    struct NTokenTag {
-        address owner;          // the owner with the highest bid
-        uint128 nestFee;        // NEST amount staked for opening a NToken
-        uint64  startTime;      // the start time of service
-        uint8   state;          // =0: normal | =1 disabled
-        uint56  _reserved;      // padding space
-    }
+    /// @dev A number counter for generating ntoken name
+    uint32  public ntokenCounter;
+    uint8   public flag;         // 0: uninitialized | 1: active | 2: shutdown
+    uint216 private _reserved;
+
+    uint8   constant NTCTRL_FLAG_UNINITIALIZED    = 0;
+    uint8   constant NTCTRL_FLAG_ACTIVE           = 1;
+    uint8   constant NTCTRL_FLAG_PAUSED           = 2;
 
     /// @dev A mapping for all auctions
     ///     token(address) => NTokenTag
     mapping(address => NTokenTag) private nTokenTagList;
 
+    /* ========== PARAMETERS ============== */
+
     uint256 public openFeeNestAmount = 0; // default = 0
+
+    /* ========== ADDRESSES ============== */
+
+    /// @dev Contract address of NestPool
+    address public C_NestPool;
+    /// @dev Contract address of NestToken
+    address public C_NestToken;
 
     address private governance;
 
@@ -65,19 +67,22 @@ contract NTokenController is  ReentrancyGuard {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(address NestPool) public 
+    constructor(address NestPool) public
     {
         governance = msg.sender;
-        flag = 1;
+        flag = NTCTRL_FLAG_UNINITIALIZED;
         C_NestPool = NestPool;
     }
 
-    function setCounter(uint32 _ntokenCounter) public onlyGovernance
+    function start(uint32 _ntokenCounter) public onlyGovernance
     {
+        require(flag == NTCTRL_FLAG_UNINITIALIZED, "Nest:NTC:!flag");
         ntokenCounter = _ntokenCounter;
+        flag = NTCTRL_FLAG_ACTIVE;
+        emit FlagSet(address(msg.sender), uint256(NTCTRL_FLAG_ACTIVE));
     }
 
-    modifier noContract() 
+    modifier noContract()
     {
         require(address(msg.sender) == address(tx.origin), "Nest:NTC:^(contract)");
         _;
@@ -85,7 +90,7 @@ contract NTokenController is  ReentrancyGuard {
 
     modifier whenActive() 
     {
-        require(flag == 1, "Nest:NTC:!flag");
+        require(flag == NTCTRL_FLAG_ACTIVE, "Nest:NTC:!flag");
         _;
     }
 
@@ -106,23 +111,23 @@ contract NTokenController is  ReentrancyGuard {
         _;
     }
 
-    function loadGovernance() external
+    function loadGovernance() override external
     {
         governance = INestPool(C_NestPool).governance();
     }
 
-
-    function shutdown() external onlyGovernance
-    {
-        flag = 2;
-    }
-
     /// @dev  It should be called immediately after the depolyment
-    function loadContracts() external onlyGovOrBy(C_NestPool) 
+    function loadContracts() override external onlyGovOrBy(C_NestPool) 
     {
         C_NestToken = INestPool(C_NestPool).addrOfNestToken();
     }
     
+    function setParams(uint256 _openFeeNestAmount) override external onlyGovernance
+    {
+        emit ParamsSetup(address(msg.sender), openFeeNestAmount, _openFeeNestAmount);
+        openFeeNestAmount = _openFeeNestAmount;
+    }
+
     /// @dev  Bad tokens should be banned 
     function disable(address token) external onlyGovernance
     {
@@ -138,34 +143,36 @@ contract NTokenController is  ReentrancyGuard {
         emit NTokenEnabled(token);
     }
 
-    // / @dev Withdraw all NEST only when emergency or governance
-    // / @param to  The address of recipient
-    // / @param amount  The amount of NEST tokens 
-    // function withdrawNest(address to, uint256 amount) external onlyGovernance
-    // {
-    //    require(ERC20(C_NestToken).transfer(to, amount), "transfer");
-    // }
+    /// @dev Stop service for emergency
+    function pause() external onlyGovernance
+    {
+        require(flag == NTCTRL_FLAG_ACTIVE, "Nest:NTC:!flag");
+        flag = NTCTRL_FLAG_PAUSED;
+        emit FlagSet(address(msg.sender), uint256(NTCTRL_FLAG_PAUSED));
+    }
 
-    // /// @dev  The balance of NEST
-    // /// @return  The amount of NEST tokens for this contract
-    // function balanceNest() external view returns (uint256) 
-    // {
-    //     return ERC20(C_NestToken).balanceOf(address(this));
-    // }
+    /// @dev Resume service 
+    function resume() external onlyGovernance
+    {
+        require(flag == NTCTRL_FLAG_PAUSED, "Nest:NTC:!flag");
+        flag = NTCTRL_FLAG_ACTIVE;
+        emit FlagSet(address(msg.sender), uint256(NTCTRL_FLAG_ACTIVE));
+    }
 
     /* ========== OPEN ========== */
 
     /// @notice  Open a NToken for a token by anyone (contracts aren't allowed)
     /// @dev  Create and map the (Token, NToken) pair in NestPool
     /// @param token  The address of token contract
-    function open(address token) external noContract whenActive
+    function open(address token) override external noContract whenActive
     {
         require(INestPool(C_NestPool).getNTokenFromToken(token) == address(0x0),
             "Nest:NTC:EX(token)");
         require(nTokenTagList[token].state == 0,
             "Nest:NTC:DIS(token)");
 
-        nTokenTagList[token] = NTokenTag(address(msg.sender),   // owner
+        nTokenTagList[token] = NTokenTag(
+            address(msg.sender),                                // owner
             uint128(0),                                         // nestFee
             uint64(block.timestamp),                            // startTime
             0,                                                  // state
@@ -199,12 +206,13 @@ contract NTokenController is  ReentrancyGuard {
 
     /* ========== VIEWS ========== */
 
-    function NTokenTagOf(address token) public view returns (NTokenTag memory) 
+    function NTokenTagOf(address token) override public view returns (NTokenTag memory) 
     {
         return nTokenTagList[token];
     }
 
     /* ========== HELPERS ========== */
+
     /// @dev from NESTv3.0
     function strConcat(string memory _a, string memory _b) public pure returns (string memory)
     {

@@ -3,6 +3,7 @@ require('hardhat-contract-sizer');
 require("hardhat-deploy-ethers");
 require("hardhat-gas-reporter");
 require('@openzeppelin/hardhat-upgrades');
+require("solidity-coverage");
 
 
 const config = require('./.private.json');

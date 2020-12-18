@@ -1,3 +1,10 @@
 build/
 node_modules/
 .openzeppelin/.session
+coverage/
+coverage.json
+artifacts/
+.openzeppelin
+package-lock.json
+package.json
+hardhat.config.js

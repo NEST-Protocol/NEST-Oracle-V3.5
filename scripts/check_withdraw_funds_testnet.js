@@ -24,16 +24,15 @@ const main = async function () {
             return contractsDeployed_localhost;
         } else if (network.name === "kovan") {
             return contractsDeployed_kovan;
-        }else if (network.name === "ropsten") {
+        } else if (network.name === "ropsten") {
             return contractsDeployed_ropsten;
         }
-    }();
+    } ();
 
     [owner, userA, userB, userC, userD, dev, NNodeA, NNodeB] = await ethers.getSigners();
 
     console.log(`> [INIT]: Starting to check Nest-Protocol v3.5 ...`);
 
-    CUSDT = await ethers.getContractAt("UERC20", contractsDeployed.USDT);
 
     const NestToken = await ethers.getContractAt("IBNEST", contractsDeployed.NEST,
         {

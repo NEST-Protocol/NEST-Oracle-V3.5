@@ -363,12 +363,15 @@ library MiningV1Calc {
     {
         sheets = new MiningV1Data.PriceSheet[](num);
         MiningV1Data.PriceSheet[] storage _list = state.priceSheetList[token]; 
-        //uint256 len = _list.length;
+        uint256 len = _list.length;
+        require(fromIndex < len, "Nest:Mine:!from");
+
         for (uint i = 0; i < num; i++) {
             if (fromIndex < i) {
                 break;
             }
-            MiningV1Data.PriceSheet memory _sheet = _list[i];
+
+            MiningV1Data.PriceSheet memory _sheet = _list[fromIndex - i];
             if (uint256(_sheet.miner) == uint256(miner)
                 && (_sheet.state == MiningV1Data.PRICESHEET_STATE_POSTED 
                     || _sheet.state == MiningV1Data.PRICESHEET_STATE_BITTEN)) {
@@ -390,7 +393,9 @@ library MiningV1Calc {
     {
         sheets = new MiningV1Data.PriceSheet[](num);
         MiningV1Data.PriceSheet[] storage _list = state.priceSheetList[token]; 
-        //uint256 len = _list.length;
+        uint256 len = _list.length;
+        require(fromIndex < len, "Nest:Mine:!from");
+
         for (uint i = 0; i < num; i++) {
             if (fromIndex < i) {
                 break;

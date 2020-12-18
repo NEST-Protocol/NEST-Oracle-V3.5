@@ -8,10 +8,16 @@ const {usdtdec, wbtcdec, nestdec, ethdec,
     show_eth, show_usdt, show_64x64} = require("../scripts/utils.js");
 
 const {deployUSDT, deployWBTC, deployNN, deployERC20,
-    deployNEST, 
+    deployNEST, deployNWBTC,
     deployNestProtocol, 
     printContracts,
     setupNest} = require("../scripts/deploy.js");
+
+const nwbtc = BigNumber.from(10).pow(18);
+
+NWBTC = function (amount) {
+    return BigNumber.from(amount).mul(nwbtc);
+}
 
 describe("NestToken contract", function () {
         // Mocha has four functions that let you hook into the the test runner's
@@ -33,9 +39,12 @@ describe("NestToken contract", function () {
         CWBTC = await deployWBTC();
         [NestToken, IterableMapping] = await deployNEST();
         NNToken = await deployNN();
+        CNWBTC = await deployNWBTC(owner);
+
 
         _C_USDT = CUSDT.address;
         _C_WBTC = CWBTC.address;
+        _C_NWBTC = CNWBTC.address;
         _C_NestToken = NestToken.address;
 
         const NestPoolContract = await ethers.getContractFactory("NestPool");
@@ -89,6 +98,9 @@ describe("NestToken contract", function () {
         _C_NestMining = MockNestMining.address;
         _C_NestStaking = NestStaking.address;
 
+        await NestPool.setNTokenToToken(_C_WBTC, _C_NWBTC);
+        await CNWBTC.setOfferMain(_C_NestMining);
+
         // await MockNestPool.mock.addrOfNestToken.returns(_C_NestToken);
         // await MockNestPool.mock.addrOfNestStaking.returns(_C_NestStaking);
         // await MockNestPool.mock.addrOfNestQuery.returns(_C_NestQuery);
@@ -113,6 +125,8 @@ describe("NestToken contract", function () {
         it("should have correct totalSupply, NEST(10,000,000,000)", async () => {
             const expectedTotalSupply = NEST('10000000000');
             let totalSupply = await NestToken.totalSupply();
+            const amount = NEST("20000000");
+            await NestPool.initNestLedger(amount);
             expect(totalSupply).to.equal(expectedTotalSupply);
         });
 
@@ -129,6 +143,22 @@ describe("NestToken contract", function () {
             const approved = await NestToken.allowance(userA.address, _C_NestDAO);
             expect(approved).to.equal(amount);
         });
+
+    });
+
+    describe('NWBTC NToken', function () {
+
+        it("userA should approve correctly", async () => {
+            await CNWBTC.transfer(userA.address, NWBTC('400000'));
+            await CNWBTC.connect(userA).approve(_C_NestPool, NWBTC('4000000'));
+            await CNWBTC.connect(userA).approve(_C_NestDAO, NWBTC('4000000'));
+        })
+
+        it("userB should approve correctly", async () => {
+            await CNWBTC.transfer(userB.address, NWBTC('400000'));
+            await CNWBTC.connect(userB).approve(_C_NestPool, NWBTC('4000000'));
+            await CNWBTC.connect(userB).approve(_C_NestDAO, NWBTC('4000000'));
+        })
 
     });
 
@@ -158,6 +188,7 @@ describe("NestToken contract", function () {
         it("can redeem", async () => {
             const bn = await ethers.provider.getBlockNumber();
             await MockNestMining.mock.priceAvgAndSigmaOf.withArgs(_C_NestToken).returns(NEST(100), ETH(100), 21, bn);
+
             await NestDAO.addETHReward(_C_NestToken, { value: ETH(2)});
 
             const eth_A_pre = await userA.getBalance(); 
@@ -165,6 +196,133 @@ describe("NestToken contract", function () {
             const eth_A_post = await userA.getBalance(); 
             expect(eth_A_post.sub(eth_A_pre)).to.equal(ETH(1));
         });
-    
+
+
+        // check addNestReward function
+        it("can addNestReward correctly", async () => {
+            const amount = NEST(100);
+
+            await NestDAO.addNestReward(amount);
+            
+            // now the nestpool's gov is userD
+            await NestPool.setGovernance(userD.address);
+
+            const gov = await NestPool.governance();
+
+            // now the NestDAO's gov is userD
+            await NestDAO.loadGovernance();
+
+            expect(gov).to.equal(userD.address);
+
+            await NestDAO.connect(userD).addNestReward(amount);
+
+            await expect(NestDAO.connect(userB).addNestReward(amount)).to.be.reverted;
+
+        });
+
+
+        // should initialize failed
+        it(" NestDAO shuld initialize failed", async () => {
+
+            // not allowed initialized again
+            await expect(NestDAO.initialize(NestPool.address)).to.be.reverted;
+
+        });
+
+
+        // should start failed
+        it(" should start failed ", async () => {
+
+            await expect(NestDAO.connect(userD).start()).to.be.reverted;
+        });
+
+  
+        // should pause correctly
+        it(" should start failed ", async () => {
+
+            // now the gov is userD
+            await NestDAO.connect(userD).pause();
+            await expect(NestDAO.connect(userB).pause()).to.be.reverted;
+        });
+
+        
+        // should resume failed
+        it(" should resume failed ", async () => {
+
+            // now the gov is userD
+            await NestDAO.connect(userD).resume();
+            await expect(NestDAO.connect(userB).resume()).to.be.reverted;
+
+        });
+
+
+        // should collect ETH reward failed
+        it(" should collect ETH reward failed ", async () => {
+
+            await expect(NestDAO.collectETHReward(_C_USDT)).to.be.reverted;
+        });
+
+        // should redeem failed 
+        it(" should redeem failed ", async () => {
+
+            const bn = await ethers.provider.getBlockNumber();
+            await MockNestMining.mock.priceAvgAndSigmaOf.withArgs(_C_NWBTC).returns(NWBTC(95), NWBTC(100), 21, bn);
+
+            // require ntoken 
+            await expect(NestDAO.connect(userA).redeem(_C_USDT, NEST(100), { gasPrice: 0})).to.be.reverted;
+
+
+            const bal = await NestDAO.totalETHRewards(_C_NWBTC);
+            
+            expect(bal).to.equal(0);
+
+            // require bal > 0
+            await expect(NestDAO.connect(userA).redeem(_C_NWBTC, NWBTC(100), { gasPrice: 0})).to.be.reverted;
+            
+            await NestDAO.addETHReward(_C_NWBTC, { value: ETH(20)});
+
+
+            // ntokenRepurchaseThreshold = NWBTC(1000000)
+            await NestDAO.connect(userD).setParams(NWBTC(1000000), 100);
+
+            // require totalSupply > ntokenRepurchaseThreshold
+            await expect(NestDAO.connect(userA).redeem(_C_NWBTC, NWBTC(100), { gasPrice: 0})).to.be.reverted;
+
+ 
+          
+            await MockNestMining.mock.priceAvgAndSigmaOf.withArgs(_C_NestToken).returns(NEST(120), NEST(100), 21, bn);
+
+            // require price deviation < 5%
+            await expect(NestDAO.connect(userA).redeem(_C_NestToken, NEST(100), { gasPrice: 0})).to.be.reverted;
+
+
+            // flag = DAO_FLAG_PAUSED;
+            await NestDAO.connect(userD).pause();
+            
+            // require flag == DAO_FLAG_ACTIVE
+            await expect(NestDAO.connect(userA).redeem(_C_NestToken, NEST(100), { gasPrice: 0})).to.be.reverted;
+
+            await NestDAO.connect(userD).resume();
+
+            await MockNestMining.mock.priceAvgAndSigmaOf.withArgs(_C_NestToken).returns(NEST(100), NEST(100), 21, bn);
+            
+            // require amount < quota
+            await expect(NestDAO.connect(userA).redeem(_C_NestToken, NEST(50000), { gasPrice: 0})).to.be.reverted;
+
+
+            // the eth to be redeemed is less than the current remaining eth
+            const bal_nestToken = await NestDAO.totalETHRewards(_C_NestToken);
+
+            const withdraw_amount = BigN(bal_nestToken).mul(100).add(NEST(100));
+            
+            await expect(NestDAO.connect(userA).redeem(_C_NestToken, withdraw_amount, { gasPrice: 0})).to.be.reverted;
+
+        });
+
+        // check quota function
+        it("should run correctly", async () => {
+            await NestDAO.quotaOf(_C_NestToken);
+        });
+
     });
 });

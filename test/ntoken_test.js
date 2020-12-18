@@ -144,6 +144,7 @@ describe("NestToken contract", function () {
 
         it("can open a new NToken correctly", async () => {
             await CWBTC.transfer(userB.address, WBTC(5));
+            await NTokenController.start(10);
             await CWBTC.connect(userB).approve(_C_NTokenController, WBTC(1000));
             await NestToken.connect(userB).approve(_C_NTokenController, NEST(1000000));
             const tx = await NTokenController.connect(userB).open(_C_WBTC);
@@ -179,21 +180,21 @@ describe("NestToken contract", function () {
             CWETH = await deployERC20("10000000000000000000000000000", "WETH", "WETH", 18);
             console.log("CWETH.total=", (await CWETH.totalSupply()).toString());
             await CWETH.transfer(userB.address, ETH(10));
+
             await CWETH.connect(userB).approve(_C_NTokenController, ETH(1000));
             await NTokenController.disable(CWETH.address);
             await NTokenController.enable(CWETH.address);
 
-            await NTokenController.setCounter(93);
 
             await NTokenController.connect(userB).open(CWETH.address);
             _C_NWETH = await NestPool.getNTokenFromToken(CWETH.address);
             CNWETH = await ethers.getContractAt("NToken",  _C_NWETH);
-            expect(await CNWETH.name()).to.equal("NToken0093");
+            expect(await CNWETH.name()).to.equal("NToken0011");
         });
 
         it("cannot open ntoken after shutdown ", async () => {
             CWETH = await deployERC20(100000000, "WETH", "WETH", 18);
-            await NTokenController.shutdown();
+            await NTokenController.pause();
             await expect(NTokenController.connect(userB).open(CWETH.address))
                 .to.be.reverted;
         });

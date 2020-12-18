@@ -276,8 +276,8 @@ describe("NestToken contract", function () {
             //const eth_reward_pre = await provider.getBalance(_C_NestStaking);
 
             const eth_reward_NestStakingOfNToken_pre = await NestStaking.totalRewards(NToken);
-            const eth_reward_NestDAoOfNToken_pre = await NestDAO.totalRewards(NToken);
-            const eth_reward_NestDaoOfNestToken_pre = await NestDAO.totalRewards(NestToken.address);
+            const eth_reward_NestDAoOfNToken_pre = await NestDAO.totalETHRewards(NToken);
+            const eth_reward_NestDaoOfNestToken_pre = await NestDAO.totalETHRewards(NestToken.address);
 
             // post 
             await NestMining.connect(userA).post(token, ethNum, tokenAmountPerEth, { value: msgValue });
@@ -305,8 +305,8 @@ describe("NestToken contract", function () {
             //const eth_reward_pos = await provider.getBalance(_C_NestStaking);
 
             const eth_reward_NestStakingOfNToken_pos = await NestStaking.totalRewards(NToken);
-            const eth_reward_NestDAoOfNToken_pos = await NestDAO.totalRewards(NToken);
-            const eth_reward_NestDaoOfNestToken_pos = await NestDAO.totalRewards(NestToken.address);
+            const eth_reward_NestDAoOfNToken_pos = await NestDAO.totalETHRewards(NToken);
+            const eth_reward_NestDaoOfNestToken_pos = await NestDAO.totalETHRewards(NestToken.address);
 
 
             // check funds
@@ -411,7 +411,7 @@ describe("NestToken contract", function () {
             const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
 
             const eth_reward_NestStakingOfNToken_pre = await NestStaking.totalRewards(NToken);
-            const eth_reward_NestDAoOfNToken_pre = await NestDAO.totalRewards(NToken);
+            const eth_reward_NestDAoOfNToken_pre = await NestDAO.totalETHRewards(NToken);
 
             const eth_reward_NestStaking_pre = await provider.getBalance(_C_NestStaking);
             const eth_reward_NestDao_pre = await provider.getBalance(_C_NestDAO);
@@ -455,7 +455,7 @@ describe("NestToken contract", function () {
             const eth_pool_pos = await NestPool.balanceOfEthInPool(_C_NestPool);
 
             const eth_reward_NestStakingOfNToken_pos = await NestStaking.totalRewards(NToken);
-            const eth_reward_NestDAoOfNToken_pos = await NestDAO.totalRewards(NToken);
+            const eth_reward_NestDAoOfNToken_pos = await NestDAO.totalETHRewards(NToken);
 
             const eth_reward_NestStaking_pos = await provider.getBalance(_C_NestStaking);
             const eth_reward_NestDao_pos = await provider.getBalance(_C_NestDAO);
@@ -608,8 +608,8 @@ describe("NestToken contract", function () {
             const eth_reward_NestDao_pre = await provider.getBalance(_C_NestDAO);
 
             const eth_reward_NestStakingOfNToken_pre = await NestStaking.totalRewards(NToken);
-            const eth_reward_NestDAoOfNToken_pre = await NestDAO.totalRewards(NToken);
-            const eth_reward_NestDaoOfNestToken_pre = await NestDAO.totalRewards(NestToken.address);
+            const eth_reward_NestDAoOfNToken_pre = await NestDAO.totalETHRewards(NToken);
+            const eth_reward_NestDaoOfNestToken_pre = await NestDAO.totalETHRewards(NestToken.address);
             //=========================================//
 
             // post 
@@ -650,8 +650,8 @@ describe("NestToken contract", function () {
             const eth_reward_NestDao_pos = await provider.getBalance(_C_NestDAO);
 
             const eth_reward_NestStakingOfNToken_pos = await NestStaking.totalRewards(NToken);
-            const eth_reward_NestDAoOfNToken_pos = await NestDAO.totalRewards(NToken);
-            const eth_reward_NestDaoOfNestToken_pos = await NestDAO.totalRewards(NestToken.address);
+            const eth_reward_NestDAoOfNToken_pos = await NestDAO.totalETHRewards(NToken);
+            const eth_reward_NestDaoOfNestToken_pos = await NestDAO.totalETHRewards(NestToken.address);
 
             // check funds
             // check funds about userA
@@ -1196,7 +1196,7 @@ describe("NestToken contract", function () {
         });
 
 
-        //================== close priceSheeet (level == 0, token = USDT, timed out) ================//
+        //========= close priceSheeet (level == 0, token = USDT, Ntoken = nest, timed out) ==========//
         //===========================================================================================//
 
         it("can close priceSheeet correctly !", async () => {
@@ -1213,6 +1213,8 @@ describe("NestToken contract", function () {
             const MINER_NEST_REWARD_PERCENTAGE = 80;
 
             const NToken = await NestPool.getNTokenFromToken(token);
+            expect(NToken).to.equal(_C_NestToken);
+
 
 
             // post2 (in order to calculate reward)
@@ -1221,7 +1223,7 @@ describe("NestToken contract", function () {
             // to calculate this post reward
             await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
 
-            // record funds before posting
+            // record funds before closing
             const userA_nest_pool_pre = await NestPool.balanceOfNestInPool(userA.address);
             const userA_token_pool_pre = await NestPool.balanceOfTokenInPool(userA.address, token);
             //const userA_NToken_pool_pre = await NestPool.balanceOfTokenInPool(userA.address, NToken);
@@ -1276,9 +1278,58 @@ describe("NestToken contract", function () {
             expect(token_pool_pre.sub(unfreezeTokenAmount)).to.equal(token_pool_post);
             expect(nest_pool_pre.sub(unfreezeNestAmount)).to.equal(nest_pool_post);
 
+
+            //====== close priceSheet where ntoken = nest =============//
+
+            // record funds before closing  Ntoken
+            const userA_nest_pre = await NestPool.balanceOfNestInPool(userA.address);
+            //const userA_token_pool_pre = await NestPool.balanceOfTokenInPool(userA.address, token);
+            const userA_NToken_pre = await NestPool.balanceOfTokenInPool(userA.address, NToken);
+            const userA_eth_pre = await NestPool.balanceOfEthInPool(userA.address);
+
+            const nest_pre = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const ntoken_pre = await NestPool.balanceOfTokenInPool(_C_NestPool, NToken);
+            const eth_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
+
+            const index_ntoken = await NestMining.lengthOfPriceSheets(NToken);
+            const postSheet_ntoken = await NestMining.fullPriceSheet(NToken, index_ntoken.sub(1));
+
+            // close priceSheet 
+            await NestMining.connect(userA).close(NToken, index_ntoken.sub(1));
+
+            // calculate fee
+            const unfreezeEthAmount_ntoken = ETH(BigN(postSheet_ntoken.ethNumBal));
+ 
+            const unfreezeNTokenAmount_ntoken = BigN(postSheet_ntoken.tokenNumBal).mul(postSheet_ntoken.tokenAmountPerEth);
+ 
+            const unfreezeNestAmount_ntoken = NEST(BigN(nestStakedNum1k).mul(1000));
+ 
+ 
+            // record funds after posting
+            const userA_nest_pos = await NestPool.balanceOfNestInPool(userA.address);
+            //const userA_token_pos = await NestPool.balanceOfTokenInPool(userA.address, token);
+            const userA_NToken_pos = await NestPool.balanceOfTokenInPool(userA.address, NToken);
+            const userA_eth_pos = await NestPool.balanceOfEthInPool(userA.address);
+ 
+            const nest_pos = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const ntoken_pos = await NestPool.balanceOfTokenInPool(_C_NestPool, NToken);
+            const eth_pos = await NestPool.balanceOfEthInPool(_C_NestPool);
+ 
+            // check funds
+            // check userA
+            expect(userA_eth_pre.add(unfreezeEthAmount_ntoken)).to.equal(userA_eth_pos);
+ 
+            expect(userA_NToken_pre.add(unfreezeNTokenAmount_ntoken).add(unfreezeNestAmount_ntoken)).to.equal(userA_NToken_pos);
+ 
+            expect(userA_nest_pre.add(unfreezeNestAmount_ntoken).add(unfreezeNTokenAmount_ntoken)).to.equal(userA_nest_pos);
+ 
+            // check nestPool
+            expect(eth_pre.sub(unfreezeEthAmount_ntoken)).to.equal(eth_pos);
+            expect(ntoken_pre.sub(unfreezeNTokenAmount_ntoken).sub(unfreezeNestAmount_ntoken)).to.equal(ntoken_pos);
+            expect(nest_pre.sub(unfreezeNestAmount_ntoken).sub(unfreezeNTokenAmount_ntoken)).to.equal(nest_pos);           
         });
 
-        // check the updated priceSheet when doing close function
+        // check the updated priceSheet when doing close function, token = USDT
         it('should update priceSheet correctly', async () => {
             const token = _C_USDT;
             const index = await NestMining.lengthOfPriceSheets(token);
@@ -1295,6 +1346,22 @@ describe("NestToken contract", function () {
             expect(postSheet.state).to.equal(0);
         });
 
+         // check the updated priceSheet when doing close function, ntoken = NEST
+         it('should update priceSheet correctly', async () => {
+            const ntoken = _C_NestToken;
+            const index = await NestMining.lengthOfPriceSheets(ntoken);
+            const postSheet = await NestMining.fullPriceSheet(ntoken, index.sub(1));
+
+            // check the updated PriceSheet
+            expect(postSheet.ethNumBal).to.equal(0);
+
+            expect(postSheet.tokenNumBal).to.equal(0);
+
+            expect(postSheet.nestNum1k).to.equal(0);
+
+            // PRICESHEET_STATE_CLOSED == 0
+            expect(postSheet.state).to.equal(0);
+        });
 
          //======================== close priceSheeet (level == 0, bited out) ========================//
          //===========================================================================================//
@@ -2022,6 +2089,7 @@ describe("NestToken contract", function () {
             const ethFee = ETH(BigN(ethNum).mul(miningFeeRate)).div(1000);
             const rate = MINING_LEGACY_NTOKEN_MINER_REWARD_PERCENTAGE;
             const reward = NWBTC(BigN(postSheet.ethNum).mul(4).mul(rate).mul(BigN(h1).sub(h0))).div(postSheet.ethNum).div(100);
+            const unfreezeEthAmount = ETH(BigN(postSheet.ethNumBal));
             const unfreezeTokenAmount = BigN(postSheet.tokenNumBal).mul(postSheet.tokenAmountPerEth);
             const unfreezeNestAmount = NEST(BigN(nestStakedNum1k).mul(1000));
 
@@ -2030,7 +2098,7 @@ describe("NestToken contract", function () {
             const userA_eth_in_exAddress_pos = await provider.getBalance(userA.address);
             const userA_NToken_pool_pos = await NestPool.balanceOfTokenInPool(userA.address, NToken);
 
-            expect(userA_eth_in_exAddress_pre.sub(ethFee).add(msgValue)).to.equal(userA_eth_in_exAddress_pos);
+            expect(userA_eth_in_exAddress_pre.add(unfreezeEthAmount)).to.equal(userA_eth_in_exAddress_pos);
             expect(userA_token_in_exAddress_pre.add(unfreezeTokenAmount)).to.equal(userA_token_in_exAddress_pos);
             expect(userA_nest_in_exAddress_pre.add(unfreezeNestAmount)).to.equal(userA_nest_in_exAddress_pos);
             expect(userA_NToken_pool_pre.add(reward)).to.equal(userA_NToken_pool_pos);

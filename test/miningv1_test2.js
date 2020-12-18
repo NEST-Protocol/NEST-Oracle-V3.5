@@ -274,8 +274,8 @@ describe("NestToken contract", function () {
             const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
 
             const eth_reward_NestStakingOfNToken_pre = await NestStaking.totalRewards(NToken);
-            const eth_reward_NestDAoOfNToken_pre = await NestDAO.totalRewards(NToken);
-            const eth_reward_NestDaoOfNestToken_pre = await NestDAO.totalRewards(NestToken.address);
+            const eth_reward_NestDAoOfNToken_pre = await NestDAO.totalETHRewards(NToken);
+            const eth_reward_NestDaoOfNestToken_pre = await NestDAO.totalETHRewards(NestToken.address);
 
 
             // post 
@@ -303,8 +303,8 @@ describe("NestToken contract", function () {
             const eth_pool_pos = await NestPool.balanceOfEthInPool(_C_NestPool);
 
             const eth_reward_NestStakingOfNToken_pos = await NestStaking.totalRewards(NToken);
-            const eth_reward_NestDAoOfNToken_pos = await NestDAO.totalRewards(NToken);
-            const eth_reward_NestDaoOfNestToken_pos = await NestDAO.totalRewards(NestToken.address);
+            const eth_reward_NestDAoOfNToken_pos = await NestDAO.totalETHRewards(NToken);
+            const eth_reward_NestDaoOfNestToken_pos = await NestDAO.totalETHRewards(NestToken.address);
 
 
             // check funds
@@ -402,7 +402,7 @@ describe("NestToken contract", function () {
             const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
 
             const eth_reward_NestStakingOfNToken_pre = await NestStaking.totalRewards(NToken);
-            const eth_reward_NestDAoOfNToken_pre = await NestDAO.totalRewards(NToken);
+            const eth_reward_NestDAoOfNToken_pre = await NestDAO.totalETHRewards(NToken);
 
             const eth_reward_NestStaking_pre = await provider.getBalance(_C_NestStaking);
             const eth_reward_NestDao_pre = await provider.getBalance(_C_NestDAO);
@@ -442,7 +442,7 @@ describe("NestToken contract", function () {
             const eth_pool_pos = await NestPool.balanceOfEthInPool(_C_NestPool);
 
             const eth_reward_NestStakingOfNToken_pos = await NestStaking.totalRewards(NToken);
-            const eth_reward_NestDAoOfNToken_pos = await NestDAO.totalRewards(NToken);
+            const eth_reward_NestDAoOfNToken_pos = await NestDAO.totalETHRewards(NToken);
 
             const eth_reward_NestStaking_pos = await provider.getBalance(_C_NestStaking);
             const eth_reward_NestDao_pos = await provider.getBalance(_C_NestDAO);
@@ -1253,7 +1253,6 @@ describe("NestToken contract", function () {
             const sheet = await NestMining.unClosedSheetListOf(userA.address, token, index.sub(1), 5);
 
             const postSheet1 = await NestMining.fullPriceSheet(token, index.sub(2));
-            //console.log("postSheet1 = ",postSheet1);
 
             const postSheet2 = await NestMining.fullPriceSheet(token, index.sub(1));
             //console.log("postSheet2 = ",postSheet2);
@@ -1261,15 +1260,14 @@ describe("NestToken contract", function () {
             // check data
 
             // priceSheet.state == 0(closed)
+            expect(sheet[0].height).to.equal(0);
             expect(sheet[2].height).to.equal(0);
+            expect(sheet[3].height).to.equal(0);
+            expect(sheet[4].height).to.equal(0);
 
             // it depend on the previous operation
-            expect(sheet[0].height).to.equal(62);
-            expect(sheet[1].height).to.equal(64);
-            expect(sheet[3].height).to.equal(92);
-
-            // _sheet.miner != miner (userB.address != userA.address)
-            expect(sheet[4].height).to.equal(0);
+            expect(sheet[1].height).to.equal(postSheet1.height);
+        
         });
 
 
@@ -1279,25 +1277,31 @@ describe("NestToken contract", function () {
         // sheetListOf function
         it("should show the result correctly!", async () => {
             const token = _C_WBTC;
+            const index = await NestMining.lengthOfPriceSheets(token);
 
             // _sheet.miner == miner 
-            const sheet = await NestMining.sheetListOf(userA.address, token, 10, 11);
+            const sheet = await NestMining.sheetListOf(userA.address, token, index.sub(1), 5);
 
-            const postSheet0 = await NestMining.fullPriceSheet(token, 0);
+
+            const postSheet0 = await NestMining.fullPriceSheet(token, index.sub(5));
             //console.log("postSheet2 = ",postSheet2);
-            const postSheet1 = await NestMining.fullPriceSheet(token, 1);
-            const postSheet2 = await NestMining.fullPriceSheet(token, 2);
-            const postSheet3 = await NestMining.fullPriceSheet(token, 3);
-            const postSheet4 = await NestMining.fullPriceSheet(token, 4);
+            const postSheet1 = await NestMining.fullPriceSheet(token, index.sub(4));
+            const postSheet2 = await NestMining.fullPriceSheet(token, index.sub(3));
+            const postSheet3 = await NestMining.fullPriceSheet(token, index.sub(2));
+
+            // this pricesheet belongs to userB
+            const postSheet4 = await NestMining.fullPriceSheet(token, index.sub(1));
 
             // check data
 
             // meet the conditions 
-            expect(sheet[10].height).to.equal(postSheet0.height);
-            expect(sheet[9].height).to.equal(postSheet1.height);
-            expect(sheet[8].height).to.equal(postSheet2.height);
-            expect(sheet[7].height).to.equal(postSheet3.height);
-            expect(sheet[6].height).to.equal(postSheet4.height);
+            expect(sheet[4].height).to.equal(postSheet0.height);
+            expect(sheet[3].height).to.equal(postSheet1.height);
+            expect(sheet[2].height).to.equal(postSheet2.height);
+            expect(sheet[1].height).to.equal(postSheet3.height);
+
+            // because userA != userB
+            expect(sheet[0].height).to.equal(0);
 
         });
     });
