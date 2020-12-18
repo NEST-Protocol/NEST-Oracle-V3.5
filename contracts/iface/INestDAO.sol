@@ -14,5 +14,12 @@ interface INestDAO {
     /// @dev Only for governance
     function loadGovernance() external; 
 
+    event NTokenRedeemed(address ntoken, address user, uint256 amount);
+
+    event AssetsCollected(address user, uint256 ethAmount, uint256 nestAmount);
+
+    event ParamsSetup(address gov, uint256 oldParam, uint256 newParam);
+
     event FlagSet(address gov, uint256 flag);
+
 }
