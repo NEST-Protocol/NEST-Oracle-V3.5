@@ -259,7 +259,16 @@ describe("NestToken contract", function () {
         // should collect ETH reward failed
         it(" should collect ETH reward failed ", async () => {
 
+            // USDT is token
             await expect(NestDAO.collectETHReward(_C_USDT)).to.be.reverted;
+
+            // bal == 0
+            const bal = await CNWBTC.balanceOf(_C_NestDAO);
+
+            const rewards = await NestDAO.collectETHReward(_C_NWBTC);
+
+            expect(rewards.value).to.equal(bal);
+
         });
 
         // should redeem failed 
@@ -288,7 +297,9 @@ describe("NestToken contract", function () {
             // require totalSupply > ntokenRepurchaseThreshold
             await expect(NestDAO.connect(userA).redeem(_C_NWBTC, NWBTC(100), { gasPrice: 0})).to.be.reverted;
 
- 
+            const quota = await NestDAO.quotaOf(_C_NWBTC);
+
+            expect(quota).to.equal(0);
           
             await MockNestMining.mock.priceAvgAndSigmaOf.withArgs(_C_NestToken).returns(NEST(120), NEST(100), 21, bn);
 
@@ -322,6 +333,9 @@ describe("NestToken contract", function () {
         // check quota function
         it("should run correctly", async () => {
             await NestDAO.quotaOf(_C_NestToken);
+
+            // usdt is not ntoken
+            await expect(NestDAO.quotaOf(_C_USDT)).to.be.reverted;
         });
 
     });

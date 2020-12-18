@@ -27,7 +27,7 @@ NestStaking 模块接口函数
 
 ### `totalStaked()`
 
-**功能：**读取已支付的奖励总额
+**功能：** 读取已支付的奖励总额
 
 **函数:** `totalStaked(ntoken)`
    + `ntoken` 地址
@@ -71,8 +71,8 @@ NestStaking 模块接口函数
 **调用时能否携带资金:** 否
 
 `函数:` `earned(ntoken, account)`
-    + `ntoken` 给定地址,一般是某种代币地址
-    + `account` 给定地址,一般是某个用户地址
+   + `ntoken` 给定地址,一般是某种代币地址
+   + `account` 给定地址,一般是某个用户地址
 
 **权限:**
 1. 任何人都可以调用
