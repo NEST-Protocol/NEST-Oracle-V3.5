@@ -24,6 +24,8 @@ contract NestQuery is INestQuery, ReentrancyGuard {
 
     using SafeMath for uint256;
 
+    /* ========== STATE ============== */
+
     /// @notice The flag is the running status of NestQuery contract
     /// @dev The flag is in {0, 1, 2}
     /// @return The value of flag
@@ -37,6 +39,24 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     uint8  constant QUERY_FLAG_UNINITIALIZED = 0;
     uint8  constant QUERY_FLAG_ACTIVE        = 1;
     uint8  constant QUERY_FLAG_PAUSED        = 2;
+
+    struct Client {
+        uint64 startTime;
+        uint64 endTime;  // endTime==0 for non-monthly clients
+        uint32 fee;
+        uint32 typ;     // =1: PPQ | =2: PPM (forbidden for the moment)
+        uint64 _reserved;
+    }
+
+    /// @dev Here we only support pay-per-query clients. 
+    ///     The other type (pay-per-month) isn't supported currently.
+    uint32 constant CLIENT_TYPE_PAY_PER_QUERY = 1;
+    // uint32 constant CLIENT_TYPE_PAY_PER_MONTH = 2;
+
+    mapping(address => uint256) public clientList;
+    mapping(address => address) public clientOp;
+
+    /* ========== PARAMETERS ============== */
 
     /// @dev The four paramters are encoded into a uin256 slot to save GAS. Currently only four
     ///        uint32 pieces are used, leaving sufficient spaces for later upgrading.
@@ -56,16 +76,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     uint32  constant CLIENT_MONTHLY_FEE_NEST_AMOUNT = 1_000;
     uint32  constant CLIENT_ACTIVATION_DURATION_SECOND = 10;
 
-    /// @dev The governor's address, which is loaded from NestPool.
-    address public governance;
-
-    struct Client {
-        uint64 startTime;
-        uint64 endTime;  // endTime==0 for non-monthly clients
-        uint32 fee;
-        uint32 typ;     // =1: PPQ | =2: PPM (forbidden for the moment)
-        uint64 _reserved;
-    }
+    /* ========== ADDRESSES ============== */
 
     /// @dev The contract variables for other contracts' addresses, loaded from NestPool
     address    private C_NestToken;
@@ -74,12 +85,10 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     address    private C_NestStaking;
     address    private C_NestDAO;
 
-    /// @dev Here we only support pay-per-query clients. The other type is forbidden, commented out below.
-    uint32 constant CLIENT_TYPE_PAY_PER_QUERY = 1;
-    // uint32 constant CLIENT_TYPE_PAY_PER_MONTH = 2;
+    /// @dev The governor's address, which is loaded from NestPool.
+    address public governance;
 
-    mapping(address => uint256) public clientList;
-    mapping(address => address) public clientOp;
+    /* ========== CONSTRUCTOR ============== */
 
     receive() external payable { }
 
@@ -222,6 +231,8 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     /// @dev Stop service for emergency
     function pause() external onlyGovernance
     {
+        require(flag == QUERY_FLAG_ACTIVE, "Nest:Qury:!flag");
+
         flag = QUERY_FLAG_PAUSED;
         emit FlagSet(address(msg.sender), uint256(QUERY_FLAG_PAUSED));
     }
@@ -229,6 +240,8 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     /// @dev Resume service 
     function resume() external onlyGovernance
     {
+        require(flag == QUERY_FLAG_PAUSED, "Nest:Qury:!flag");
+
         flag = QUERY_FLAG_ACTIVE;
         emit FlagSet(address(msg.sender), uint256(QUERY_FLAG_ACTIVE));
     }
@@ -304,7 +317,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
             INestDAO(C_NestDAO).addETHReward{value:_ethFee}(address(_ntoken));
 
             // return change
-            if (payback != address(0)) {
+            if (payback != address(0) && msg.value > _ethFee) {
                 TransferHelper.safeTransferETH(payback, msg.value.sub(_ethFee));
             }
         }
@@ -345,7 +358,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
             INestDAO(C_NestDAO).addETHReward{value:_ethFee}(address(_ntoken));
 
             // charge back
-            if (payback != address(0)) {
+            if (payback != address(0) && msg.value > _ethFee) {
                 TransferHelper.safeTransferETH(payback, msg.value.sub(_ethFee));
             }
         }
@@ -369,7 +382,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         whenActive
         returns(uint256 ethAmount, uint256 erc20Amount, uint256 blockNum) 
     {
-        return query(tokenAddress, address(0));
+        return query(tokenAddress, address(msg.sender));
     }
 
     /// @notice A non-free function for querying price 
@@ -403,7 +416,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         INestDAO(C_NestDAO).addETHReward{value:_ethFee}(address(_ntoken));
 
         // pay back the change
-        if (payback != address(0)) {
+        if (payback != address(0) && msg.value > _ethFee) {
                 TransferHelper.safeTransferETH(payback, msg.value.sub(_ethFee));
         }
 
