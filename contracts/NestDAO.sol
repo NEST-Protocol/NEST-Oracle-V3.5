@@ -12,6 +12,7 @@ import "./iface/INToken.sol";
 import "./iface/INestPool.sol";
 import "./iface/INestDAO.sol";
 import "./iface/INestStaking.sol";
+import "./iface/INestQuery.sol";
 
 
 /// @dev The contract is for redeeming nest token and getting ETH in return
@@ -230,7 +231,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
 
     /// @dev Redeem ntokens for ethers
     function redeem(address ntoken, uint256 amount) 
-        external nonReentrant whenActive
+        external payable nonReentrant whenActive
     {
         // check if ntoken is a NTOKEN
         address _ntoken = INestPool(C_NestPool).getNTokenFromToken(ntoken);
@@ -246,7 +247,17 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         uint256 quota = quotaOf(ntoken);
 
         // check if the price is steady
-        (uint256 price, uint256 avg, bool isDeviated) = _price(ntoken);
+        uint256 price;
+        bool isDeviated;
+        {
+            (uint256 ethAmount, uint256 tokenAmount, uint256 avg, , ) = 
+                INestQuery(C_NestQuery).queryPriceAvgVola{value:msg.value}(ntoken, address(msg.sender));
+            price = tokenAmount.mul(1e18).div(ethAmount);
+
+            uint256 diff = price > avg? (price - avg) : (avg - price);
+            isDeviated = (diff.mul(100) < avg.mul(DAO_REPURCHASE_PRICE_DEVIATION))? false : true;
+        }
+
         require(isDeviated == false, "Nest:DAO:!price");
 
         // check if there is sufficient quota for repurchase
@@ -268,14 +279,14 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         _collect(ntoken); 
     }
 
-    function _price(address ntoken) internal view 
-        returns (uint256 price, uint256 avg, bool isDeviated)
-    {
-        (price, avg, , ) = 
-            INestMining(C_NestMining).priceAvgAndSigmaOf(ntoken);
-        uint256 diff = price > avg? (price - avg) : (avg - price);
-        isDeviated = (diff.mul(100) < avg.mul(DAO_REPURCHASE_PRICE_DEVIATION))? false : true;
-    }
+    // function _price(address ntoken) internal view 
+    //     returns (uint256 price, uint256 avg, bool isDeviated)
+    // {
+    //     (price, avg, , ) = 
+    //         INestQuery(C_NestQuery).queryPriceAvgVola(ntoken, );
+    //     uint256 diff = price > avg? (price - avg) : (avg - price);
+    //     isDeviated = (diff.mul(100) < avg.mul(DAO_REPURCHASE_PRICE_DEVIATION))? false : true;
+    // }
 
     function _quota(address ntoken) internal view returns (uint256 quota) 
     {

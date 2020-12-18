@@ -27,7 +27,7 @@ contract NTokenController is INTokenController, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for ERC20;
 
-    /* ========== STATE ============== */
+    /* ========== STATE VARIABLES ============== */
 
     /// @dev A number counter for generating ntoken name
     uint32  public ntokenCounter;
@@ -44,7 +44,7 @@ contract NTokenController is INTokenController, ReentrancyGuard {
 
     /* ========== PARAMETERS ============== */
 
-    uint256 public openFeeNestAmount = 0; // default = 0
+    uint256 public openFeeNestAmount = 10_000; // default = 10_000
 
     /* ========== ADDRESSES ============== */
 
@@ -52,6 +52,8 @@ contract NTokenController is INTokenController, ReentrancyGuard {
     address public C_NestPool;
     /// @dev Contract address of NestToken
     address public C_NestToken;
+    /// @dev Contract address of NestDAO
+    address public C_NestDAO;
 
     address private governance;
 
@@ -74,6 +76,8 @@ contract NTokenController is INTokenController, ReentrancyGuard {
         C_NestPool = NestPool;
     }
 
+    /// @dev The initialization function takes `_ntokenCounter` as argument, 
+    ///     which shall be migrated from Nest v3.0
     function start(uint32 _ntokenCounter) public onlyGovernance
     {
         require(flag == NTCTRL_FLAG_UNINITIALIZED, "Nest:NTC:!flag");
@@ -120,6 +124,7 @@ contract NTokenController is INTokenController, ReentrancyGuard {
     function loadContracts() override external onlyGovOrBy(C_NestPool) 
     {
         C_NestToken = INestPool(C_NestPool).addrOfNestToken();
+        C_NestDAO = INestPool(C_NestPool).addrOfNestDAO();
     }
     
     function setParams(uint256 _openFeeNestAmount) override external onlyGovernance
@@ -189,6 +194,7 @@ contract NTokenController is INTokenController, ReentrancyGuard {
                 address(C_NestPool)
         );
 
+        // increase the counter
         ntokenCounter = ntokenCounter + 1;  // safe math
         INestPool(C_NestPool).setNTokenToToken(token, address(ntoken));
 
@@ -198,6 +204,9 @@ contract NTokenController is INTokenController, ReentrancyGuard {
         require(tokenERC20.balanceOf(address(this)) >= 1, 
             "Nest:NTC:!TEST(token)");
         tokenERC20.safeTransfer(address(msg.sender), 1);
+
+        // charge nest
+        ERC20(C_NestToken).transferFrom(address(msg.sender), address(C_NestDAO), openFeeNestAmount);
 
         // raise an event
         emit NTokenOpened(token, address(ntoken), address(msg.sender));

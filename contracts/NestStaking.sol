@@ -21,27 +21,20 @@ contract NestStaking is INestStaking, ReentrancyGuard {
 
     using SafeMath for uint256;
 
+    /* ========== STATE ============== */
+
     /// @dev  The flag of staking global state
-    uint8 public flag;       // = 0: uninitialized
+    uint8 public flag;      // = 0: uninitialized
                             // = 1: active
-                            // = 2: withdraw forbidden
+                            // = 2: no staking
                             // = 3: paused 
+
+    uint248 private _reserved1;
+
     uint8 constant STAKING_FLAG_UNINITIALIZED    = 0;
     uint8 constant STAKING_FLAG_ACTIVE           = 1;
     uint8 constant STAKING_FLAG_NO_STAKING       = 2;
     uint8 constant STAKING_FLAG_PAUSED           = 3;
-    
-    /// @dev The percentage of dividends 
-    ///      - 80% to Nest/NToken holders as dividend
-    ///      - 20% to saving for buying back (future)
-    uint8 private _dividend_share; // = 80;
-
-    uint240 private _reserved;
-
-    address private C_NestToken;
-    address private C_NestPool;
-
-    address private governance;
 
     /// @dev The balance of savings w.r.t a ntoken(or nest-token)
     ///     _pending_saving_Amount: ntoken => saving amount
@@ -69,19 +62,35 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     // _rewards_balances: (ntoken, account) => amount
     mapping(address => mapping(address => uint256)) public rewardBalances;
 
+    /* ========== PARAMETERS ============== */
+    
+    /// @dev The percentage of dividends 
+    uint8 private _dividend_share; // = 100 as default;
+
+    uint8 constant STAKING_DIVIDEND_SHARE_PRECENTAGE = 100;
+
+    uint248 private _reserved2;
+
+    /* ========== ADDRESSES ============== */
+
+    address private C_NestToken;
+    address private C_NestPool;
+
+    address private governance;
+
     /* ========== CONSTRUCTOR ========== */
+
+    receive() external payable {}
 
     // NOTE: to support open-zeppelin/upgrades, leave it blank
     constructor() public { }
-
-    receive() external payable {}
 
     /// @dev It is called by the proxy (open-zeppelin/upgrades), only ONCE!
     function initialize(address NestPool) external 
     {
         require(flag == STAKING_FLAG_UNINITIALIZED, "Nest:Stak:!flag");
         governance = msg.sender;
-        _dividend_share = 80;
+        _dividend_share = STAKING_DIVIDEND_SHARE_PRECENTAGE;
         flag = STAKING_FLAG_ACTIVE;
         C_NestPool = NestPool;
     }
@@ -99,7 +108,6 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         require(flag == STAKING_FLAG_ACTIVE, "Nest:Stak:!flag");
         _;
     }
-
 
     modifier onlyGovernance() 
     {
@@ -121,15 +129,17 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     }
 
     /// @dev Stop service for emergency
-    function pause() external onlyGovernance
+    function pause() override external onlyGovernance
     {
+        require(flag == STAKING_FLAG_ACTIVE, "Nest:Stak:!flag");
         flag = STAKING_FLAG_PAUSED;
         emit FlagSet(address(msg.sender), uint256(STAKING_FLAG_PAUSED));
     }
 
     /// @dev Resume service 
-    function resume() external onlyGovernance
+    function resume() override external onlyGovernance
     {
+        require(flag == STAKING_FLAG_PAUSED, "Nest:Stak:!flag");
         flag = STAKING_FLAG_ACTIVE;
         emit FlagSet(address(msg.sender), uint256(STAKING_FLAG_ACTIVE));
     }
@@ -150,6 +160,13 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         rewardsTotal[ntoken] = _newTotal;
         emit SavingWithdrawn(ntoken, to, amount);
         TransferHelper.safeTransferETH(to, amount);      
+    }
+
+    function setParams(uint8 dividendShareRate) override external onlyGovernance
+    {
+        if (dividendShareRate > 0 && dividendShareRate <= 100) {
+            _dividend_share = dividendShareRate;
+        }
     }
 
     /* ========== VIEWS ========== */
@@ -178,7 +195,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         return _staked_balances[ntoken][account];
     }
 
-    // CM: <token收益> = <token原收益> + (<新增总收益> * 80% / <token总锁仓量>) 
+    // CM: <token收益> = <token原收益> + (<新增总收益> * _dividend_share% / <token总锁仓量>) 
     function rewardPerToken(address ntoken) 
         public 
         view 
@@ -274,7 +291,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     }
 
     /// @notice Stake NTokens to get the dividends
-    function stake(address ntoken, uint256 amount) 
+    function stake(address ntoken, uint256 amount)
         external 
         override 
         nonReentrant 

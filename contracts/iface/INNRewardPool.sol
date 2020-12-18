@@ -8,6 +8,12 @@ pragma solidity ^0.6.12;
 
 interface INNRewardPool {
     
+    /* [DEPRECATED]
+        uint256 constant DEV_REWARD_PERCENTAGE   = 5;
+        uint256 constant NN_REWARD_PERCENTAGE    = 15;
+        uint256 constant MINER_REWARD_PERCENTAGE = 80;
+    */
+
     /// @notice Add rewards for Nest-Nodes, only governance or NestMining (contract) are allowed
     /// @dev  The rewards need to pull from NestPool
     /// @param _amount The amount of Nest token as the rewards to each nest-node
@@ -44,5 +50,8 @@ interface INNRewardPool {
     /// @param share The amount of Nest Token claimed by the nest node
     event NNRewardClaimed(address nnode, uint256 share);
 
+    /// @notice When flag of state is set by governance 
+    /// @param gov The address of the governance
+    /// @param flag The value of the new flag
     event FlagSet(address gov, uint256 flag);
 }
