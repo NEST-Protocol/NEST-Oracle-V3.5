@@ -46,6 +46,12 @@ interface INestStaking {
     /// @dev Only for governance
     function loadGovernance() external; 
 
+    function pause() external;
+
+    function resume() external;
+
+    function setParams(uint8 dividendShareRate) external;
+
     /* ========== EVENTS ========== */
 
     // Events
