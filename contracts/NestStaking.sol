@@ -22,7 +22,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     using SafeMath for uint256;
 
     /// @dev  The flag of staking global state
-    uint8 public flag;       // = 0: uninitialized
+    uint8 public flag;      // = 0: uninitialized
                             // = 1: active
                             // = 2: withdraw forbidden
                             // = 3: paused 
@@ -274,7 +274,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     }
 
     /// @notice Stake NTokens to get the dividends
-    function stake(address ntoken, uint256 amount) 
+    function stake(address ntoken, uint256 amount)
         external 
         override 
         nonReentrant 
