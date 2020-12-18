@@ -274,8 +274,8 @@ describe("NestToken contract", function () {
             const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
 
             const eth_reward_NestStakingOfNToken_pre = await NestStaking.totalRewards(NToken);
-            const eth_reward_NestDAoOfNToken_pre = await NestDAO.totalRewards(NToken);
-            const eth_reward_NestDaoOfNestToken_pre = await NestDAO.totalRewards(NestToken.address);
+            const eth_reward_NestDAoOfNToken_pre = await NestDAO.totalETHRewards(NToken);
+            const eth_reward_NestDaoOfNestToken_pre = await NestDAO.totalETHRewards(NestToken.address);
 
 
             // post 
@@ -303,8 +303,8 @@ describe("NestToken contract", function () {
             const eth_pool_pos = await NestPool.balanceOfEthInPool(_C_NestPool);
 
             const eth_reward_NestStakingOfNToken_pos = await NestStaking.totalRewards(NToken);
-            const eth_reward_NestDAoOfNToken_pos = await NestDAO.totalRewards(NToken);
-            const eth_reward_NestDaoOfNestToken_pos = await NestDAO.totalRewards(NestToken.address);
+            const eth_reward_NestDAoOfNToken_pos = await NestDAO.totalETHRewards(NToken);
+            const eth_reward_NestDaoOfNestToken_pos = await NestDAO.totalETHRewards(NestToken.address);
 
 
             // check funds
@@ -402,7 +402,7 @@ describe("NestToken contract", function () {
             const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
 
             const eth_reward_NestStakingOfNToken_pre = await NestStaking.totalRewards(NToken);
-            const eth_reward_NestDAoOfNToken_pre = await NestDAO.totalRewards(NToken);
+            const eth_reward_NestDAoOfNToken_pre = await NestDAO.totalETHRewards(NToken);
 
             const eth_reward_NestStaking_pre = await provider.getBalance(_C_NestStaking);
             const eth_reward_NestDao_pre = await provider.getBalance(_C_NestDAO);
@@ -442,7 +442,7 @@ describe("NestToken contract", function () {
             const eth_pool_pos = await NestPool.balanceOfEthInPool(_C_NestPool);
 
             const eth_reward_NestStakingOfNToken_pos = await NestStaking.totalRewards(NToken);
-            const eth_reward_NestDAoOfNToken_pos = await NestDAO.totalRewards(NToken);
+            const eth_reward_NestDAoOfNToken_pos = await NestDAO.totalETHRewards(NToken);
 
             const eth_reward_NestStaking_pos = await provider.getBalance(_C_NestStaking);
             const eth_reward_NestDao_pos = await provider.getBalance(_C_NestDAO);

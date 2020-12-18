@@ -146,7 +146,7 @@ describe("NestToken contract", function () {
     describe('NEST Token', function () {
         it("should have correct totalSupply", async () => {
             const expectedTotalSupply = NEST("10000000000");
-            const amount = NEST("200000");
+            const amount = NEST("2000000");
             await NestPool.initNestLedger(amount);
             const totalSupply = await NestToken.totalSupply();
             expect(totalSupply).to.equal(expectedTotalSupply);
@@ -244,6 +244,7 @@ describe("NestToken contract", function () {
             await CWBTC.connect(userD).approve(_C_NestPool, WBTC(10000));
 
 
+            await NTokenController.start(1);
             await NTokenController.connect(userC).open(_C_WBTC);
 
             await NestMining.connect(userC).post(_C_WBTC, 10, MBTC(30), {value: ETH(11)});
