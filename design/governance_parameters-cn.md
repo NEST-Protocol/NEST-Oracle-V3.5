@@ -46,7 +46,7 @@
 4. loadContracts() 加载各合约地址使用，链接个合约地址，初始化时调用一次
 
 
-5. setParameters() 函数，初始化后调整基本参数使用
+5. setParams() 函数，初始化后调整基本参数使用
 
     state.miningEthUnit           // 最小报价单元(目前最初报价 EthNum 只允许等于最小报价单元)
     state.nestStakedNum1k         // 冻结 nest 数量有关因子，初始设置为 1。可根据吃单次数变化

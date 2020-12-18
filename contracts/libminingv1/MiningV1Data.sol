@@ -143,7 +143,7 @@ library MiningV1Data {
 
     struct State {
         // TODO: more comments
-        
+
         uint8   miningEthUnit;      // = 10;
         uint32  nestStakedNum1k;    // = 100;
         uint8   biteFeeRate;        // = 1; 
@@ -177,7 +177,7 @@ library MiningV1Data {
         // from token(address) to Price
         mapping(address => PriceInfo) priceInfo;
 
-        /// @dev (token-address, block-number) => (ethFee-total, nest/ntoken-mined-total)
+        // (token-address, block-number) => (ethFee-total, nest/ntoken-mined-total)
         mapping(address => mapping(uint256 => uint256)) minedAtHeight;
 
         uint256  _reserved1;

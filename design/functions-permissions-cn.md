@@ -28,7 +28,7 @@
 
 4. incVersion()
 
-5. setParameters()
+5. setParams()
 
 
 ##### 任何 用户 / 合约 均可调用
@@ -444,7 +444,7 @@
 权限：管理者或者 nestpool 合约地址可以调用。
 
 
-#### setParameters()
+#### setParam()
 功能：用于初始化参数调整修改。
 
 权限：仅管理者可调用。
