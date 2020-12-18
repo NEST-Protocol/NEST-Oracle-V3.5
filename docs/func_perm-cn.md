@@ -49,7 +49,11 @@
 
 4. `incVersion()`
 
+<<<<<<< HEAD:docs/func_perm-cn.md
 5. `setParameters()`
+=======
+5. setParams()
+>>>>>>> 135c060dca6a08f7b4cecde3fe852aa76ff684bf:design/functions-permissions-cn.md
 
 
 ##### 任何 用户 / 合约 均可调用
@@ -466,8 +470,12 @@
 权限：管理者或者 nestpool 合约地址可以调用。
 
 
+<<<<<<< HEAD:docs/func_perm-cn.md
 #### `setParameters()`
 
+=======
+#### setParam()
+>>>>>>> 135c060dca6a08f7b4cecde3fe852aa76ff684bf:design/functions-permissions-cn.md
 功能：用于初始化参数调整修改。
 
 权限：仅管理者可调用。

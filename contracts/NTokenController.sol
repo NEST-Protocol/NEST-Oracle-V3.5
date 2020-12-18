@@ -12,7 +12,6 @@ import "./lib/ReentrancyGuard.sol";
 import "./iface/INestPool.sol";
 import "./iface/INTokenController.sol";
 import "./iface/INToken.sol";
-import "./iface/IBonusPool.sol";
 import "./NToken.sol";
 
 // import "./NestMining.sol";

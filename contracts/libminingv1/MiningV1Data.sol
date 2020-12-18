@@ -41,7 +41,7 @@ library MiningV1Data {
     uint256 constant MINING_NEST_FEE_DIVIDEND_RATE = 80;    // percentage = 80%
     uint256 constant MINING_NEST_FEE_DAO_RATE = 20;         // percentage = 80%
 
-    uint256 constant MINING_NTOKEN_FEE_DIVIDEND_RATE        = 60;     // percentage = 80%
+    uint256 constant MINING_NTOKEN_FEE_DIVIDEND_RATE        = 60;     // percentage = 60%
     uint256 constant MINING_NTOKEN_FEE_DAO_RATE             = 20;     // percentage = 20%
     uint256 constant MINING_NTOKEN_FEE_NEST_DAO_RATE        = 20;     // percentage = 20%
 
@@ -84,7 +84,7 @@ library MiningV1Data {
     uint256 constant MINING_NTOKEN_NON_DUAL_POST_THRESHOLD = 1_000_000 ether;
 
 
-    /// @dev size: (2 x 256 byte)
+    /// @dev size: (2 x 256 bit)
     struct PriceSheet {    
         uint160 miner;       //  miner who posted the price (most significant bits, or left-most)
         uint32  height;
@@ -137,13 +137,13 @@ library MiningV1Data {
     event TokenSold(address miner, address token, uint256 index, uint256 biteEthAmount, uint256 biteTokenAmount);
 
     event VolaComputed(uint32 h, uint32 pos, uint32 ethA, uint128 tokenA, int128 sigma_sq, int128 ut_sq);
-    event GovSet(address oldGov, address newGov);
+    // event GovSet(address oldGov, address newGov);
 
-    /* ========== STATE VARIABLES ========== */
+    /* ========== GIANT STATE VARIABLE ========== */
 
     struct State {
-        
-        uint8   version;            // = 1
+        // TODO: more comments
+
         uint8   miningEthUnit;      // = 10;
         uint32  nestStakedNum1k;    // = 100;
         uint8   biteFeeRate;        // = 1; 
@@ -177,6 +177,7 @@ library MiningV1Data {
         // from token(address) to Price
         mapping(address => PriceInfo) priceInfo;
 
+        // (token-address, block-number) => (ethFee-total, nest/ntoken-mined-total)
         mapping(address => mapping(uint256 => uint256)) minedAtHeight;
 
         uint256  _reserved1;

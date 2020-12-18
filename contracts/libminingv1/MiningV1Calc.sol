@@ -145,6 +145,9 @@ library MiningV1Calc {
         ));
     }
 
+    /// @dev The function updates the statistics of price sheets
+    ///     It calculates from priceInfo to the newest that is effective.
+    ///     Different from `_statOneBlock()`, it may cross multiple blocks.
     function _stat(MiningV1Data.State storage state, address token)
         external 
     {
@@ -168,7 +171,16 @@ library MiningV1Calc {
 
         MiningV1Data.PriceInfo memory p1;
 
+        // record the gas usage
+        uint256 startGas = gasleft();
+        uint256 gasUsed;
+
         while (uint256(p0.index) < pL.length && uint256(p0.height) + state.priceDurationBlock < block.number){
+            gasUsed = startGas - gasleft();
+            // NOTE: check gas usage to prevent DOS attacks
+            if (gasUsed > 1_000_000) {
+                break; 
+            }
             p1 = _moveAndCalc(p0, pL, state.priceDurationBlock);
             if (p1.index <= p0.index) {    // bootstraping
                 break;
@@ -186,7 +198,7 @@ library MiningV1Calc {
         return;
     }
 
-
+    /// @dev The function updates the statistics of price sheets across only one block.
     function _statOneBlock(MiningV1Data.State storage state, address token) 
         external 
     {

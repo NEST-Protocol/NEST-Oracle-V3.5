@@ -38,15 +38,20 @@ library MiningV1Op {
         )
         external
     {
+        // check parameters
         require(token != address(0x0), "Nest:Mine:(token)=0"); 
         require(newTokenAmountPerEth > 0, "Nest:Mine:(price)=0");
         require(biteNum >= state.miningEthUnit && biteNum % state.miningEthUnit == 0, "Nest:Mine:!(bite)");
 
+        // check sheet
         MiningV1Data.PriceSheet memory _sheet = state.priceSheetList[token][index]; 
         require(_sheet.height + state.priceDurationBlock > block.number, "Nest:Mine:!EFF(sheet)");
         require(_sheet.remainNum >= biteNum, "Nest:Mine:!(remain)");
+
+        // load address of NestPool 
         INestPool _C_NestPool = INestPool(state.C_NestPool);
 
+        // check sheet sate
         uint256 _state = uint256(_sheet.state);
         require(_state == MiningV1Data.PRICESHEET_STATE_POSTED 
              || _state == MiningV1Data.PRICESHEET_STATE_BITTEN,  "Nest:Mine:!(state)");
@@ -59,8 +64,11 @@ library MiningV1Op {
             if (msg.value.sub(_ethFee) > 0) {
                 _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
             }
+
             // pump fee into staking pool
-            INestStaking(state.C_NestStaking).addETHReward{value:_ethFee}(_ntoken);
+            if (_ethFee > 0) {
+                INestStaking(state.C_NestStaking).addETHReward{value:_ethFee}(_ntoken);
+            }
         }
  
         // post a new price sheet
@@ -220,12 +228,16 @@ library MiningV1Op {
         ) 
         external 
     {
+        // check sheet if passing verification
         MiningV1Data.PriceSheet memory _sheet = state.priceSheetList[token][index];
         require(_sheet.height + state.priceDurationBlock < block.number // safe_math
             || _sheet.remainNum == 0, "Nest:Mine:!(height)");
 
+        // check ownership and state
         require(address(_sheet.miner) == address(msg.sender), "Nest:Mine:!(miner)");
         require(uint256(_sheet.state) != MiningV1Data.PRICESHEET_STATE_CLOSED, "Nest:Mine:!unclosed");
+
+        // get ntoken
         INestPool _C_NestPool = INestPool(state.C_NestPool);
         address _ntoken = _C_NestPool.getNTokenFromToken(token);
 
@@ -291,44 +303,64 @@ library MiningV1Op {
         uint256 _nestAmount;
         uint256 _reward;
 
+        // load storage point to the list of price sheets
         MiningV1Data.PriceSheet[] storage prices = state.priceSheetList[token];
         
+        // loop
         for (uint i=0; i<indices.length; i++) {
+            // load one sheet
             MiningV1Data.PriceSheet memory _sheet = prices[indices[i]];
+
+            // check owner
             if (uint256(_sheet.miner) != uint256(msg.sender)) {
                 continue;
             }
+
+            // check state
             if(_sheet.state == MiningV1Data.PRICESHEET_STATE_CLOSED) {
                 continue;
             }
+
             uint256 h = uint256(_sheet.height);
+            // check if the sheet closable
             if (h + state.priceDurationBlock < block.number || _sheet.remainNum == 0) { // safe_math: untainted values
+
+                // count up assets in the sheet
                 _ethAmount = _ethAmount.add(uint256(_sheet.ethNumBal).mul(1 ether));
                 _tokenAmount = _tokenAmount.add(uint256(_sheet.tokenNumBal).mul(_sheet.tokenAmountPerEth));
                 _nestAmount = _nestAmount.add(uint256(_sheet.nestNum1k).mul(1000 * 1e18));
+
+                // clear bits in the sheet
                 _sheet.ethNumBal = 0;
                 _sheet.tokenNumBal = 0;
                 _sheet.nestNum1k = 0;
-
+                
+                // update state flag
                 _sheet.state = MiningV1Data.PRICESHEET_STATE_CLOSED;
+                
+                // write back
                 prices[indices[i]] = _sheet;
 
+                // count up the reward
                 if(_sheet.level == 0) {
                     uint256 _ntokenH = uint256(state.minedAtHeight[token][h] >> 128);
                     uint256 _ethH = uint256(state.minedAtHeight[token][h] << 128 >> 128);
                     _reward = _reward.add(uint256(_sheet.ethNum).mul(_ntokenH).div(_ethH));
-                    emit MiningV1Data.PriceClosed(address(msg.sender), token, indices[i]);
                 }
+                emit MiningV1Data.PriceClosed(address(msg.sender), token, indices[i]);
             }
         }
         
+        // load address of NestPool (for gas saving)
         INestPool _C_NestPool = INestPool(state.C_NestPool);
 
+        // unfreeze assets
         if (_ethAmount > 0 || _tokenAmount > 0) {
             _C_NestPool.unfreezeEthAndToken(address(msg.sender), _ethAmount, token, _tokenAmount);
         }
         _C_NestPool.unfreezeNest(address(msg.sender), _nestAmount); 
 
+        // distribute the rewards
         {
             uint256 _typ = prices[indices[0]].typ;
             if  (_typ == MiningV1Data.PRICESHEET_TYPE_USD) {
@@ -340,7 +372,7 @@ library MiningV1Op {
         }
     }
 
-    //
+    /// @dev This function is only for post dual-price-sheet before upgrading without assets
     function _post2Only4Upgrade(
             MiningV1Data.State storage state,
             address token,
@@ -406,7 +438,6 @@ library MiningV1Op {
         }
 
         // no mining
-
 
         return; 
     }
