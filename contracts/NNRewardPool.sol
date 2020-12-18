@@ -32,7 +32,7 @@ contract NNRewardPool is INNRewardPool {
 
     uint8   public flag;     // | 1: active 
                             // | 0: uninitialized
-                            // | -1: shutdown
+                            // | 2: shutdown
 
     uint8   constant NNREWARD_FLAG_UNINITIALIZED    = 0;
     uint8   constant NNREWARD_FLAG_ACTIVE           = 1;
