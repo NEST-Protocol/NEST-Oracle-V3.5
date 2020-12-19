@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const { WeiPerEther, BigNumber } = require("ethers");
 
 const {usdtdec, wbtcdec, nestdec, ethdec, 
-    ETH, USDT, WBTC, MBTC, NEST, BigNum, 
+    ETH, USDT, WBTC, MBTC, NEST, BigNum, BigN,
     show_eth, show_usdt, show_64x64} = require("../scripts/utils.js");
 
 const {deployUSDT, deployWBTC, deployNWBTC, deployNN, deployNEST,
@@ -267,12 +267,18 @@ describe("Nest Protocol v3.5 contract", function () {
         it("should be able to withdraw ETH", async () => {
             const amount = ETH(10);
             await NestPool.connect(ghost).depositEth(userA.address, {value: ETH(40)});
-            await NestPool.connect(ghost).freezeEth(userA.address, amount)
+            await NestPool.connect(ghost).freezeEth(userA.address, amount);
+            await NestPool.connect(ghost).freezeEth(userA.address, amount);
+            const bal_freeze_eth = await NestPool.balanceOfEthFreezed();
+            await NestPool.connect(ghost).unfreezeEth(userA.address, amount);
             const eth_A_pre = await userA.getBalance();
             await NestPool.connect(ghost).withdrawEth(userA.address, amount);
             const eth_A_post = await userA.getBalance();
 
             expect(eth_A_post.sub(eth_A_pre)).to.equal(amount);
+
+            await NestPool.connect(ghost).transferEthInPool(userA.address, userB.address, ETH(1));
+
             const eth_pool_A = await NestPool.balanceOfEthInPool(userA.address);
             await expect(NestPool.connect(ghost).withdrawEth(userA.address, eth_pool_A.add(1)))
                 .to.be.revertedWith("Nest:Pool:!blncs");
@@ -286,6 +292,9 @@ describe("Nest Protocol v3.5 contract", function () {
             const usdt_A_pre = await CUSDT.balanceOf(userA.address);
 
             await NestPool.connect(ghost).withdrawToken(userA.address, _C_USDT, amount);
+
+
+            const bal_freeze_token = await await NestPool.balanceOfTokenFreezed(_C_USDT);
 
             const usdt_A_post = await CUSDT.balanceOf(userA.address);
 

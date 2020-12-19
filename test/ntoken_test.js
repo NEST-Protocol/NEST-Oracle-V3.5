@@ -190,6 +190,9 @@ describe("NestToken contract", function () {
             _C_NWETH = await NestPool.getNTokenFromToken(CWETH.address);
             CNWETH = await ethers.getContractAt("NToken",  _C_NWETH);
             expect(await CNWETH.name()).to.equal("NToken0011");
+
+            const tx = await NTokenController.NTokenTagOf(CNWETH.address);
+            //console.log("tx = ",tx);
         });
 
         it("cannot open ntoken after shutdown ", async () => {
@@ -197,11 +200,26 @@ describe("NestToken contract", function () {
             await NTokenController.pause();
             await expect(NTokenController.connect(userB).open(CWETH.address))
                 .to.be.reverted;
+
+            await NTokenController.resume();
         });
 
+        // set gov
+        it("should set gov correctly", async () => {
+            
+            // now the nestpool's gov is userD
+            await NestPool.setGovernance(userD.address);
 
-        
+            const gov = await NestPool.governance();
+ 
+            // now the NTokenController's gov is userD
+            await NTokenController.loadGovernance();
 
+            expect(gov).to.equal(userD.address);
+
+            await NTokenController.connect(userD).setParams(1000);
+
+        });
     });
 
 });
