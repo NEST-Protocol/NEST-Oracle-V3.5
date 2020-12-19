@@ -2,7 +2,7 @@
 
 **Author:** Paradox  <paradox@nestprotocol.org>
 
-**Abstract:**本文档梳理合约中管理员能够设置的参数。
+**Abstract:** 本文档梳理合约中管理员能够设置的参数。
 
 &emsp;
 ## 涉及合约列表

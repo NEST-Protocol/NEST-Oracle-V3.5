@@ -54,7 +54,7 @@
 
 ### `pause()`
 
-**功能：**紧急情况下暂停合约使用
+**功能：** 紧急情况下暂停合约使用
 
 **函数：**`pause()`
    + 无
@@ -167,8 +167,8 @@
 **功能：** 以当前预言机价格向 `NestDAO` 出售 NEST，换取相应的 ETH
 
 **函数：** `redeem(ntoken, amount)`
-   + ntoken 指定地址
-   + amount 需要兑换的 NToken 数量
+   + `ntoken` 指定地址
+   + `amount` 需要兑换的 NToken 数量
 
 **权限：**
 

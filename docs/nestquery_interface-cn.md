@@ -1,4 +1,4 @@
-NestQuery 模块接口函数
+# NestQuery 模块接口函数
 
 **Author:** Paradox  <paradox@nestprotocol.org>
 
@@ -8,7 +8,7 @@ NestQuery 模块接口函数
 ## Changelog 
 
 - 2020-12-18 x修订
-- 
+
 - 2020-12-07
 
 1. 增加了激活查询报价单的接口函数 `whenActive()`

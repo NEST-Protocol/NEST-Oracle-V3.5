@@ -1,4 +1,4 @@
-NestStaking 模块接口函数
+# NestStaking 模块接口函数
 
 **Author:** Paradox  <paradox@nestprotocol.org>
 
@@ -70,7 +70,7 @@ NestStaking 模块接口函数
 
 **调用时能否携带资金:** 否
 
-`函数:` `earned(ntoken, account)`
+**函数:** `earned(ntoken, account)`
    + `ntoken` 给定地址,一般是某种代币地址
    + `account` 给定地址,一般是某个用户地址
 
@@ -271,7 +271,7 @@ NestStaking 模块接口函数
 **权限:**
 1. 必须在奖励更新后才可以调用函数
 
-参数要求:
+**参数要求:**
 1. 需要 `amount` > 0, 否则报错 `"Nest:Stak:!amount"`
 
 **返回值:**

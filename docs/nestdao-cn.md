@@ -16,20 +16,20 @@
 
 
 ## Variables 变量
+```js
+flag ;                    // uint8, public 类型。flag 标志，用于标记合约状态，其值范围为 0-4
+startedBlock;             // uint32, private 类型。初始区块高度。
+_reserved;                // uint248, private 类型。保留值。
+governance;               // public类型，作为本合约的维护者，合约部署时将地址赋值给它
 
-`flag` ;                    // uint8, public 类型。flag 标志，用于标记合约状态，其值范围为 0-4
-`startedBlock`;             // uint32, private 类型。初始区块高度。
-`_reserved`;                // uint248, private 类型。保留值。
-`governance`;               // public类型，作为本合约的维护者，合约部署时将地址赋值给它
+C_NestPool;               // 以下五个地址均为 private 类型，分别代表 NestPool 合约地址、NestToken 合约地址、Nestmining 合约地址、 
+C_NestToken;              //NestStaking 合约地址、NestQuery 合约地址
+C_NestMining;
+C_NestStaking;
+C_NestQuery;
 
-`C_NestPool`;               // 以下五个地址均为 private 类型，分别代表 NestPool 合约地址、NestToken 合约地址、Nestmining 合约地址、 
-`C_NestToken`;              //NestStaking 合约地址、NestQuery 合约地址
-`C_NestMining`;
-`C_NestStaking`;
-`C_NestQuery`;
-
-`DAO_REPURCHASE_PRICE_DEVIATION` = 5;  // 5%，回购约束，当前价格和均价相差超过5%时，不可以回购
-
+DAO_REPURCHASE_PRICE_DEVIATION = 5;  // 5%，回购约束，当前价格和均价相差超过5%时，不可以回购
+```
 
 ## 数据结构
 
@@ -95,7 +95,7 @@ mapping(address => uint256) ethLedger;   // mapping 类型，由 ntoken 地址�
 
 ### `pause()`
 
-**功能：**紧急情况下暂停合约使用
+**功能：** 紧急情况下暂停合约使用
 
 **函数：**`pause()`
    + 无
@@ -156,7 +156,7 @@ mapping(address => uint256) ethLedger;   // mapping 类型，由 ntoken 地址�
 
 **资金流向：**
 
-1. ETH(msg.value) | 手续费  ==> NestDAO 合约中的 ethLedger[ntoken]
+1. `ETH(msg.value)` | 手续费  ==> NestDAO 合约中的 `ethLedger[ntoken]`
 
 **返回值：**
 
@@ -176,7 +176,7 @@ mapping(address => uint256) ethLedger;   // mapping 类型，由 ntoken 地址�
 
 **资金流向：**
 
-1. NEST(amount) | 挖矿奖励的一部分 ==> redeemedAmount
+1. `NEST(amount)` | 挖矿奖励的一部分 ==> `redeemedAmount`
 
 **返回值：**
 
@@ -205,7 +205,7 @@ mapping(address => uint256) ethLedger;   // mapping 类型，由 ntoken 地址�
 
 ### `collectETHReward()`
 
-**功能：**将 NestDAO 合约地址下的 NToken 存入 NestStaking 中，获得收益
+**功能：** 将 NestDAO 合约地址下的 NToken 存入 NestStaking 中，获得收益
 
 **函数：**`collectETHReward(ntoken)`
    + `ntoken` 指定 ntoken 地址
@@ -226,7 +226,7 @@ mapping(address => uint256) ethLedger;   // mapping 类型，由 ntoken 地址�
 
 ### `redeem()`
 
-**功能：**以当前预言机价格向 NestDAO 出售 NEST，换取相应的 ETH
+**功能：** 以当前预言机价格向 NestDAO 出售 NEST，换取相应的 ETH
 
 **函数：** `redeem(ntoken, amount)`
    + `ntoken` 指定地址

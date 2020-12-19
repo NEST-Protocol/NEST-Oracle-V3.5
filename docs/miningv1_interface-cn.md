@@ -2,10 +2,12 @@
 
 **Author:** Paradox  <paradox@nestprotocol.org>
 
-**Abstract:**本文档梳理 NestMining 合约接口函数，包括函数的功能、权限、 参数要求、参数边界条件、返回值。
+**Abstract:** 本文档梳理 NestMining 合约接口函数，包括函数的功能、权限、 参数要求、参数边界条件、返回值。
 
 &emsp;
 ## Changelog 
+
+- 2020-12-18 修订
 
 - 2020-12-07
 
@@ -248,7 +250,7 @@
 
 ### `priceOf()`
 
-**功能：**查询最近的一个稳定价格的区块中所有报价表的信息，包括：表单剩余 ethNum 总量；剩余 token 总量；表单所在区块高度
+**功能：** 查询最近的一个稳定价格的区块中所有报价表的信息，包括：表单剩余 ethNum 总量；剩余 token 总量；表单所在区块高度
 
 **调用时能否携带资金:** 否
 
@@ -266,9 +268,9 @@
 **返回值:**
 
 1. `returns(ethAmount, tokenAmount, blockNum)`
-  + ethAmount 该区块中所有表单剩余 ethNum 总量
-  + tokenAmount 该区块中所有表单剩余 token 总量
-  + blockNum 表单所在区块高度
+  + `ethAmount` 该区块中所有表单剩余 `ethNum` 总量
+  + `tokenAmount` 该区块中所有表单剩余 `token` 总量
+  + `blockNum` 表单所在区块高度
 
 
 ### `priceAvgAndSigmaOf()`
@@ -345,8 +347,8 @@
 **返回值:**
 
 1. `returns (data, atHeight)`
-  + data 为数组,数组大小 num x 3,数组中依次保存的是 ( 区块高度1, ethNumAmount1, tokenAmount1,区块高度2, ethNumAmount2,...)
-  + atHeight 保存最新的价格稳定的区块高度
+  + `data` 为数组,数组大小 num x 3,数组中依次保存的是 ( 区块高度1, ethNumAmount1, tokenAmount1,区块高度2, ethNumAmount2,...)
+  + `atHeight` 保存最新的价格稳定的区块高度
 
 
 ### `latestMinedHeight()`
