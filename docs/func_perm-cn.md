@@ -49,11 +49,7 @@
 
 4. `incVersion()`
 
-<<<<<<< HEAD:docs/func_perm-cn.md
-5. `setParameters()`
-=======
-5. setParams()
->>>>>>> 135c060dca6a08f7b4cecde3fe852aa76ff684bf:design/functions-permissions-cn.md
+5. `setParams()`
 
 
 ##### 任何 用户 / 合约 均可调用

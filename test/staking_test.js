@@ -203,7 +203,7 @@ describe("NestStaking contract", function () {
 
     describe('NestStaking', function () {
 
-        const dividend_share_percentage = BigN(80);
+        const dividend_share_percentage = BigN(100);
 
         //==================  addETHReward function  ==========================//
         //=====================================================================//
@@ -367,8 +367,25 @@ describe("NestStaking contract", function () {
         it("should transfer correctly", async () => {
             const ntoken = _C_NestToken;
             const amount = ETH(30);
+
+            const dividendShareRate = 50;
+            await NestStaking.setParams(dividendShareRate);
+
+            const amountA = NEST(100);
+            const amountB = NEST(50);
+
+            const ethFee = ETH(1000);
+            const rewardA = ETH(BigN(150).mul(100).mul(dividend_share_percentage).div(100).div(200));
+            const rewardB = ETH(BigN(50).mul(100).mul(dividend_share_percentage).div(100).div(200));
+
+            // add ethFee to change accured
+            await NestStaking.addETHReward(_C_NestToken, { value: ethFee });
+
+            await NestStaking.connect(userA).stake(ntoken, amountA);
+            await NestStaking.connect(userB).stake(ntoken, amountB);
+    
             const totalSaving = await NestStaking.totalSaving(ntoken);
-            //console.log("totalSaving = ",totalSaving.toString());
+            console.log("totalSaving = ",totalSaving.toString());
 
             // record funds before transfer
             const fund_pre = await provider.getBalance(userB.address);

@@ -187,7 +187,8 @@ describe("NestToken contract", function () {
 
         it("can redeem", async () => {
             const bn = await ethers.provider.getBlockNumber();
-            await MockNestMining.mock.priceAvgAndSigmaOf.withArgs(_C_NestToken).returns(NEST(100), ETH(100), 21, bn);
+            //await MockNestQuery.mock.priceAvgAndSigmaOf.withArgs(_C_NestToken).returns(ETH(100), NEST(10000), ETH(100), 21, bn);
+            await MockNestQuery.mock.queryPriceAvgVola.returns(ETH(100), NEST(10000), ETH(100), 21, bn);
 
             await NestDAO.addETHReward(_C_NestToken, { value: ETH(2)});
 
@@ -275,7 +276,9 @@ describe("NestToken contract", function () {
         it(" should redeem failed ", async () => {
 
             const bn = await ethers.provider.getBlockNumber();
-            await MockNestMining.mock.priceAvgAndSigmaOf.withArgs(_C_NWBTC).returns(NWBTC(95), NWBTC(100), 21, bn);
+            //await MockNestMining.mock.priceAvgAndSigmaOf.withArgs(_C_NWBTC).returns(NWBTC(95), NWBTC(100), 21, bn);
+            await MockNestQuery.mock.queryPriceAvgVola.returns(ETH(100), NWBTC(9500), ETH(100), 21, bn);
+
 
             // require ntoken 
             await expect(NestDAO.connect(userA).redeem(_C_USDT, NEST(100), { gasPrice: 0})).to.be.reverted;
@@ -301,11 +304,12 @@ describe("NestToken contract", function () {
 
             expect(quota).to.equal(0);
           
-            await MockNestMining.mock.priceAvgAndSigmaOf.withArgs(_C_NestToken).returns(NEST(120), NEST(100), 21, bn);
+            //await MockNestMining.mock.priceAvgAndSigmaOf.withArgs(_C_NestToken).returns(NEST(120), NEST(100), 21, bn);
+            await MockNestQuery.mock.queryPriceAvgVola.returns(ETH(100), NEST(12000), ETH(100), 21, bn);
+
 
             // require price deviation < 5%
             await expect(NestDAO.connect(userA).redeem(_C_NestToken, NEST(100), { gasPrice: 0})).to.be.reverted;
-
 
             // flag = DAO_FLAG_PAUSED;
             await NestDAO.connect(userD).pause();
@@ -315,11 +319,11 @@ describe("NestToken contract", function () {
 
             await NestDAO.connect(userD).resume();
 
-            await MockNestMining.mock.priceAvgAndSigmaOf.withArgs(_C_NestToken).returns(NEST(100), NEST(100), 21, bn);
+            //await MockNestMining.mock.priceAvgAndSigmaOf.withArgs(_C_NestToken).returns(NEST(100), NEST(100), 21, bn);
+            await MockNestQuery.mock.queryPriceAvgVola.returns(ETH(100), NEST(10000), ETH(100), 21, bn);
             
             // require amount < quota
             await expect(NestDAO.connect(userA).redeem(_C_NestToken, NEST(50000), { gasPrice: 0})).to.be.reverted;
-
 
             // the eth to be redeemed is less than the current remaining eth
             const bal_nestToken = await NestDAO.totalETHRewards(_C_NestToken);
