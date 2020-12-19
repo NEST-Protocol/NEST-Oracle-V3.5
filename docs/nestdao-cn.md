@@ -8,6 +8,8 @@
 
 ## changelog 
 
+- 2020-12-19 更新
+
 - 2020-12-17 修订
 
 - 2020-12-15 初稿
@@ -123,11 +125,11 @@ mapping(address => uint256) ethLedger;   // mapping 类型，由 ntoken 地址�
 1. 无返回值
 
 
-### `totalRewards()`
+### `totalETHRewards()`
 
 **功能：** 查询指定 ntoken 地址下的 eth 数量
 
-**函数：** `totalRewards(ntoken)`
+**函数：** `totalETHRewards(ntoken)`
    + `ntoken` 指定代币地址
 
 **权限：**
@@ -183,9 +185,9 @@ mapping(address => uint256) ethLedger;   // mapping 类型，由 ntoken 地址�
 
 ### `collectNestReward()`
 
-**功能：**将存储在 NestPool 合约中的属于 NestDAO 合约的 NEST 取出存入 NestDAO 地址下
+**功能：** 将存储在 NestPool 合约中的属于 NestDAO 合约的 NEST 取出存入 NestDAO 地址下
 
-**函数：**collectNestReward()
+**函数：** collectNestReward()
    + 无参数
 
 **权限：**
@@ -246,3 +248,20 @@ mapping(address => uint256) ethLedger;   // mapping 类型，由 ntoken 地址�
 
 1. 无返回值
 
+
+### `quotaOf()`
+
+**功能：** 查询当前可兑换 NNTOken 的额度
+
+**函数：** `quotaOf(ntoken)`
+   + `ntoken` 指定地址
+
+**权限：**
+
+1. 任何人均可调用
+2. 只读函数 (view)
+
+
+**返回值：**
+
+1. 返回当前可兑换 ntoken 额度。

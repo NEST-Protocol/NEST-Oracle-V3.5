@@ -17,7 +17,12 @@
 
 ## Changelog
 
-- 2020-12-16  修订，增加 NestUpgrade 合约 flag 变化情况梳理。
+- 2020-12-19 修订
+1. 修改 NTokenController 合约中 flag 值变化。
+2. 修改 NNRewardPool 合约中 flag 值变化。
+
+- 2020-12-16 修订，增加 NestUpgrade 合约 flag 变化情况梳理。
+
 - 2020-12-10 初稿
 
 
@@ -74,32 +79,44 @@
 
 ### NNRewardPool 合约 flag 值变化
 
- 1. flag: 0
+1. flag: 0
 执行函数： 构造函数 `constructor()`
 说明： NNRewardPool 初始化时 flag 默认值为 0，调用构造函数后将 flag 设置为 `NNREWARD_FLAG_UNINITIALIZED` 状态（此值为 0）。
 
- 2. flag：0 ==> 1
-执行函数：构造函数 `constructor()` ==> `loadContracts()`
-说明： 执行 `loadContracts()` 后，,flag 的值变为 `NNREWARD_FLAG_ACTIVE` (此值为 1)。
+2. flag：0 ==> 1
+执行函数：构造函数 `constructor()` ==> `start()`
+说明： 执行 `start()` 后，,flag 的值变为 `NNREWARD_FLAG_ACTIVE` (此值为 1)。
 
- 3. flag： 0 / 1 ==> -1  
-执行函数顺序： 构造函数 `constructor()` ==> (`loadContracts()` ==>) `shutdown()`
-说明： 执行 `shutdown()` 后，，flag 的值变为 `NNREWARD_FLAG_SHUTDOWN` (此值为 -1)。
+3. flag： 1 ==> 2  
+执行函数顺序： 构造函数 `constructor()` ==> `start()` ==> `pause()`
+说明： 执行 `pause()` 后，，flag 的值变为 `NNREWARD_FLAG_PAUSED` (此值为 2)。
 
-*注： flag 参数值经初始化构造函数后，flag 为 0。此后,变化值不可逆。*
+4. flag： 2 ==> 1  
+执行函数顺序： 构造函数  `pause()` ==> `resume()`
+说明： 执行 `resume()` 后，，flag 的值变为 `NNREWARD_FLAG_ACTIVE` (此值为 1)。
+
+*注： flag 参数值经初始化构造函数后，flag 为 0, 经 start() 后, 值变为 2 。此后,其值可以在 1 与 2 间转化。*
 
 
 ###  NTokenController 合约 flag 值变化
 
-1. flag: 1
+1. flag: 0
 执行函数： 构造函数 `constructor()`
-说明： NNRewardPool 初始化时 flag 默认值为 0，调用构造函数后将 flag 设置为 1。
+说明： NNRewardPool 初始化时 flag 默认值为 0，调用构造函数后将 flag 设置为 0。
 
-2. flag：1 ==> 2
-执行函数：构造函数 `constructor()` ==> `shutdown()`
-说明： 执行 shutdown() 后，,flag 的值变为 2。
+2. flag：0 ==> 1
+执行函数： 构造函数 `start()`
+说明： NNRewardPool 初始化时调用构造函数 flag 为 0, 后将 flag 值设置为 `NTCTRL_FLAG_ACTIVE` (此值为 1)。
 
-*注： flag 参数值经初始化构造函数后，flag 为 0。此后,变化值不可逆.*
+3. flag：1 ==> 2
+执行函数：构造函数 `constructor()` ==> `start()`  ==> `pause()`
+说明： 执行 pause() 后，,flag 的值变为 `NTCTRL_FLAG_PAUSED` (此值为 2 )。
+
+4. flag：2 ==> 1
+执行函数：构造函数 `constructor()` ==> `start()`  ==> `pause()` ==> `resume()`
+说明： 执行 resume() 后，,flag 的值变为 `NTCTRL_FLAG_ACTIVE` (此值为 1 )。
+
+*注： flag 参数值经初始化构造函数及 start() 后，flag 为 1。此后,flag 值可以在 1 / 2 间转换。*
 
 
 ### NestDAO 合约 flag 值变化
