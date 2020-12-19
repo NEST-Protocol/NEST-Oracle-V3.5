@@ -297,11 +297,17 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         //  calculate the accumulated amount of NEST/NTOKEN available to repurchasing
         Ledger memory it = ntokenLedger[ntoken];
         uint256 _acc;
-        {
-            uint256 n = (ntoken == C_NestToken) ? (1000) : (10);
+        uint256 n;
+        if(ntoken == C_NestToken){
+             n = 1000;
             uint256 intv = (it.lastBlock == 0) ? 
                 (block.number).sub(startedBlock) : (block.number).sub(uint256(it.lastBlock));
             _acc = (n * intv > 300_000)? 300_000 : (n * intv);
+        }else{
+            n = 10;
+            uint256 intv = (it.lastBlock == 0) ? 
+                (block.number).sub(startedBlock) : (block.number).sub(uint256(it.lastBlock));
+            _acc = (n * intv > 3000)? 3000 : (n * intv);
         }
 
         // check if there is sufficient quota for repurchase
