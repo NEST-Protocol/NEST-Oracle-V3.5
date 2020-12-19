@@ -306,6 +306,18 @@ describe("NestToken contract", function () {
             const quota = await NestDAO.quotaOf(_C_NWBTC);
 
             expect(quota).to.equal(0);
+
+            // ntokenRepurchaseThreshold = NWBTC(1000)
+            await NestDAO.connect(userD).setParams(NWBTC(10000), 10);
+
+            // require totalSupply > ntokenRepurchaseThreshold
+            await expect(NestDAO.connect(userA).redeem(_C_NWBTC, NWBTC(100), { gasPrice: 0})).to.be.reverted;
+
+            const quota1 = await NestDAO.quotaOf(_C_NWBTC);
+
+            await goBlocks(provider, 400);
+
+            const quota2 = await NestDAO.quotaOf(_C_NWBTC);
           
             //await MockNestMining.mock.priceAvgAndSigmaOf.withArgs(_C_NestToken).returns(NEST(120), NEST(100), 21, bn);
             await MockNestQuery.mock.queryPriceAvgVola.returns(ETH(100), NEST(12000), ETH(100), 21, bn);
