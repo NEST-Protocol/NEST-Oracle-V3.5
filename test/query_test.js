@@ -286,148 +286,62 @@ describe("Nest Protocol", function () {
             await NestQuery.remove(_C_DeFi);
             expect(DeFiMock.query(_C_USDT, {value:ETH(1).div(10)})).to.be.reverted;
         });
-        /*
-        it("can query a price", async () => {
-            await MockNestMining.mock.latestPriceOf.returns({ethAmount: ETH(10), tokenAmount: USDT(5750), blockNum: 1002});
-            const rs = await NestQuery.query(_C_USDT);
+
+
+
+        it("can load gov correctly", async () => {
+           // now the nestpool's gov is userD
+           await NestPool.setGovernance(userD.address);
+
+           const gov = await NestPool.governance();
+
+           // now the NestDAO's gov is userD
+           await NestQuery.loadGovernance();
+
+           expect(gov).to.equal(userD.address);
+
+           await NestQuery.connect(userD).setParams(100, 0, NEST(100000));
+           
+           // _singleFee is 100 X 1e12 wei
+           await NestQuery.connect(userD).setParams(100, 10, NEST(100000));
+
+           const params = await NestQuery.params();
+    
+           expect(params.single).to.equal(1e14);
+           expect(params.leadTime).to.equal(10);
+           expect(params.nestAmount).to.equal(NEST(100000));
 
         });
 
-        it("can post 7 price sheets", async () => {
-            const nestPrice = NEST(1000);
-            const usdtPrice = USDT(350);
-            const chunkSize = 10;
-            const ethNum = BigNumber.from(10);
-            const msgValue = ethers.utils.parseEther("21.0");
+        // check updateAndCheckPriceNow function
+        it("should return result", async () => {
+            await NestQuery.connect(userA).activate(userA.address);
+            await ethers.provider.send("evm_increaseTime", [60 * 1000]);
+            await ethers.provider.send("evm_mine");
+            await MockNestMining.mock.priceListOfToken
+                .withArgs(_C_USDT, 2)
+                .returns([1100, ETH(10), USDT(580), 1105, ETH(10), USDT(587)], 1105);
 
-            await CUSDT.transfer(userA.address, USDT('10000000'));
-            await CUSDT.transfer(userB.address, USDT('10000000'));
-            await CUSDT.connect(userA).approve(_C_NestPool, USDT(1000000));
-            await CUSDT.connect(userB).approve(_C_NestPool, USDT(1000000));
+            await MockNestMining.mock.priceAvgAndSigmaOf
+                .withArgs(_C_USDT)
+                .returns(USDT("587"), USDT("601"), 1234, 1004);
 
-            await NestMining.connect(userA).post2(_C_USDT, 10, USDT(450), NEST(1000), { value: msgValue });
-            await goBlocks(provider, 5);
-            await NestMining.connect(userA).post2(_C_USDT, 10, USDT(452), NEST(1010), { value: msgValue });
-            await goBlocks(provider, 5);
-            await NestMining.connect(userA).post2(_C_USDT, 10, USDT(450), NEST(1003), { value: msgValue });
-            await goBlocks(provider, 5);            
-            await NestMining.connect(userA).post2(_C_USDT, 10, USDT(453), NEST(1005), { value: msgValue });
-            await goBlocks(provider, 5);            
-            await NestMining.connect(userA).post2(_C_USDT, 10, USDT(451), NEST(1011), { value: msgValue });
-            await goBlocks(provider, 5);            
-            await NestMining.connect(userA).post2(_C_USDT, 10, USDT(454), NEST(1013), { value: msgValue });
-            await goBlocks(provider, 5);            
-            await NestMining.connect(userA).post2(_C_USDT, 10, USDT(452), NEST(1002), { value: msgValue });
-            await goBlocks(provider, 30);
-
-            expect(await NestMining.lengthOfPriceSheets(_C_USDT)).to.equal(7);
+            await NestQuery.connect(userA).updateAndCheckPriceNow(_C_USDT, {value: ETH(1), gasPrice:0 });
         });
 
-        it("can stat the price", async () => {
-            const nestPrice = NEST(1000);
-            const usdtPrice = USDT(350);
-            const chunkSize = 10;
-            const ethNum = BigNumber.from(10);
-            const msgValue = ethers.utils.parseEther("21.0");
+        // check priceList function
+        it("should get a pricelist", async () => {
 
-            const tx = await NestMining.connect(userB).stat(_C_USDT);
-            const receipt = await tx.wait();
-            // console.log("receipt=", receipt);
-            const ev = receipt.events.find((ev) => {
-                if (ev.event == "PriceComputed") {
-                    return true;
-                }
-            });
-            console.log("event=", ev);
-            const rs = await NestMining.latestPriceOf(_C_USDT);
-            console.log(`price(USDT){ethNum:${rs.ethNum}, tokenAmount:${rs.tokenAmount.div(usdtdec).toString()},h=${rs.atHeight}}`);
-            // console.log("sigma_sq=", show_64x64(vo.volatility_sigma_sq));
-            // console.log("tokenAvgPrice=", show_64x64(vo.tokenAvgPrice));
-            // console.log("vola=", vo);
-            const price = await NestMining.priceAvgAndSigmaOf(_C_USDT);
-            console.log("price=", price);
-            console.log("sigma=", show_64x64(price[2]));
-            console.log("avg=", show_64x64(price[1]));
+            await MockNestMining.mock.priceListOfToken
+                .withArgs(_C_USDT, 2)
+                .returns([1100, ETH(10), USDT(580), 1105, ETH(10), USDT(587)], 1105);
+
+            await MockNestMining.mock.priceAvgAndSigmaOf
+                .withArgs(_C_USDT)
+                .returns(USDT("587"), USDT("601"), 1234, 1004);
+
+            await NestQuery.connect(userA).priceList(_C_USDT, 2);
         });
-
-
-        it("can post and then stat the price", async () => {
-            const msgValue = ETH("21");
-
-            // Get the filter (the second null could be omitted)
-            // const filter = NestMining.filters.PriceComputed(null, null, null, null, null);
-            // NestMining.queryfilter(filter);
-            const tr = await NestMining.connect(userB).post2(_C_USDT, 10, USDT(450), NEST(1000), { value: msgValue });
-            let receipt = await tr.wait();
-            let ev = receipt.events.find((ev) => {
-                if (ev.event == "PricePosted") {
-                    console.log("PricePosted=", ev.args);
-                    return true;
-                }
-            });
-
-            // NestMining.on("PricePosted", (x1, x2, x3, x4, x5) => {
-            //     console.log("PricePosted=", x1, x2, x3, x4, x5);
-            // });
-  
-            console.log("tr=", (await tr.wait()).logs);
-            await goBlocks(provider, 30);
-
-            const tx = await NestMining.connect(userB).stat(_C_USDT);
-            receipt = await tx.wait();
-            console.log("receipt=", receipt);
-            console.log("receipt.log=", receipt.logs);
-            ev = receipt.events.find((ev) => {
-                if (ev.event == "PriceComputed") {
-                    console.log("PriceComputed=", ev.args);
-                    return true;
-                }
-            });
-            console.log("event=", ev);
-            const rs = await NestMining.latestPriceOf(_C_USDT);
-            console.log(`price(USDT){ethNum:${rs.ethNum}, tokenAmount:${rs.tokenAmount.div(usdtdec).toString()},h=${rs.atHeight}}`);
-            // const vo = await NestMining.volatility(_C_USDT);
-            // console.log("sigma_sq=", show_64x64(vo.volatility_sigma_sq));
-            // console.log("tokenAvgPrice=", show_64x64(vo.tokenAvgPrice));
-            // console.log("vola=", vo);
-            const price = await NestMining.priceAvgAndSigmaOf(_C_USDT);
-            console.log("price=", price);
-            console.log("sigma=", show_64x64(price[2]));
-            console.log("avg=", show_64x64(price[1]));
-        });
-
-
-        it("can withdraw NEST from the contract", async () => {
-            const blns = await NestQuery.balanceNest();
-            console.log("nest balance=", blns);
-            await NestQuery.withdrawNest(userA.address, blns);
-        });
-         */
-
-        // it("should be able to clear a price sheet correctly", async () => {
-
-        //     const ethNum = BN(10);
-        //     const chunkNum = BN(1);
-        //     const chunkSize = BN(10);
-
-        //     console.log(`provider=`, provider);
-        //     const h = await provider.getBlockNumber();
-        //     console.log(`height=${h}`);
-
-        //     await goBlocks(provider, 25);
-        //     const usdtPrice = USDT(350);
-
-        //     const nest_userA_pre = await NestPool.getMinerNest(userA.address);
-        //     const eth_nestpool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
-        //     const ethPool_userA_pre = await NestPool.balanceOfEthInPool(userA.address);
-        //     const usdtPool_userA_pre = await NestPool.balanceOfTokenInPool(userA.address, _C_USDT);
-
-        //     const tx = await NestMining.connect(userA).clear(_C_USDT, 0, 1);
-
-        //     // G1:
-        //     const sheet = await NestMining.contentOfPriceSheet(_C_USDT, 0);
-        //     expect(sheet.state).to.equal(1);
-        // });
 
     });
 

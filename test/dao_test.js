@@ -5,7 +5,7 @@ const {deployMockContract} = require('@ethereum-waffle/mock-contract');
 
 const {usdtdec, wbtcdec, nestdec, ethdec, 
     ETH, USDT, WBTC, MBTC, NEST, BigNum, BigN,
-    show_eth, show_usdt, show_64x64} = require("../scripts/utils.js");
+    show_eth, show_usdt, show_64x64, goBlocks} = require("../scripts/utils.js");
 
 const {deployUSDT, deployWBTC, deployNN, deployERC20,
     deployNEST, deployNWBTC,
@@ -14,6 +14,9 @@ const {deployUSDT, deployWBTC, deployNN, deployERC20,
     setupNest} = require("../scripts/deploy.js");
 
 const nwbtc = BigNumber.from(10).pow(18);
+
+let provider = ethers.provider;
+
 
 NWBTC = function (amount) {
     return BigNumber.from(amount).mul(nwbtc);
@@ -295,7 +298,7 @@ describe("NestToken contract", function () {
 
 
             // ntokenRepurchaseThreshold = NWBTC(1000000)
-            await NestDAO.connect(userD).setParams(NWBTC(1000000), 100);
+            await NestDAO.connect(userD).setParams(NWBTC(1000000), 10);
 
             // require totalSupply > ntokenRepurchaseThreshold
             await expect(NestDAO.connect(userA).redeem(_C_NWBTC, NWBTC(100), { gasPrice: 0})).to.be.reverted;
@@ -331,6 +334,11 @@ describe("NestToken contract", function () {
             const withdraw_amount = BigN(bal_nestToken).mul(100).add(NEST(100));
             
             await expect(NestDAO.connect(userA).redeem(_C_NestToken, withdraw_amount, { gasPrice: 0})).to.be.reverted;
+
+            await goBlocks(provider, 10);
+
+            // should redeem succeed
+            await NestDAO.connect(userA).redeem(_C_NestToken, bal_nestToken, { gasPrice: 0});
 
         });
 

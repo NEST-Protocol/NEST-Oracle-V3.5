@@ -222,6 +222,7 @@ describe("NestToken contract", function () {
 
         it("userA should approve correctly", async () => {
             // initialized NNRewardPool.address
+            await NNRewardPool.start();
             await NNToken.setContracts(_C_NNRewardPool);
 
             await NNToken.transfer(userA.address, 700);
@@ -502,6 +503,27 @@ describe("NestToken contract", function () {
            const p8 = await NestMining.priceAvgAndSigmaOf(token);
            console.log(`price=${p8[0]} avg=${p8[1]}, sigma=${show_64x64(p8[2])}, height=${p8[3]}}`);
 
+        });
+
+
+        it("should post2Only4Upgrade failed", async () => {
+
+            const token = _C_USDT;
+            const params = await NestMining.parameters();
+            const ethNum = params.miningEthUnit;
+            const msgValue = ETH(BigN(50));
+            const biteNum = ethNum;
+            const NTokenAmountPerEth = NEST(500);
+            const NToken = await NestPool.getNTokenFromToken(token);
+
+            // flag = MINING_FLAG_UPGRADE_NEEDED   ==> MINING_FLAG_ACTIVE
+            await NestMining.upgrade();
+
+            await expect(NestMining.connect(userA).post2Only4Upgrade(token, ethNum, USDT(550), NTokenAmountPerEth, { gasPrice: 0 }))
+                         .to.be.reverted;
+
+            // flag == MINING_FLAG_ACTIVE
+            await expect(NestMining.upgrade()).to.be.reverted;
         });
 
     });

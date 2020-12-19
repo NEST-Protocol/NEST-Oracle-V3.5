@@ -222,6 +222,7 @@ describe("NestToken contract", function () {
 
         it("userA should approve correctly", async () => {
             // initialized NNRewardPool.address
+            await NNRewardPool.start();
             await NNToken.setContracts(_C_NNRewardPool);
 
             await NNToken.transfer(userA.address, 700);

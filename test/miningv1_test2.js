@@ -221,6 +221,7 @@ describe("NestToken contract", function () {
 
         it("userA should approve correctly", async () => {
             // initialized NNRewardPool.address
+            await NNRewardPool.start();
             await NNToken.setContracts(_C_NNRewardPool);
 
             await NNToken.transfer(userA.address, 700);
@@ -1304,5 +1305,23 @@ describe("NestToken contract", function () {
             expect(sheet[0].height).to.equal(0);
 
         });
+
+        // check view function which located at nestpool
+        it("should return result correct", async () => {
+            
+            // attention : assetsList(uint256 len, address[] memory tokenList)
+            // len < = length(tokenList) + 1
+            await NestPool.connect(userA).assetsList(2, [_C_USDT, _C_WBTC]);
+            
+            
+            await NestPool.addrOfNTokenController();
+
+            await NestPool.addressOfBurnedNest();
+
+            await NestPool.getMinerEthAndToken(userA.address, _C_USDT);
+            
+            
+            await NestPool.getMinerNest(userA.address);
+        })
     });
 });

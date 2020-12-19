@@ -1,3 +1,5 @@
+// this test script complements the previous miningv1
+
 const { expect } = require('chai');
 const { WeiPerEther, BigNumber } = require("ethers");
 const { BN, time, balance, constants, expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
@@ -72,7 +74,7 @@ describe("NestToken contract", function () {
         CWBTC = await deployWBTC();
         [NestToken, IterableMapping] = await deployNEST();
         NNToken = await deployNN();
-        CNWBTC = await deployNWBTC(owner);
+        //CNWBTC = await deployNWBTC(owner);
 
         let contracts = {
             USDT: CUSDT,
@@ -80,7 +82,7 @@ describe("NestToken contract", function () {
             NEST: NestToken,
             IterableMapping: IterableMapping,
             NN: NNToken,
-            NWBTC: CNWBTC
+            //NWBTC: CNWBTC
         };
         const addrOfNest = await deployNestProtocol(owner, contracts);
         await printContracts("", addrOfNest);
@@ -99,7 +101,7 @@ describe("NestToken contract", function () {
 
         _C_USDT = CUSDT.address;
         _C_WBTC = CWBTC.address;
-        _C_NWBTC = CNWBTC.address;
+        //_C_NWBTC = CNWBTC.address;
         _C_NestToken = NestToken.address;
         _C_NestPool = NestPool.address;
         _C_NestMining = NestMining.address;
@@ -110,8 +112,8 @@ describe("NestToken contract", function () {
         _C_NestQuery = NestQuery.address;
         _C_NestDAO = NestDAO.address;
 
-        await NestPool.setNTokenToToken(_C_WBTC, _C_NWBTC);
-        await CNWBTC.setOfferMain(_C_NestMining);
+        //await NestPool.setNTokenToToken(_C_WBTC, _C_NWBTC);
+        //await CNWBTC.setOfferMain(_C_NestMining);
 
     });
 
@@ -143,6 +145,8 @@ describe("NestToken contract", function () {
         it("should have correct totalSupply", async () => {
             const expectedTotalSupply = NEST("10000000000");
             const totalSupply = await NestToken.totalSupply();
+            const amount = NEST("20000000");
+            await NestPool.initNestLedger(amount);
             expect(totalSupply).to.equal(expectedTotalSupply);
         })
 
@@ -200,21 +204,6 @@ describe("NestToken contract", function () {
         })
     });
 
-    describe('NWBTC NToken', function () {
-
-        it("userA should approve correctly", async () => {
-            await CNWBTC.transfer(userA.address, NWBTC('400000'));
-            await CNWBTC.connect(userA).approve(_C_NestPool, NWBTC('4000000'));
-            await CNWBTC.connect(userA).approve(_C_NTokenController, NWBTC('1000000'));
-        })
-
-        it("userB should approve correctly", async () => {
-            await CNWBTC.transfer(userB.address, NWBTC('400000'));
-            await CNWBTC.connect(userB).approve(_C_NestPool, NWBTC('4000000'));
-            await CNWBTC.connect(userB).approve(_C_NTokenController, NWBTC('1000000'));
-        })
-    });
-
     describe('NNToken', function () {
 
         it("userA should approve correctly", async () => {
@@ -236,100 +225,167 @@ describe("NestToken contract", function () {
 
     });
 
-    describe('test boundary conditions about nestmining', function () {
 
-        it('', async () => {
+    describe('NestMining price sheets', function () {
+
+        // check current version
+        it("should update version", async () => {
+
+            await NestMining.incVersion();
+        })
+
+
+        // should set parameters correctly
+        it("should set parameters correctly" , async () => {
+            
+            const param = await NestMining.parameters();
+            //console.log("current param :", param);
+            
+            // update params
+            await NestMining.setParams({
+                miningEthUnit: 15,
+                nestStakedNum1k: 1,
+                biteFeeRate: 1,
+                miningFeeRate: 1,
+                priceDurationBlock: 30,
+                maxBiteNestedLevel: 3,
+                biteInflateFactor: 2,
+                biteNestInflateFactor: 2,
+            });
+
+            //const param_now = await NestMining.parameters();
+
+            //console.log("now updated params :", param_now);
+
+            // reset params
+            await NestMining.setParams({
+                miningEthUnit: 10,
+                nestStakedNum1k: 1,
+                biteFeeRate: 1,
+                miningFeeRate: 10,
+                priceDurationBlock: 25,
+                maxBiteNestedLevel: 3,
+                biteInflateFactor: 2,
+                biteNestInflateFactor: 2,
+            });
+        })
+
+
+        // set gov, set userD as gov
+        it("should set gov correctly" , async () => {
+
+            // now the nestpool's gov is userD
+            await NestPool.setGovernance(userD.address);
+
+            const gov = await NestPool.governance();
+ 
+            // now the NestMining's gov is userD
+            await NestMining.loadGovernance();
+
+            const mining_gov = await NestMining.addrOfGovernance();
+ 
+            expect(gov).to.equal(userD.address);
+            expect(gov).to.equal(mining_gov);    
+        })
+
+        // should post new token rightly
+        it("should post new token correctly" , async () => {
             const token = _C_WBTC;
             const params = await NestMining.parameters();
             const ethNum = params.miningEthUnit;
-            const nestStakedNum1k = params.nestStakedNum1k;
             const priceDurationBlock = params.priceDurationBlock;
-            const miningFeeRate = params.miningFeeRate;
-            const MINING_LEGACY_NTOKEN_MINER_REWARD_PERCENTAGE = 95;
             const tokenAmountPerEth = WBTC(30);
             const msgValue = ETH(BigN(50));
 
-            const MINING_NTOKEN_FEE_DIVIDEND_RATE = 60;
-            const MINING_NTOKEN_FEE_DAO_RATE = 20;
-            const MINING_NTOKEN_FEE_NEST_DAO_RATE = 20;
+            // address(token) ==> address(NToken)
+            await NTokenController.start(10);
+            await NTokenController.connect(userA).open(token);
 
             const NToken = await NestPool.getNTokenFromToken(token);
 
-            // post (in order to calculate reward)
-            await NestMining.connect(userA).post(token, ethNum, tokenAmountPerEth, { value: msgValue });
+            // const balance = await CNWBTC.balanceOf(NToken);
+            //console.log("NToken = ",NToken);
 
-            // to calculate this post reward
-            await NestMining.connect(userA).post(token, ethNum, tokenAmountPerEth, { value: msgValue });
+            await goBlocks(provider, 1000);
 
             await NestMining.connect(userA).post(token, ethNum, tokenAmountPerEth, { value: msgValue });
+    
+            const index = await NestMining.lengthOfPriceSheets(token);
 
             await goBlocks(provider, priceDurationBlock);
 
+            await NestMining.connect(userA).close(token, index.sub(1));
+
+            const userA_NToken_pool_pre = await NestPool.balanceOfTokenInPool(userA.address, NToken);
+            //console.log("userA_NToken_pool_pre = ", userA_NToken_pool_pre.toString());
+
+            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NWBTC(100), { value: msgValue });
+
+            const userA_NToken_pool_pos = await NestPool.balanceOfTokenInPool(userA.address, NToken);
+            //console.log("userA_NToken_pool_pos = ", userA_NToken_pool_pos.toString());
+
+        })
+
+        // check view function 
+        it("check some view function" , async () => {
+            const token = _C_USDT;
+            const params = await NestMining.parameters();
+            const ethNum = params.miningEthUnit;
+            const miningFeeRate = params.miningFeeRate;
+            const priceDurationBlock = params.priceDurationBlock;
+            const nestStakedNum1k = params.nestStakedNum1k;
+
+            const MINING_NEST_FEE_DIVIDEND_RATE = 80;
+            const MINING_NEST_FEE_DAO_RATE = 20;
+
+            const tokenAmountPerEth = USDT(450);
+            const NTokenAmountPerEth = NEST(1000);
+            const msgValue = ETH(BigN(50));
+
+            const NToken = await NestPool.getNTokenFromToken(token);
+
+            // get current total nest which generated by mining 
+            const  minedNestAmount_pre = await NestMining.minedNestAmount();
+        
+            // post2
+            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
+
+            const bn = await ethers.provider.getBlockNumber();
+
+            const index = await NestMining.lengthOfPriceSheets(token);
+
+            // priceSheet, return part inf
+            const postSheet = await NestMining.priceSheet(token, index.sub(1));
+
+            await goBlocks(provider, priceDurationBlock);
 
             // close priceSheet 
-            const index = await NestMining.lengthOfPriceSheets(token);
-            const postSheet = await NestMining.fullPriceSheet(token, index.sub(1));
             await NestMining.connect(userA).close(token, index.sub(1));
-            await NestMining.connect(userA).close(token, index.sub(2));
 
-            //==========================================//
-            // record funds before posting
+            // get current total nest which generated by mining 
+            const minedNestAmount_pos = await NestMining.minedNestAmount();
 
-            const userA_eth_pool_pre = await NestPool.balanceOfEthInPool(userA.address);
-            const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
 
-            const eth_reward_NestStakingOfNToken_pre = await NestStaking.totalRewards(NToken);
-            const eth_reward_NestDAoOfNToken_pre = await NestDAO.totalETHRewards(NToken);
-            const eth_reward_NestDaoOfNestToken_pre = await NestDAO.totalETHRewards(NestToken.address);
-            const eth_reward_NestDao = await provider.getBalance(NestDAO.address);   
+            // return the new block number which include post / post2
+            const latestMiningHeight = await NestMining.latestMinedHeight();
+            expect(latestMiningHeight).to.equal(bn);
+        })
 
-            const ethFee = ETH(BigN(ethNum).mul(miningFeeRate)).div(1000);
 
-            await NestMining.connect(userA).post(token, ethNum, tokenAmountPerEth, { value: ethFee });
-
-            // calculate fee
-            //const ethFee = ETH(BigN(ethNum).mul(miningFeeRate)).div(1000);
-            const eth_reward_NestStakingOfNToken = ethFee.mul(MINING_NTOKEN_FEE_DIVIDEND_RATE).div(100);
-            const eth_reward_NestDAoOfNToken = ethFee.mul(MINING_NTOKEN_FEE_DAO_RATE).div(100);
-            const eth_reward_NestDaoOfNestToken = ethFee.mul(MINING_NTOKEN_FEE_NEST_DAO_RATE).div(100);
-
-            const freezeEthAmount = ETH(BigN(ethNum));
-
-            // record funds after posting
-
-            const userA_eth_pool_pos = await NestPool.balanceOfEthInPool(userA.address);
-            const eth_pool_pos = await NestPool.balanceOfEthInPool(_C_NestPool);
-            //const eth_reward_pos = await provider.getBalance(_C_NestStaking);
-
-            const eth_reward_NestStakingOfNToken_pos = await NestStaking.totalRewards(NToken);
-            const eth_reward_NestDAoOfNToken_pos = await NestDAO.totalETHRewards(NToken);
-            const eth_reward_NestDaoOfNestToken_pos = await NestDAO.totalETHRewards(NestToken.address);
-           
-            const eth_reward_NestDao1 = await provider.getBalance(NestDAO.address);
+        // check withdraw funds function
+        it("should withdraw funds correctly" , async () => {
             
-            // check funds
-            // check funds about userA
-            expect(userA_eth_pool_pre
-                .sub(freezeEthAmount))
-                .to.equal(userA_eth_pool_pos);
+            const token = _C_USDT;
+            await NestMining.connect(userA).withdrawEth(ETH(1));
 
-            // check funds about nestPool     
-            expect(eth_pool_pre.add(freezeEthAmount)).to.equal(eth_pool_pos);
+            await NestMining.connect(userA).withdrawEthAndToken(ETH(1), token, USDT(100));
 
-            // check funds about reward
-            expect(eth_reward_NestStakingOfNToken_pre
-                .add(eth_reward_NestStakingOfNToken))
-                .to.equal(eth_reward_NestStakingOfNToken_pos);
+            await NestMining.connect(userA).withdrawNest(NEST(100));
 
-            expect(eth_reward_NestDAoOfNToken_pre
-                .add(eth_reward_NestDAoOfNToken))
-                .to.equal(eth_reward_NestDAoOfNToken_pos);
+            await NestMining.connect(userA).withdrawEthAndTokenAndNest(ETH(1), token, USDT(100), NEST(100));
 
-            expect(eth_reward_NestDaoOfNestToken_pre
-                .add(eth_reward_NestDaoOfNestToken))
-                .to.equal(eth_reward_NestDaoOfNestToken_pos);
+        })
 
-        });
     });
 
 });

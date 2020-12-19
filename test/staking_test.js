@@ -543,6 +543,18 @@ describe("NestStaking contract", function () {
             expect(userA_NToken_pool_pos).to.equal(0);
         });
 
+        // check gov
+        it("should load gov correctly", async () => {
+            // now the nestpool's gov is userD
+            await NestPool.setGovernance(userD.address);
+
+            const gov = await NestPool.governance();
+
+            // now the NestStaking's gov is userD
+            await NestStaking.loadGovernance();
+
+            expect(gov).to.equal(userD.address);
+        })
     });
 
 });
