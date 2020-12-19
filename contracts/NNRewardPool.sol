@@ -119,9 +119,7 @@ contract NNRewardPool is INNRewardPool {
     {
         C_NestToken = INestPool(C_NestPool).addrOfNestToken();
         C_NNToken = INestPool(C_NestPool).addrOfNNToken();
-        C_NestMining = INestPool(C_NestPool).addrOfNestMining();
-        
-        flag = NNREWARD_FLAG_ACTIVE;
+        C_NestMining = INestPool(C_NestPool).addrOfNestMining();    
 
     }
 
