@@ -131,11 +131,12 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         _;
     }
     
+    /*
     modifier onlyBy(address _contract)
     {
         require(msg.sender == _contract, "Nest:Qury:!Auth");
         _;
-    }
+    }*/
 
     modifier noContract() 
     {
@@ -153,30 +154,25 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     }
 
     /// @notice Setup the parameters for queryings, one price for all token
-    /// @dev    Parameters can be reset by call it with zeros
+    /// @dev    Parameters can be reset by set time to zero
     function setParams(uint256 single, uint32 time, uint256 nestAmount) 
         public 
         onlyGovernance
     {
         (uint32 _singleFee, uint32 _time, uint32 _actFee, uint32 _res) =  decode_4x32_256(paramsEncoded);
 
-        if (_singleFee == 0 && _time == 0 && _actFee == 0) {
+        if (time == 0) {
+
             _singleFee = CLIENT_QUERY_FEE_ETH_TWEI;
             _time = CLIENT_ACTIVATION_DURATION_SECOND;
             _actFee = CLIENT_ACTIVATION_NEST_AMOUNT;
-        }
         
-        if (_singleFee != 0) {
+        } else {
+
             _singleFee = uint32(single);
-        }
-
-        if (time != 0) {
             _time = uint32(time);
-        }
-
-        if (nestAmount != 0) {
             _actFee = uint32(nestAmount / 1e18);
-        }
+        }    
 
         uint256 oldParamsEncoded = paramsEncoded;
 
@@ -192,6 +188,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         single = uint256(_singleFee).mul(1e12);
         leadTime = uint64(_time);
         nestAmount = uint256(_actFee).mul(1e18);
+
     }
 
     function loadContracts() override external onlyGovOrBy(C_NestPool)

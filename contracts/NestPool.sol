@@ -83,6 +83,7 @@ contract NestPool is INestPool {
         _;
     }
 
+
     modifier onlyGovOrBy2(address _contract, address _contract2)
     {
         require(msg.sender == governance || msg.sender == _contract || msg.sender == _contract2, "Nest:Pool:!Auth");
@@ -224,6 +225,7 @@ contract NestPool is INestPool {
         _token_ledger[token][to] = _token_ledger[token][to].add(amount);
     }
 
+    // this func seems not to be used
     function transferEthInPool(address from, address to, uint256 amount) 
         external onlyByNest
     {
@@ -493,7 +495,7 @@ contract NestPool is INestPool {
     {
         uint256[] memory list = new uint256[](len);
         list[0] = _eth_ledger[address(msg.sender)];
-        for (uint i = 0; i < len; i++) {
+        for (uint i = 0; i < len - 1; i++) {
             address _token = tokenList[i];
             list[i+1] = _token_ledger[_token][address(msg.sender)];
         }

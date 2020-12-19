@@ -235,7 +235,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
                         rewardPerToken(ntoken).sub(_reward_per_ntoken_claimed[ntoken][account])
                     ).div(1e18).add(rewardBalances[ntoken][account]);
     }
-
+    /*  // it is extra
     // calculate
     function _rewardPerTokenAndAccrued(address ntoken) 
         internal
@@ -254,7 +254,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
             ); // 80% of accrued to NEST holders as dividend
         return (_rewardPerToken, _accrued);
     }
-
+    */
     /* ========== STAK/UNSTAK/CLAIM ========== */
 
     modifier updateReward(address ntoken, address account) 
