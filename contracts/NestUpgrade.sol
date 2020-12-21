@@ -12,7 +12,7 @@ import "./iface/INestQuery.sol";
 import "./iface/INestStaking.sol";
 import "./iface/INNRewardPool.sol";
 import "./iface/INTokenController.sol";
-import "hardhat/console.sol";
+//import "hardhat/console.sol";
 
 
 /*
@@ -82,13 +82,7 @@ contract NestUpgrade {
         C_NTokenController = _C_NestPool.addrOfNTokenController();
         C_NestQuery = _C_NestPool.addrOfNestQuery();
         C_NestDAO = _C_NestPool.addrOfNestDAO();
-
-        // console.log("C_NestMining=", C_NestMining);
-        // console.log("C_NestStaking=", C_NestStaking);
-        // console.log("C_NNRewardPool=", C_NNRewardPool);
-        // console.log("C_NTokenController=", C_NTokenController);
-        // console.log("C_NestQuery=", C_NestQuery);
-        // console.log("C_NestDAO=", C_NestDAO);
+        
 
         INestMining(C_NestMining).loadGovernance();
         INestStaking(C_NestStaking).loadGovernance();

@@ -18,8 +18,6 @@ import "./iface/INTokenLegacy.sol";
 import "./iface/INestMining.sol";
 import "./iface/INestDAO.sol";
 
-// import "hardhat/console.sol";
-
 /// @title  NestMiningV1
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
 /// @author Paradox  - <paradox@nestprotocol.org>

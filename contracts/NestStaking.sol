@@ -11,7 +11,6 @@ import "./iface/INestStaking.sol";
 import "./lib/SafeERC20.sol";
 import "./lib/ReentrancyGuard.sol";
 import './lib/TransferHelper.sol';
-//import "hardhat/console.sol";
 
 /// @title NNRewardPool
 /// @author Inf Loop - <inf-loop@nestprotocol.org>

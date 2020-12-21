@@ -15,7 +15,6 @@ import "./iface/INToken.sol";
 import "./iface/INestQuery.sol";
 import "./iface/INestMining.sol";
 import "./iface/INestDAO.sol";
-import "hardhat/console.sol";
 
 /// @title NestQuery
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
