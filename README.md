@@ -44,22 +44,22 @@ npx hardhat scripts/setup_testnet.js --network kovan
 
 | Contract | Address |
 | ------------ | ------------|
-| block | 22598957 |
-|timestamp| 2020-12-15 16:14:28 |
-| USDT |  0xcBf49379fE6708039c2b6cbB435eE1c331dA86d6 | 
-| WBTC |  0xB06B26Ff782C824C0579D20aB666F7640Ab92587 | 
-|NEST| 0x9039835C77e0D58877608fe17267450d84EdDa59 |
-| NN |  0xA604637bE34bad76168E62b93ccF2f06EEeCdcE7 | 
-| IterableMapping |  0xcbc1726D1d322D0aba92911C04a13400219c2648 |  
-| NestPool |  0x61eb0043ae08e80157742f78e0AeA2D216c5125e | 
-| MiningV1Calc |  0x9D54fc5a2EFad9ddf6e7cA6046eD959bbda1ae48 | 
-| MiningV1Op |  0x54eB5D98F6F317a4e669831713fB97BBa6aF62A5 | 
-| NestMining |  0x15810601D74fC81147f10b1BEff6Cf3e949a7add | 
-| NestStaking |  0x2F184A26bb92df4fAa596a71a048f5976075f23e | 
-| NNRewardPool |  0x84Fccb596731997603218fe998671B593c593ffb | 
-| NTokenController | 0x9c16960223ee83ab0398169F336BBe95B0c2F1aB |
-| NestQuery | 0xF984b908F27FC845dAC13b841e64e98195eDe884 |
-| NestDAO | 0x36b7e0cFEf206bE9E70d1Cd08F15dF067c6F6F32 |
+| block | 22741430 |
+|timestamp| 2020-12-24 23:41:40 |
+| USDT |  0x9aB348f15Bf3CAd27542c4cF07891C5DfCf80bbD | 
+| WBTC |  0x8987FFafed5DB95Df695cD81419f51754E5c2D03 | 
+|NEST| 0xE9Bb75DECa4Cf70Acd3d1ec2aFD840f760E31B07 |
+| NN |  0x7CbE1918bA3bC0d30dD0cAC2391F6f7434c1929F | 
+| IterableMapping |  0x21A183fbdbb0bBf303cDB0E3f205Db092A38BFB3 |  
+| NestPool |  0x4A3D5D1c95aC73C6b02Bd3b4252EF54EF47170A4 | 
+| MiningV1Calc |  0xD256Ce11d5544822A386992c240bC940829905f7 | 
+| MiningV1Op |  0x27650dDafeB0787FF5511571daC593b49A05cB27 | 
+| NestMining |  0x66faAF2f2F052602823766085555448306556763 | 
+| NestStaking |  0x57669663fd38a0bD5383132BbFC27E156158b9b1 | 
+| NNRewardPool |  0x069b4E4F3806AE8A51ca505035F764C6C30cDf1d | 
+| NTokenController | 0xA55D2203aAa0758BcA319af27C730BAf7eCB05E6 |
+| NestQuery | 0x9e7f2f096F9A1c3630b017d4C06DD54231DF420a |
+| NestDAO | 0xE9EDb48cc2bc9f3Ed09d4c082D4e75FbEaD35A70 |
 
 #### Ropsten testnet
 
@@ -125,7 +125,8 @@ npx hardhat scripts/setup_testnet.js --network ropsten
 
 ## Changelog
 
-- 2020-12-24  upgrade kovan addresses about 
+- 2020-12-25: upgrade kovan addresses
+- 2020-12-24: upgrade kovan addresses about MiningV1Calc and MiningV1Op
 - 2020-12-16: update ropsten addresses
 - 2020-12-15: update kovan addresses
 - 2020-12-03: update kovan addresses
