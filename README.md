@@ -52,8 +52,8 @@ npx hardhat scripts/setup_testnet.js --network kovan
 | NN |  0xA604637bE34bad76168E62b93ccF2f06EEeCdcE7 | 
 | IterableMapping |  0xcbc1726D1d322D0aba92911C04a13400219c2648 |  
 | NestPool |  0x61eb0043ae08e80157742f78e0AeA2D216c5125e | 
-| MiningV1Calc |  0x8FBc707dfD7eEcF9e08d0C834C92824db6C48a16 | 
-| MiningV1Op |  0x994A6b43Ed9bea2a026b3aa19DFfDF6b7A50bfca | 
+| MiningV1Calc |  0x9D54fc5a2EFad9ddf6e7cA6046eD959bbda1ae48 | 
+| MiningV1Op |  0x54eB5D98F6F317a4e669831713fB97BBa6aF62A5 | 
 | NestMining |  0x15810601D74fC81147f10b1BEff6Cf3e949a7add | 
 | NestStaking |  0x2F184A26bb92df4fAa596a71a048f5976075f23e | 
 | NNRewardPool |  0x84Fccb596731997603218fe998671B593c593ffb | 
@@ -125,6 +125,7 @@ npx hardhat scripts/setup_testnet.js --network ropsten
 
 ## Changelog
 
+- 2020-12-24  upgrade kovan addresses about 
 - 2020-12-16: update ropsten addresses
 - 2020-12-15: update kovan addresses
 - 2020-12-03: update kovan addresses
