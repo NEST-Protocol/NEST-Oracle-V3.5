@@ -82,13 +82,26 @@ library MiningV1Op {
 
                 if (_level > state.maxBiteNestedLevel && _level < 127) { // bitten sheet, nest doubling
                     _newEthNum = biteNum;
-                    _newNestNum1k = _newNestNum1k.mul(state.biteNestInflateFactor * _newEthNum).div(_sheet.ethNum);
+                    _newNestNum1k = _newNestNum1k.mul(state.biteNestInflateFactor * biteNum).div(_sheet.ethNum);
                     _newLevel = _level + 1;
                 } else if (_level <= state.maxBiteNestedLevel) {  // bitten sheet, eth doubling 
                     _newEthNum = biteNum.mul(state.biteInflateFactor);
-                    _newNestNum1k = _newNestNum1k.mul(state.biteNestInflateFactor * _newEthNum).div(_sheet.ethNum);
+                    _newNestNum1k = _newNestNum1k.mul(state.biteNestInflateFactor * biteNum).div(_sheet.ethNum);
                     _newLevel = _level + 1;
                 } 
+
+                _C_NestPool.freezeNest(address(msg.sender), _newNestNum1k.mul(1000 * 1e18));
+
+                if(newTokenAmountPerEth < uint256(_sheet.tokenAmountPerEth) && _level > state.maxBiteNestedLevel) {
+                    uint256 _unfreezetokenAmount;
+                    _unfreezetokenAmount = uint256(_sheet.tokenAmountPerEth).sub(uint256(newTokenAmountPerEth));
+                    _C_NestPool.unfreezeToken(address(_sheet.miner), token, _unfreezetokenAmount);
+                    _C_NestPool.freezeEth(msg.sender, _newEthNum.add(biteNum).mul(1 ether));
+                } else {
+                        _C_NestPool.freezeEthAndToken(msg.sender, _newEthNum.add(biteNum).mul(1 ether), 
+                        token, _newEthNum.mul(newTokenAmountPerEth)
+                                         .sub(biteNum * _sheet.tokenAmountPerEth));
+                }
 
                 MiningV1Data.PriceSheet[] storage _sheetOfToken = state.priceSheetList[token];
                 // append a new price sheet
@@ -106,11 +119,9 @@ library MiningV1Op {
                     uint32(_newNestNum1k),           // nestNum1k
                     uint128(newTokenAmountPerEth)    // tokenAmountPerEth
                 ));
+              
             }
-            _C_NestPool.freezeNest(address(msg.sender), _newNestNum1k.mul(1000 * 1e18));
-            _C_NestPool.freezeEthAndToken(msg.sender, _newEthNum.add(biteNum).mul(1 ether), 
-                token, _newEthNum.mul(newTokenAmountPerEth)
-                                    .sub(biteNum * _sheet.tokenAmountPerEth));
+
             _sheet.state = MiningV1Data.PRICESHEET_STATE_BITTEN;
             _sheet.ethNumBal = uint32(uint256(_sheet.ethNumBal).add(biteNum));
             _sheet.tokenNumBal = uint32(uint256(_sheet.tokenNumBal).sub(biteNum));
@@ -178,11 +189,11 @@ library MiningV1Op {
 
                 if (_level > state.maxBiteNestedLevel && _level < 127) { // bitten sheet, nest doubling
                     _newEthNum = biteNum;
-                    _newNestNum1k = _newNestNum1k.mul(state.biteNestInflateFactor * _newEthNum).div(_sheet.ethNum);
+                    _newNestNum1k = _newNestNum1k.mul(state.biteNestInflateFactor * biteNum).div(_sheet.ethNum);
                     _newLevel = _level + 1;
                 } else if (_level <= state.maxBiteNestedLevel) {  // bitten sheet, eth doubling 
                     _newEthNum = biteNum.mul(state.biteInflateFactor);
-                    _newNestNum1k = _newNestNum1k.mul(state.biteNestInflateFactor * _newEthNum).div(_sheet.ethNum);
+                    _newNestNum1k = _newNestNum1k.mul(state.biteNestInflateFactor * biteNum).div(_sheet.ethNum);
                     _newLevel = _level + 1;
                 }
 

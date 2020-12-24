@@ -17,6 +17,7 @@ import "./iface/INestStaking.sol";
 import "./iface/INTokenLegacy.sol";
 import "./iface/INestMining.sol";
 import "./iface/INestDAO.sol";
+//import "hardhat/console.sol";
 
 /// @title  NestMiningV1
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
@@ -132,7 +133,7 @@ contract NestMiningV1 {
 
     /// @notice Write the block number as a version number
     /// @dev It shall be invoked *manually* whenever the contract is upgraded(behind proxy)
-    function incVersion() external onlyGovernance
+    function incVersion() external //onlyGovernance
     {
         version = uint64(block.number);
     }
@@ -326,7 +327,7 @@ contract NestMiningV1 {
             uint256 _ntokenH = uint256(_minedH >> 128);
             uint256 _ethH = uint256(_minedH % (1 << 128));
             if (_ntokenH == 0) {
-                uint256 _ntokenAmount = _mineNToken(_ntoken);  
+                uint256 _ntokenAmount = mineNToken(_ntoken);  
                 state.latestMiningHeight = uint32(block.number); 
                 address _bidder = INToken(_ntoken).checkBidder();
                 if (_bidder == state.C_NestPool) { // for new NTokens, 100% to miners
@@ -455,7 +456,7 @@ contract NestMiningV1 {
                 uint256 _nestH = uint256(_minedH >> 128);
                 uint256 _ethH = uint256(_minedH % (1 << 128));
                 if (_nestH == 0) {
-                    uint256 _nestAmount = _mineNest(); 
+                    uint256 _nestAmount = mineNest(); 
                     state.latestMiningHeight = uint32(block.number); 
                     state.minedNestAmount += uint128(_nestAmount);
                     _nestH = _nestAmount.mul(MiningV1Data.MINER_NEST_REWARD_PERCENTAGE).div(100); 
@@ -475,7 +476,7 @@ contract NestMiningV1 {
                 uint256 _ntokenH = uint256(_minedH >> 128);
                 uint256 _ethH = uint256(_minedH % (1 << 128));
                 if (_ntokenH == 0) {
-                    uint256 _ntokenAmount = _mineNToken(_ntoken);  
+                    uint256 _ntokenAmount = mineNToken(_ntoken);  
                     state.latestMiningHeight = uint32(block.number); 
                     address _bidder = INToken(_ntoken).checkBidder();
                     if (_bidder == state.C_NestPool) { // for new NTokens, 100% to miners
@@ -555,7 +556,7 @@ contract NestMiningV1 {
         // update the state flag
         _sheet.state = MiningV1Data.PRICESHEET_STATE_CLOSED;
 
-        // write back
+        // write backs
         state.priceSheetList[token][index] = _sheet;
 
         // emit an event
@@ -576,6 +577,7 @@ contract NestMiningV1 {
         noContract
     {
        state._closeAndWithdraw(token, index);
+       state._stat(token);
     }
 
     /// @notice Close a batch of price sheets passed VERIFICATION-PHASE
@@ -710,7 +712,7 @@ contract NestMiningV1 {
 
     /* ========== MINING ========== */
     
-    function _mineNest() private view returns (uint256) 
+    function mineNest() public view returns (uint256) 
     {
         uint256 _period = block.number.sub(MiningV1Data.MINING_NEST_GENESIS_BLOCK_HEIGHT).div(MiningV1Data.MINING_NEST_YIELD_CUTBACK_PERIOD);
         uint256 _nestPerBlock;
@@ -750,7 +752,7 @@ contract NestMiningV1 {
        return uint64(state.latestMiningHeight);
     }
 
-    function _mineNToken(address ntoken) private view returns (uint256) 
+    function mineNToken(address ntoken) public view returns (uint256) 
     {
         (uint256 _genesis, uint256 _last) = INToken(ntoken).checkBlockInfo();
 
