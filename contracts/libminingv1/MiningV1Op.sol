@@ -94,8 +94,9 @@ library MiningV1Op {
 
                 if(newTokenAmountPerEth < uint256(_sheet.tokenAmountPerEth) && _level > state.maxBiteNestedLevel) {
                     uint256 _unfreezetokenAmount;
-                    _unfreezetokenAmount = uint256(_sheet.tokenAmountPerEth).sub(uint256(newTokenAmountPerEth));
-                    _C_NestPool.unfreezeToken(address(_sheet.miner), token, _unfreezetokenAmount);
+                    _unfreezetokenAmount = uint256(_sheet.tokenAmountPerEth).sub(uint256(newTokenAmountPerEth)).mul(biteNum);
+                    //_C_NestPool.unfreezeToken(address(_sheet.miner), token, _unfreezetokenAmount);
+                    _C_NestPool.unfreezeToken(msg.sender, token, _unfreezetokenAmount);
                     _C_NestPool.freezeEth(msg.sender, _newEthNum.add(biteNum).mul(1 ether));
                 } else {
                         _C_NestPool.freezeEthAndToken(msg.sender, _newEthNum.add(biteNum).mul(1 ether), 
