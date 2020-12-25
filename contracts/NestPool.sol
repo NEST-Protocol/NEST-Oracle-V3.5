@@ -369,12 +369,12 @@ contract NestPool is INestPool {
 
     function balanceOfEthFreezed() public view returns (uint256)
     {
-        return _eth_ledger[address(0x0)];
+        return _eth_ledger[address(this)];
     }
 
     function balanceOfTokenFreezed(address token) public view returns (uint256)
     {
-        return _token_ledger[token][address(0x0)];
+        return _token_ledger[token][address(this)];
     }
 
     /* ========== DISTRIBUTING ========== */
@@ -485,10 +485,11 @@ contract NestPool is INestPool {
     }
 
     /* ========== HELPERS (VIEWS) ========== */
-        
+    // the user needs to be reminded of the parameter settings    
     function assetsList(uint256 len, address[] memory tokenList) 
         public view returns (uint256[] memory) 
     {
+        // len < = length(tokenList) + 1
         uint256[] memory list = new uint256[](len);
         list[0] = _eth_ledger[address(msg.sender)];
         for (uint i = 0; i < len - 1; i++) {
