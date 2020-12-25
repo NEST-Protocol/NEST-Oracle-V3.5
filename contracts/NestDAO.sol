@@ -262,7 +262,8 @@ contract NestDAO is INestDAO, ReentrancyGuard {
 
         // check if there is sufficient quota for repurchase
         require (amount < quota, "Nest:DAO:!quota");
-        require (amount.mul(1e18).div(price) < bal, "Nest:DAO:!bal2");
+        require (amount.mul(1e18) <= bal.mul(price), "Nest:DAO:!bal2");
+        //require (amount.mul(1e18).div(price) < bal, "Nest:DAO:!bal2");
 
         // update the ledger
         Ledger memory it = ntokenLedger[ntoken];
