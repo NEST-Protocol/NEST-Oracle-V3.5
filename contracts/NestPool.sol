@@ -490,6 +490,7 @@ contract NestPool is INestPool {
         public view returns (uint256[] memory) 
     {
         // len < = length(tokenList) + 1
+        require(len == tokenList.length + 1, "Nest: Pool: !assetsList");
         uint256[] memory list = new uint256[](len);
         list[0] = _eth_ledger[address(msg.sender)];
         for (uint i = 0; i < len - 1; i++) {

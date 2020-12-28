@@ -88,7 +88,7 @@ library MiningV1Calc {
         }
 
         uint256 h = uint256(pL[i].height);
-        if (h + priceDurationBlock > block.number) {
+        if (h + priceDurationBlock >= block.number) {
             return (MiningV1Data.PriceInfo(0,0,0,0,0,int128(0),int128(0), uint128(0), 0));
         }
 
@@ -175,7 +175,7 @@ library MiningV1Calc {
         uint256 startGas = gasleft();
         uint256 gasUsed;
 
-        while (uint256(p0.index) < pL.length && uint256(p0.height) + state.priceDurationBlock <= block.number){
+        while (uint256(p0.index) < pL.length && uint256(p0.height) + state.priceDurationBlock < block.number){
             gasUsed = startGas - gasleft();
             // NOTE: check gas usage to prevent DOS attacks
             if (gasUsed > 1_000_000) {
@@ -244,7 +244,7 @@ library MiningV1Calc {
             _sheet = _list[len - i];
             _curr = uint256(_sheet.height);
             if (_prev == 0) {
-                if (_curr + state.priceDurationBlock <= block.number) {
+                if (_curr + state.priceDurationBlock < block.number) {
                     data[_index] = uint128(_curr + state.priceDurationBlock); // safe math
                     _ethNum = uint256(_sheet.remainNum);
                     data[_index + 1] = uint128(_ethNum.mul(1 ether));
@@ -297,7 +297,7 @@ library MiningV1Calc {
             _sheet = _list[len - i];
             _first = uint256(_sheet.height);
             if (_prev == 0) {
-                if (_first <= uint256(atHeight) && _first + state.priceDurationBlock <= block.number) {
+                if (_first <= uint256(atHeight) && _first + state.priceDurationBlock < block.number) {
                     _ethNum = uint256(_sheet.remainNum);
                     ethAmount = _ethNum.mul(1 ether);
                     tokenAmount = _ethNum.mul(_sheet.tokenAmountPerEth);
@@ -347,7 +347,7 @@ library MiningV1Calc {
         uint256 len = _list.length;
         uint256 num;
         for (uint i = 0; i < len; i++) {
-            if (_list[len - 1 - i].height + state.priceDurationBlock <= block.number) {
+            if (_list[len - 1 - i].height + state.priceDurationBlock < block.number) {
                 break;
             }
             num += 1;
@@ -356,7 +356,7 @@ library MiningV1Calc {
         sheets = new MiningV1Data.PriceSheet[](num);
         for (uint i = 0; i < num; i++) {
             MiningV1Data.PriceSheet memory _sheet = _list[len - 1 - i];
-            if (_sheet.height + state.priceDurationBlock <= block.number) {
+            if (_sheet.height + state.priceDurationBlock < block.number) {
                 break;
             }
             sheets[i] = _sheet;

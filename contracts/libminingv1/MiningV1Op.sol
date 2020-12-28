@@ -45,7 +45,7 @@ library MiningV1Op {
 
         // check sheet
         MiningV1Data.PriceSheet memory _sheet = state.priceSheetList[token][index]; 
-        require(_sheet.height + state.priceDurationBlock > block.number, "Nest:Mine:!EFF(sheet)");
+        require(_sheet.height + state.priceDurationBlock >= block.number, "Nest:Mine:!EFF(sheet)");
         require(_sheet.remainNum >= biteNum, "Nest:Mine:!(remain)");
 
         // load address of NestPool 
@@ -156,7 +156,7 @@ library MiningV1Op {
         require(biteNum >= state.miningEthUnit && biteNum % state.miningEthUnit == 0, "Nest:Mine:!(bite)");
 
         MiningV1Data.PriceSheet memory _sheet = state.priceSheetList[token][index]; 
-        require(block.number.sub(_sheet.height) < state.priceDurationBlock, "Nest:Mine:!EFF(sheet)");
+        require(block.number.sub(_sheet.height) <= state.priceDurationBlock, "Nest:Mine:!EFF(sheet)");
         require(_sheet.remainNum >= biteNum, "Nest:Mine:!(remain)");
 
         INestPool _C_NestPool = INestPool(state.C_NestPool);
