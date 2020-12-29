@@ -80,7 +80,7 @@ contract NestPool is INestPool {
         _;
     }
 
-
+    /*
     modifier onlyGovOrBy2(address _contract, address _contract2)
     {
         require(msg.sender == governance || msg.sender == _contract || msg.sender == _contract2, "Nest:Pool:!Auth");
@@ -95,7 +95,7 @@ contract NestPool is INestPool {
             || msg.sender == _contract3, "Nest:Pool:!Auth");
         _;
     }
-
+    */
     modifier onlyByNest()
     {
         require(msg.sender == C_NestMining
