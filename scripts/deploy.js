@@ -49,6 +49,20 @@ exports.deployWBTC = async function () {
     return CWBTC;
 }
 
+exports.deployHBTC = async function () {
+
+    const ERC20Contract = await ethers.getContractFactory("UERC20");
+
+    const CHBTC = await ERC20Contract.deploy("21000000000000000000000000", "HBTC Test Token", "HBTC", 18);
+
+    const tx = CHBTC.deployTransaction;
+    await tx.wait(1);
+    
+    console.log(`>>> [DPLY]: HBTC deployed, address=${CHBTC.address}, block=${tx.blockNumber}`);
+
+    return CHBTC;
+}
+
 exports.deployNWBTC = async function (owner) {
 
     console.log(`>>> [DPLY] NWBTC .......`);
@@ -65,6 +79,24 @@ exports.deployNWBTC = async function (owner) {
     console.log(`>>> [DPLY]: NWBTC deployed, address=${CNWBTC.address}, block=${tx.blockNumber}`);
 
     return CNWBTC;
+}
+
+exports.deployNHBTC = async function (owner) {
+
+    console.log(`>>> [DPLY] NHBTC .......`);
+    const NTokenContract = await ethers.getContractFactory("NestNToken");
+    console.log(`>>> [DPLY] NHBTC .......2`);
+
+    const CNHBTC = await NTokenContract.deploy("900000000000000000000000", "NHBTC", "NHBTC", owner.address);
+    console.log(`>>> [DPLY] NHBTC .......3`);
+
+    const tx = CNHBTC.deployTransaction;
+    await tx.wait(1);
+    console.log(`>>> [DPLY] NHBTC .......4`);
+
+    console.log(`>>> [DPLY]: NHBTC deployed, address=${CNHBTC.address}, block=${tx.blockNumber}`);
+
+    return CNHBTC;
 }
 
 exports.deployNEST = async function () {
@@ -96,7 +128,6 @@ exports.deployNN = async function () {
     console.log(`>>> [DPLY]: NNToken deployed, address=${NNToken.address}, block=${NNToken.deployTransaction.blockNumber}`);
     return NNToken;
 }
-
 
 
 exports.printContracts = function (format, contracts) {

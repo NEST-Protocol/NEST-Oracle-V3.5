@@ -66,34 +66,32 @@ const main = async function () {
     const nestStakedNum1k = params.nestStakedNum1k;
     
     const NToken = await NestPool.getNTokenFromToken(CUSDT.address);
-    //console.log("NToken = ",NToken);
+    console.log("NToken = ",NToken);
     
-    let tx = await NestMining.connect(userA).post2(CUSDT.address, ethNum, USDT(450), NEST(1000), { value: ETH(ethNum.mul(2).add(1))});
+    let tx = await NestMining.connect(userA).post2(CUSDT.address, 1, USDT(450), NEST(1000), { value: ETH(ethNum.mul(2).add(1))});
     console.log('> [INIT]: NestMining.post2() userA post2 ...... ok');
      
     await tx.wait(1);
     console.log('>>> [WAIT]: waited 1 blocks ...... ok');
-
+    
     const index_post_usdt = await NestMining.lengthOfPriceSheets(CUSDT.address);
     const index_post_ntoken = await NestMining.lengthOfPriceSheets(NestToken.address);
     console.log("index_post_usdt = ",index_post_usdt.toString());
     console.log('> [INIT]: NestMining.lengthOfPriceSheets() lengthOfPriceSheets() ...... ok');
-
+    
     const pricesheet_post_usdt_pre = await NestMining.fullPriceSheet(CUSDT.address, index_post_usdt.sub(1));
     
     tx = await NestMining.connect(userB).biteToken(CUSDT.address, index_post_usdt.sub(1), ethNum, USDT(300), { value: ETH(ethNum.mul(biteFactor).add(ethNum).add(1)) });
     console.log('> [INIT]: NestMining.biteToken() bitetoken() ...... ok');
     
-    //await tx.wait(21);
+    await tx.wait(21);
     console.log('> [INIT]: waited 21 blocks ...... ok');
-    await tx.wait();
-    await goBlocks(provider, 21);
-   
+    //await goBlocks(provider, 21);
+    
     const index_biteToken = await NestMining.lengthOfPriceSheets(CUSDT.address);
     console.log('> [INIT]: NestMining.lengthOfPriceSheets() lengthOfPriceSheets() ...... ok');
     
     const pricesheet_post_usdt = await NestMining.fullPriceSheet(CUSDT.address, index_post_usdt.sub(1));
-
 
     const ethAmount_post_usdt = ETH(BigN(pricesheet_post_usdt.ethNumBal));
     const tokenAmount_post_usdt = USDT(BigN(pricesheet_post_usdt.tokenNumBal).mul(450));

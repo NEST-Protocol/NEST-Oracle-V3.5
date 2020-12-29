@@ -1,11 +1,9 @@
-
-
 const {usdtdec, wbtcdec, nestdec, ethdec, 
     ETH, USDT, WBTC, MBTC, NEST, BigNum, 
     show_eth, show_usdt, show_64x64, timeConverter} = require("./utils.js");
 
 const {deployUSDT, deployWBTC, deployNN, 
-    deployNEST, 
+    deployNEST, deployUpgrade,
     deployNestProtocol,
     deployNestProtocolWithProxy, printContracts, getContractsFromAddrList,
     setupNest} = require("./deploy.js");
@@ -25,14 +23,15 @@ async function main() {
         }else if (network.name === "ropsten") {
             return contractsDeployed_ropsten;
         }
-    } ();    
+    } (); 
+
     [owner, userA, userB, userC, userD, dev, NNodeA, NNodeB] = await ethers.getSigners();
 
     const contracts = await getContractsFromAddrList(addrList);
 
-    // const CUSDT = contracts.CUSDT;
-    // const NestToken = contracts.NestToken;
-    // const NestPool = contracts.NestPool;
+    //const CUSDT = contracts.CUSDT;
+    //const NestToken = contracts.NestToken;
+    //const NestPool = contracts.NestPool;
     const NestMining = contracts.NestMining;
     // const NestStaking = contracts.NestStaking;
     // const NTokenController = contracts.NTokenController;
@@ -73,13 +72,13 @@ async function main() {
     console.log(`>>> [UPGD]: NestMining upgraded with Proxy ...... [OK]`);
     console.log(`>>>    [INFO]: NestMining.address=${NewNestMining.address}`);
 
-    const tx = await NestMining.incVersion();
+    let tx = await NestMining.incVersion();
     await tx.wait();
+    
     const v1 = await NestMining.version();
     console.log(`>>>    [INFO]: NEW NestMining.version = ${v1}, block=${tx.blockNumber}`);
 
     await printContracts("js", addrList);
-
 
 }
 

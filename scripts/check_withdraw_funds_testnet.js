@@ -33,7 +33,8 @@ const main = async function () {
 
     console.log(`> [INIT]: Starting to check Nest-Protocol v3.5 ...`);
 
-
+    CUSDT = await ethers.getContractAt("UERC20", contractsDeployed.USDT);
+    
     const NestToken = await ethers.getContractAt("IBNEST", contractsDeployed.NEST,
         {
             libraries: {
