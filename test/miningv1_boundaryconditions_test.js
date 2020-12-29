@@ -4,10 +4,11 @@ const { BN, time, balance, constants, expectEvent, expectRevert } = require('@op
 
 const { usdtdec, wbtcdec, nestdec, ethdec,
     ETH, USDT, WBTC, MBTC, NEST, BigNum, BigN,
-    show_eth, show_usdt, show_64x64 } = require("../scripts/utils.js");
+    show_eth, show_usdt, show_64x64, HBTC, NHBTC } = require("../scripts/utils.js");
 
 const { deployUSDT, deployWBTC, deployNN,
     deployNEST, deployNWBTC,
+    deployHBTC, deployNHBTC,
     deployNestProtocol,
     printContracts,
     setupNest } = require("../scripts/deploy.js");
@@ -74,13 +75,18 @@ describe("NestToken contract", function () {
         NNToken = await deployNN();
         CNWBTC = await deployNWBTC(owner);
 
+        CHBTC = await deployHBTC();
+        CNHBTC = await deployNHBTC(owner);
+
         let contracts = {
             USDT: CUSDT,
             WBTC: CWBTC,
             NEST: NestToken,
             IterableMapping: IterableMapping,
             NN: NNToken,
-            NWBTC: CNWBTC
+            NWBTC: CNWBTC,
+            HBTC: CHBTC,
+            NHBTC: CNHBTC
         };
         const addrOfNest = await deployNestProtocol(owner, contracts);
         await printContracts("", addrOfNest);
@@ -100,6 +106,8 @@ describe("NestToken contract", function () {
         _C_USDT = CUSDT.address;
         _C_WBTC = CWBTC.address;
         _C_NWBTC = CNWBTC.address;
+        _C_HBTC = CHBTC.address;
+        _C_NHBTC = CNHBTC.address;
         _C_NestToken = NestToken.address;
         _C_NestPool = NestPool.address;
         _C_NestMining = NestMining.address;
@@ -112,6 +120,9 @@ describe("NestToken contract", function () {
 
         await NestPool.setNTokenToToken(_C_WBTC, _C_NWBTC);
         await CNWBTC.setOfferMain(_C_NestMining);
+
+        await NestPool.setNTokenToToken(_C_HBTC, _C_NHBTC);
+        await CNHBTC.setOfferMain(_C_NestMining);
 
     });
 
@@ -215,6 +226,21 @@ describe("NestToken contract", function () {
         })
     });
 
+    describe('HBTC Token', function () {
+
+        it("userA should approve correctly", async () => {
+            await CHBTC.transfer(userA.address, HBTC('10000'));
+            await CHBTC.connect(userA).approve(_C_NestPool, HBTC(10000));
+            await CHBTC.connect(userA).approve(_C_NTokenController, HBTC(1));
+        })
+
+        it("userB should approve correctly", async () => {
+            await CHBTC.transfer(userB.address, HBTC('10000'));
+            await CHBTC.connect(userB).approve(_C_NestPool, HBTC(10000));
+            await CHBTC.connect(userB).approve(_C_NTokenController, HBTC(1));
+        })
+    });
+
     describe('NNToken', function () {
 
         it("userA should approve correctly", async () => {
@@ -238,7 +264,7 @@ describe("NestToken contract", function () {
 
     describe('test boundary conditions about nestmining', function () {
 
-        it('', async () => {
+        it('should return correctly result', async () => {
             const token = _C_WBTC;
             const params = await NestMining.parameters();
             const ethNum = params.miningEthUnit;
@@ -281,7 +307,7 @@ describe("NestToken contract", function () {
             const eth_reward_NestStakingOfNToken_pre = await NestStaking.totalRewards(NToken);
             const eth_reward_NestDAoOfNToken_pre = await NestDAO.totalETHRewards(NToken);
             const eth_reward_NestDaoOfNestToken_pre = await NestDAO.totalETHRewards(NestToken.address);
-            const eth_reward_NestDao = await provider.getBalance(NestDAO.address);   
+            const eth_reward_NestDao = await provider.getBalance(NestDAO.address);
 
             const ethFee = ETH(BigN(ethNum).mul(miningFeeRate)).div(1000);
 
@@ -304,9 +330,9 @@ describe("NestToken contract", function () {
             const eth_reward_NestStakingOfNToken_pos = await NestStaking.totalRewards(NToken);
             const eth_reward_NestDAoOfNToken_pos = await NestDAO.totalETHRewards(NToken);
             const eth_reward_NestDaoOfNestToken_pos = await NestDAO.totalETHRewards(NestToken.address);
-           
+
             const eth_reward_NestDao1 = await provider.getBalance(NestDAO.address);
-            
+
             // check funds
             // check funds about userA
             expect(userA_eth_pool_pre
@@ -330,6 +356,139 @@ describe("NestToken contract", function () {
                 .to.equal(eth_reward_NestDaoOfNestToken_pos);
 
         });
-    });
 
+
+        it("should post HBTC correctly", async () => {
+
+            //======================================= post HBTC =========================================//
+            //===========================================================================================//
+            const token = _C_HBTC;
+            const params = await NestMining.parameters();
+            const nestStakedNum1k = params.nestStakedNum1k;
+            const ethNum = params.miningEthUnit;
+            const miningFeeRate = params.miningFeeRate;
+            const tokenAmountPerEth = HBTC(30);
+            const msgValue = ETH(BigN(50));
+
+            const MINING_NTOKEN_FEE_DIVIDEND_RATE = 60;
+            const MINING_NTOKEN_FEE_DAO_RATE = 20;
+            const MINING_NTOKEN_FEE_NEST_DAO_RATE = 20;
+
+            // address(token) ==> address(NToken)
+            // await NTokenController.connect(userA).open(token);
+
+            const NToken = await NestPool.getNTokenFromToken(token);
+            const balance = await CNHBTC.balanceOf(NToken);
+
+            // record funds before posting
+            const userA_nest_in_exAddress_pre = await NestToken.balanceOf(userA.address);
+            const userA_nest_pool_pre = await NestPool.balanceOfNestInPool(userA.address);
+            const userA_token_pool_pre = await NestPool.balanceOfTokenInPool(userA.address, token);
+            const userA_eth_pool_pre = await NestPool.balanceOfEthInPool(userA.address);
+            const userA_token_in_exAddress_pre = await CHBTC.balanceOf(userA.address);
+
+            const nest_pool_pre = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const token_pool_pre = await NestPool.balanceOfTokenInPool(_C_NestPool, token);
+            const eth_pool_pre = await NestPool.balanceOfEthInPool(_C_NestPool);
+            //const eth_reward_pre = await provider.getBalance(_C_NestStaking);
+
+            const eth_reward_NestStakingOfNToken_pre = await NestStaking.totalRewards(NToken);
+            const eth_reward_NestDAoOfNToken_pre = await NestDAO.totalETHRewards(NToken);
+            const eth_reward_NestDaoOfNestToken_pre = await NestDAO.totalETHRewards(NestToken.address);
+
+            // post 
+            await NestMining.connect(userA).post(token, ethNum, tokenAmountPerEth, { value: msgValue });
+
+            // calculate fee
+            const ethFee = ETH(BigN(ethNum).mul(miningFeeRate)).div(1000);
+            const eth_reward_NestStakingOfNToken = ethFee.mul(MINING_NTOKEN_FEE_DIVIDEND_RATE).div(100);
+            const eth_reward_NestDAoOfNToken = ethFee.mul(MINING_NTOKEN_FEE_DAO_RATE).div(100);
+            const eth_reward_NestDaoOfNestToken = ethFee.mul(MINING_NTOKEN_FEE_NEST_DAO_RATE).div(100);
+
+            const freezeEthAmount = ETH(BigN(ethNum));
+            const freezeTokenAmount = BigN(tokenAmountPerEth).mul(ethNum);
+            const freezeNestAmount = NEST(BigN(nestStakedNum1k).mul(1000));
+
+            // record funds after posting
+            const userA_nest_in_exAddress_pos = await NestToken.balanceOf(userA.address);
+            const userA_nest_pool_pos = await NestPool.balanceOfNestInPool(userA.address);
+            const userA_token_pool_pos = await NestPool.balanceOfTokenInPool(userA.address, token);
+            const userA_eth_pool_pos = await NestPool.balanceOfEthInPool(userA.address);
+            const userA_token_in_exAddress_pos = await CHBTC.balanceOf(userA.address);
+
+            const nest_pool_pos = await NestPool.balanceOfNestInPool(_C_NestPool);
+            const token_pool_pos = await NestPool.balanceOfTokenInPool(_C_NestPool, token);
+            const eth_pool_pos = await NestPool.balanceOfEthInPool(_C_NestPool);
+            //const eth_reward_pos = await provider.getBalance(_C_NestStaking);
+
+            const eth_reward_NestStakingOfNToken_pos = await NestStaking.totalRewards(NToken);
+            const eth_reward_NestDAoOfNToken_pos = await NestDAO.totalETHRewards(NToken);
+            const eth_reward_NestDaoOfNestToken_pos = await NestDAO.totalETHRewards(NestToken.address);
+
+
+            // check funds
+            // check funds about userA
+            expect(userA_eth_pool_pre.add(msgValue)
+                .sub(ethFee)
+                .sub(freezeEthAmount))
+                .to.equal(userA_eth_pool_pos);
+
+            expect(userA_token_in_exAddress_pre.add(userA_token_pool_pre)
+                .sub(freezeTokenAmount))
+                .to.equal(userA_token_in_exAddress_pos.add(userA_token_pool_pos));
+
+
+            expect(userA_nest_in_exAddress_pre.add(userA_nest_pool_pre)
+                .sub(freezeNestAmount))
+                .to.equal(userA_nest_in_exAddress_pos.add(userA_nest_pool_pos));
+
+            // check funds about nestPool     
+            expect(eth_pool_pre.add(freezeEthAmount)).to.equal(eth_pool_pos);
+            expect(token_pool_pre.add(freezeTokenAmount)).to.equal(token_pool_pos);
+            expect(nest_pool_pre.add(freezeNestAmount)).to.equal(nest_pool_pos);
+
+            // check funds about reward
+            expect(eth_reward_NestStakingOfNToken_pre
+                .add(eth_reward_NestStakingOfNToken))
+                .to.equal(eth_reward_NestStakingOfNToken_pos);
+
+            expect(eth_reward_NestDAoOfNToken_pre
+                .add(eth_reward_NestDAoOfNToken))
+                .to.equal(eth_reward_NestDAoOfNToken_pos);
+
+            expect(eth_reward_NestDaoOfNestToken_pre
+                .add(eth_reward_NestDaoOfNestToken))
+                .to.equal(eth_reward_NestDaoOfNestToken_pos);
+
+
+            //=======================check pricesheet================//
+            const h = await provider.getBlockNumber();
+            const index = await NestMining.lengthOfPriceSheets(token);
+            const postSheet = await NestMining.fullPriceSheet(token, index.sub(1));
+
+            expect(postSheet.miner).to.equal(userA.address);
+
+            expect(postSheet.height).to.equal(h);
+
+            expect(postSheet.ethNum).to.equal(ethNum);
+
+            expect(postSheet.remainNum).to.equal(ethNum);
+
+            expect(postSheet.level).to.equal(0);
+
+            expect(postSheet.typ).to.equal(3);
+
+            expect(postSheet.state).to.equal(1);
+
+            expect(postSheet.nestNum1k).to.equal(1);
+
+            expect(postSheet.ethNumBal).to.equal(ethNum);
+
+            expect(postSheet.tokenNumBal).to.equal(ethNum);
+
+            expect(postSheet.tokenAmountPerEth).to.equal(tokenAmountPerEth);
+
+        });
+
+    });
 });

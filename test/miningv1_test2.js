@@ -808,7 +808,7 @@ describe("NestToken contract", function () {
 
             // calculate fee
             const ethFee = ETH(BigN(biteNum)).div(1000);
-            const newNestNum1k = BigN(postSheet.nestNum1k).mul(biteNum).mul(2).div(postSheet.ethNum).mul(2);
+            const newNestNum1k = BigN(postSheet.nestNum1k).mul(biteNum).div(postSheet.ethNum).mul(2);
             const freezeNestAmount = NEST(newNestNum1k.mul(1000));
             const freezeEthAmount = ETH(BigN(biteNum).mul(3));
             const freezeTokenAmount = BigN(biteNum).mul(2).mul(newTokenAmountPerEth).sub(BigN(biteNum).mul(postSheet.tokenAmountPerEth));
@@ -911,7 +911,7 @@ describe("NestToken contract", function () {
             // calculate fee
             const ethFee = ETH(BigN(biteNum)).div(1000);
 
-            const newNestNum1k = BigN(postSheet.nestNum1k).mul(biteNum).mul(2).div(postSheet.ethNum).mul(2);
+            const newNestNum1k = BigN(postSheet.nestNum1k).mul(biteNum).div(postSheet.ethNum).mul(2);
             const freezeNestAmount = NEST(newNestNum1k.mul(1000));
             const freezeEthAmount = ETH(BigN(biteNum));
             const freezeTokenAmount = BigN(biteNum).mul(2).mul(newTokenAmountPerEth).add(BigN(biteNum).mul(postSheet.tokenAmountPerEth));
@@ -1311,15 +1311,20 @@ describe("NestToken contract", function () {
             
             // attention : assetsList(uint256 len, address[] memory tokenList)
             // len < = length(tokenList) + 1
-            await NestPool.connect(userA).assetsList(2, [_C_USDT, _C_WBTC]);
+            const a = await NestPool.connect(userA).assetsList(3, [_C_USDT, _C_WBTC]);
+            //console.log("a = ",a);
             
+            const b = await NestPool.connect(userA).assetsList(2, [_C_USDT]);
+            //console.log("b = ",b);
+
+
+            await expect(NestPool.connect(userA).assetsList(3, [_C_USDT])).to.be.reverted;
             
             await NestPool.addrOfNTokenController();
 
             await NestPool.addressOfBurnedNest();
 
             await NestPool.getMinerEthAndToken(userA.address, _C_USDT);
-            
             
             await NestPool.getMinerNest(userA.address);
         })

@@ -799,7 +799,7 @@ describe("NestToken contract", function () {
 
             // calculate fee
             const ethFee = ETH(BigN(biteNum).mul(biteFeeRate)).div(1000);
-            const newNestNum1k = BigN(postSheet.nestNum1k).mul(biteNum).mul(2).div(postSheet.ethNum).mul(2);
+            const newNestNum1k = BigN(postSheet.nestNum1k).mul(biteNum).div(postSheet.ethNum).mul(2);
             const freezeNestAmount = NEST(newNestNum1k.mul(1000));
             const freezeEthAmount = ETH(BigN(biteNum).mul(3));
             const freezeTokenAmount = BigN(biteNum).mul(2).mul(newTokenAmountPerEth)
@@ -906,7 +906,7 @@ describe("NestToken contract", function () {
  
              // calculate fee
              const ethFee = ETH(BigN(biteNum).mul(biteFeeRate)).div(1000);
-             const newNestNum1k = BigN(postSheet.nestNum1k).mul(biteNum).mul(2).div(postSheet.ethNum).mul(2);
+             const newNestNum1k = BigN(postSheet.nestNum1k).mul(biteNum).mul(2).div(postSheet.ethNum);
              const freezeNestAmount = NEST(newNestNum1k.mul(1000));
              const freezeEthAmount = ETH(BigN(biteNum).mul(3));
              const freezeNTokenAmount = BigN(biteNum).mul(2).mul(newNTokenAmountPerEth).sub(BigN(biteNum).mul(postSheet.tokenAmountPerEth));
@@ -1021,7 +1021,6 @@ describe("NestToken contract", function () {
             const newNestNum1k = BigN(postSheet.nestNum1k)
                                  .mul(params.biteNestInflateFactor)
                                  .mul(biteNum)
-                                 .mul(params.biteInflateFactor)
                                  .div(postSheet.ethNum);
 
             const freezeNestAmount = NEST(newNestNum1k.mul(1000));
