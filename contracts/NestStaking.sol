@@ -37,7 +37,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
 
     /// @dev The balance of savings w.r.t a ntoken(or nest-token)
     ///     _pending_saving_Amount: ntoken => saving amount
-    mapping(address => uint256) private _pending_saving_amount;
+    //mapping(address => uint256) private _pending_saving_amount;
 
     /// @dev The per-ntoken-reward (ETH) w.r.t a ntoken(or nest-token)
     ///     _reward_per_ntoken_stored: ntoken => amount
@@ -143,6 +143,8 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         emit FlagSet(address(msg.sender), uint256(STAKING_FLAG_ACTIVE));
     }
 
+    /*
+    // exist bug
     function withdrawSavingByGov(address ntoken, address to, uint256 amount) 
         external 
         nonReentrant 
@@ -160,22 +162,22 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         emit SavingWithdrawn(ntoken, to, amount);
         TransferHelper.safeTransferETH(to, amount);      
     }
-
+   
     function setParams(uint8 dividendShareRate) override external onlyGovernance
     {
         if (dividendShareRate > 0 && dividendShareRate <= 100) {
             _dividend_share = dividendShareRate;
         }
     }
-
+    */
     /* ========== VIEWS ========== */
-    
+    /*
     function totalSaving(address ntoken)
         external view returns (uint256) 
     {
        return  _pending_saving_amount[ntoken];
     }
-
+    */
     function totalRewards(address ntoken)
         external view returns (uint256) 
     {
@@ -274,8 +276,8 @@ contract NestStaking is INestStaking, ReentrancyGuard {
             // update _reward_per_ntoken_stored
             _reward_per_ntoken_stored[ntoken] = _rewardPerToken;
             lastRewardsTotal[ntoken] = rewardsTotal[ntoken];
-            uint256 _newSaving = _accrued.sub(_accrued.mul(_dividend_share).div(100)); // left 20%
-            _pending_saving_amount[ntoken] = _pending_saving_amount[ntoken].add(_newSaving);
+            //uint256 _newSaving = _accrued.sub(_accrued.mul(_dividend_share).div(100)); // left 20%
+            //_pending_saving_amount[ntoken] = _pending_saving_amount[ntoken].add(_newSaving);
         }
 
         uint256 _newEarned = _staked_balances[ntoken][account].mul(

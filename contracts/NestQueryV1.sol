@@ -160,19 +160,10 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     {
         (uint32 _singleFee, uint32 _time, uint32 _actFee, uint32 _res) =  decode_4x32_256(paramsEncoded);
 
-        if (time == 0) {
-
-            _singleFee = CLIENT_QUERY_FEE_ETH_TWEI;
-            _time = CLIENT_ACTIVATION_DURATION_SECOND;
-            _actFee = CLIENT_ACTIVATION_NEST_AMOUNT;
-        
-        } else {
-
-            _singleFee = uint32(single);
-            _time = uint32(time);
-            _actFee = uint32(nestAmount / 1e18);
-        }    
-
+        _singleFee = uint32(single);
+        _time = uint32(time);
+        _actFee = uint32(nestAmount / 1e18);
+    
         uint256 oldParamsEncoded = paramsEncoded;
 
         paramsEncoded = encode_4x32_256(_singleFee, _time, _actFee, _res);
@@ -257,7 +248,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         require (_c.typ == 0, "Nest:Qury:EX(client)");
         (, uint32 _actTime, uint256 _actFee, ) = decode_4x32_256(paramsEncoded);          
         uint256 _nestFee = _actFee.mul(1e18);
-        uint256 _start = uint64(block.timestamp.add(10));
+        uint256 _start = uint64(block.timestamp.add(_actTime));
         uint256 _end = 0;
         uint256 _mfee = 0;
         clientList[defi] = encodeClient(uint64(_start), uint64(_end), uint32(_mfee), 0x1);

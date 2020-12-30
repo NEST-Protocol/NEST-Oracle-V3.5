@@ -133,7 +133,7 @@ contract NestMiningV1 {
 
     /// @notice Write the block number as a version number
     /// @dev It shall be invoked *manually* whenever the contract is upgraded(behind proxy)
-    function incVersion() external //onlyGovernance
+    function incVersion() external onlyGovernance
     {
         version = uint64(block.number);
     }
@@ -226,6 +226,10 @@ contract NestMiningV1 {
         state.maxBiteNestedLevel = newParams.maxBiteNestedLevel;
         state.biteInflateFactor = newParams.biteInflateFactor;
         state.biteNestInflateFactor = newParams.biteNestInflateFactor;
+
+        emit MiningV1Data.SetParams(state.miningEthUnit, state.nestStakedNum1k, state.biteFeeRate,
+                                    state.miningFeeRate, state.priceDurationBlock, state.maxBiteNestedLevel,
+                                    state.biteInflateFactor, state.biteNestInflateFactor);
     }
 
     /* ========== HELPERS ========== */

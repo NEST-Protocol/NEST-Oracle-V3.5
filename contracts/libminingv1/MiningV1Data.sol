@@ -137,6 +137,11 @@ library MiningV1Data {
     event TokenSold(address miner, address token, uint256 index, uint256 biteEthAmount, uint256 biteTokenAmount);
 
     event VolaComputed(uint32 h, uint32 pos, uint32 ethA, uint128 tokenA, int128 sigma_sq, int128 ut_sq);
+
+    event SetParams(uint8 miningEthUnit, uint32 nestStakedNum1k, uint8 biteFeeRate,
+                    uint8 miningFeeRate, uint8 priceDurationBlock, uint8 maxBiteNestedLevel,
+                    uint8 biteInflateFactor, uint8 biteNestInflateFactor);
+
     // event GovSet(address oldGov, address newGov);
 
     /* ========== GIANT STATE VARIABLE ========== */

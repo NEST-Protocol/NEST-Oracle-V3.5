@@ -22,7 +22,8 @@ import "../libminingv1/MiningV1Data.sol";
 library MiningV1Calc {
 
     using SafeMath for uint256;
-
+    // average block-out time: 14s
+    uint8 constant timespan = 14;
     function _calcVola(
             // uint256 ethA0, 
             uint256 tokenA0, 
@@ -38,7 +39,7 @@ library MiningV1Calc {
         returns (int128, int128)
     {
         int128 _ut_sq_2 = ABDKMath64x64.div(_ut_sq, 
-            ABDKMath64x64.fromUInt(_interval));
+            ABDKMath64x64.fromUInt(_interval.mul(timespan)));
 
         int128 _new_sigma_sq = ABDKMath64x64.add(
             ABDKMath64x64.mul(ABDKMath64x64.divu(95, 100), _sigma_sq), 

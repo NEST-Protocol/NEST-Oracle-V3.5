@@ -50,7 +50,7 @@ interface INestStaking {
 
     function resume() external;
 
-    function setParams(uint8 dividendShareRate) external;
+    //function setParams(uint8 dividendShareRate) external;
 
     /* ========== EVENTS ========== */
 
