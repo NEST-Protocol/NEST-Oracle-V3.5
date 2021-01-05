@@ -291,6 +291,49 @@ describe("NNRewardPool contract", function () {
             expect(nest_D_post.sub(nest_D_pre)).to.equal(toReward);
         });
 
+
+        // check nodeCount function (toAdd), when fromAddr == toAddr
+        it("can settle rewards again when tranferring", async () => {       
+            const blnc_A_pre = await NNToken.balanceOf(userA.address);
+            const blnc_C_pre = await NNToken.balanceOf(userC.address);  
+            const blnc_D_pre = await NNToken.balanceOf(userD.address);
+    
+            const total = BigN(blnc_A_pre).add(blnc_C_pre).add(blnc_D_pre);
+            
+            const nest_D_pre = await NestToken.balanceOf(userD.address);
+
+            const sum_pre = await NNRewardPool.rewardSum(); 
+
+            // Charge to the nestpool to prevent insufficient funds from being transferred
+            const reward = NEST(3000);
+            await NestPool.connect(ghost).addNest(_C_NNRewardPool, reward);
+            await NNRewardPool.connect(ghost).addNNReward(reward);
+            
+            // userD (500) => userD (500)
+            await NNToken.connect(userD).transfer(userD.address, 500);
+
+            const blnc_D_pos = await NNToken.balanceOf(userD.address);
+
+            // record funds after transfer
+            const sum_post = await NNRewardPool.rewardSum();
+            const nest_A_post = await NestToken.balanceOf(userA.address);
+            const nest_D_post = await NestToken.balanceOf(userD.address);
+
+            const fromReward = sum_post.sub(sum_pre).mul(blnc_D_pre).div(total);
+
+            const toReward = sum_post.sub(sum_post).mul(blnc_D_pre).div(total);
+
+            // fromReward
+            expect(nest_D_post.sub(nest_D_pre)).to.equal(fromReward);
+
+            // now toRward should be equal 0
+            expect(toReward).to.equal(0);
+
+            // NNtoken(uesrD) should keep unchange
+            expect(blnc_D_pos).to.equal(blnc_D_pre);
+
+        });
+
         // set gov
         it("should set gov correctly", async () => {
 
@@ -303,6 +346,9 @@ describe("NNRewardPool contract", function () {
             await NNRewardPool.loadGovernance();
 
             expect(gov).to.equal(userD.address);
+
+            // extra
+            // await NNRewardPool.connect(userD).loadContracts();
 
             await expect(NNRewardPool.connect(userD).resume()).to.be.reverted;
 
