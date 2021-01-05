@@ -4,6 +4,7 @@ require("hardhat-deploy-ethers");
 require("hardhat-gas-reporter");
 require('@openzeppelin/hardhat-upgrades');
 require("solidity-coverage");
+require("@nomiclabs/hardhat-etherscan");
 
 
 const config = require('./.private.json');
@@ -50,7 +51,12 @@ module.exports = {
     kovan: {
       url: `https://eth-kovan.alchemyapi.io/v2/${config.alchemy.kovan.apiKey}`,
       accounts: [config.account.kovan.key, config.account.kovan.userA, config.account.kovan.userB],
-      gasPrice:10e10
+      gasPrice:5e10
     },
+  },
+  etherscan: {
+    // Your API key for Etherscan
+    // Obtain one at https://etherscan.io/
+    apiKey: "VGP4QHH72VGNQ1ANCFZ75YJRYYY5K9JB28",
   },
 }
