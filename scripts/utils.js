@@ -3,12 +3,16 @@ const { BN } = require('@openzeppelin/test-helpers');
 
 const usdtdec = BigNumber.from(10).pow(6);
 const wbtcdec = BigNumber.from(10).pow(8);
+const hbtcdec = BigNumber.from(10).pow(18);
+const nhbtcdec = BigNumber.from(10).pow(18);
 const ethdec = ethers.constants.WeiPerEther;
 
 exports.ethdec = ethdec;
 exports.nestdec = ethdec;
 exports.usdtdec = usdtdec;
 exports.wbtcdec = wbtcdec;
+exports.hbtcdec = hbtcdec;
+exports.nhbtcdec = nhbtcdec;
 
 const ethTwei = BigNumber.from(10).pow(12);
 exports.ethTwei = ethTwei;
@@ -28,6 +32,14 @@ exports.WBTC = function (amount) {
 
 exports.MBTC = function (amount) {
     return BigNumber.from(amount).mul(BigNumber.from(10).pow(5));
+}
+
+exports.HBTC = function (amount) {
+    return BigNumber.from(amount).mul(BigNumber.from(10).pow(18));
+}
+
+exports.NHBTC = function (amount) {
+    return BigNumber.from(amount).mul(BigNumber.from(10).pow(18));
 }
 
 exports.NEST = function (amount) {
