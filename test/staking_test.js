@@ -360,7 +360,7 @@ describe("NestStaking contract", function () {
 
         });
 
-
+         /* this function has removed
         //========================  withdrawSavingByGov  ===========================//
         //==========================================================================//
         // transfer funds from the saving 
@@ -404,7 +404,7 @@ describe("NestStaking contract", function () {
             expect(fund_pre.add(amount)).to.equal(fund_pos);
 
         });
-
+        */
 
         //=======================  check boundary conditions  ======================//
         //==========================================================================//  
