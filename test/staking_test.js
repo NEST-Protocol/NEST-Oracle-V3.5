@@ -554,6 +554,17 @@ describe("NestStaking contract", function () {
             await NestStaking.loadGovernance();
 
             expect(gov).to.equal(userD.address);
+
+            // check pause
+            await NestStaking.connect(userD).pause();
+            
+            await expect(NestStaking.connect(userA).stake(_C_NestToken, NEST(100))).to.be.reverted;
+
+            // check resume
+            await NestStaking.connect(userD).resume();
+
+            NestStaking.connect(userA).stake(_C_NestToken, NEST(100));
+
         })
     });
 
