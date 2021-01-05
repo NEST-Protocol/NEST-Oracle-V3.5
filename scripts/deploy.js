@@ -63,6 +63,20 @@ exports.deployHBTC = async function () {
     return CHBTC;
 }
 
+exports.deployUSDC = async function () {
+
+    const ERC20Contract = await ethers.getContractFactory("UERC20");
+
+    const CUSDC = await ERC20Contract.deploy("900000000000000000000000", "USDC Test Token", "USDC", 18);
+
+    const tx = CUSDC.deployTransaction;
+    await tx.wait(1);
+    
+    console.log(`>>> [DPLY]: USDC deployed, address=${CUSDC.address}, block=${tx.blockNumber}`);
+
+    return CUSDC;
+}
+
 exports.deployNWBTC = async function (owner) {
 
     console.log(`>>> [DPLY] NWBTC .......`);
