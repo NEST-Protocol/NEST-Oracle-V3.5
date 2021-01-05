@@ -17,7 +17,7 @@ import "./iface/INestStaking.sol";
 import "./iface/INTokenLegacy.sol";
 import "./iface/INestMining.sol";
 import "./iface/INestDAO.sol";
-//import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 /// @title  NestMiningV1
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
@@ -124,6 +124,7 @@ contract NestMiningV1 {
     /// @dev The function will be kicking off Nest Protocol v3.5.
     ///    After upgrading, `post/post2()` are ready to be invoked.
     ///    Before that, `post2Only4Upgrade()` is used to do posting.
+    ///    The purpose is to limit post2Only4Upgrade() to run 
     function upgrade() external onlyGovernance
     {
         require(flag == MINING_FLAG_UPGRADE_NEEDED, "Nest:Mine:!flag");
@@ -281,7 +282,6 @@ contract NestMiningV1 {
 
         // check if the totalsupply of ntoken is less than MINING_NTOKEN_NON_DUAL_POST_THRESHOLD, otherwise use post2()
         require(INToken(_ntoken).totalSupply() < MiningV1Data.MINING_NTOKEN_NON_DUAL_POST_THRESHOLD, "Nest:Mine:!ntoken");
-
         // calculate eth fee
         uint256 _ethFee = ethNum.mul(state.miningFeeRate).mul(1e18).div(1000);
 
@@ -818,7 +818,7 @@ contract NestMiningV1 {
         view external 
         returns (MiningV1Data.PriceSheetPub memory sheet) 
     {
-        return state._priceSheet(token, index);
+        return state._priceSheet(token, index); 
     }
 
     function fullPriceSheet(address token, uint256 index) 
@@ -885,7 +885,7 @@ contract NestMiningV1 {
             c := mload(0)
         }
     }
-*/
+*/   
     /// @dev The function will be disabled when the upgrading is completed
     /// TODO: (TBD) auth needed? 
     function post2Only4Upgrade(
@@ -906,4 +906,5 @@ contract NestMiningV1 {
         state._stat(token);
         state._stat(_ntoken);
     }
+    
 }
