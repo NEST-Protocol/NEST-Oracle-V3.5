@@ -836,7 +836,7 @@ contract NestMiningV1 {
         view 
         public
         noContract
-        returns (MiningV1Data.PriceSheet[] memory sheets) 
+        returns (MiningV1Data.PriceSheetPub2[] memory sheets) 
     {
         return state.unVerifiedSheetList(token);
     }
@@ -845,7 +845,7 @@ contract NestMiningV1 {
         view 
         public
         noContract
-        returns (MiningV1Data.PriceSheet[] memory sheets) 
+        returns (MiningV1Data.PriceSheetPub2[] memory sheets) 
     {
         return state.unClosedSheetListOf(miner, token, fromIndex, num);
     }
@@ -854,7 +854,7 @@ contract NestMiningV1 {
         view 
         public
         noContract
-        returns (MiningV1Data.PriceSheet[] memory sheets) 
+        returns (MiningV1Data.PriceSheetPub2[] memory sheets) 
     {
         return state.sheetListOf(miner, token, fromIndex, num);
     }

@@ -127,6 +127,21 @@ library MiningV1Data {
         uint32  tokenNumBal;
     }
 
+
+    struct PriceSheetPub2 {
+        uint160 miner;       //  miner who posted the price (most significant bits, or left-most)
+        uint32  height;
+        uint32  ethNum;   
+        uint32  remainNum; 
+
+        uint8   level;           // the level of bitting, 1-4: eth-doubling | 5 - 127: nest-doubling
+        uint8   typ;             // 1: USD | 2: NEST | 3: TOKEN | 4: NTOKEN(Not Available)
+        uint8   state;           // 0: closed | 1: posted | 2: bitten
+        uint256 index;           // return to the quotation of index
+        uint32  nestNum1k;
+        uint128 tokenAmountPerEth;   
+    }
+
     /* ========== EVENTS ========== */
 
     event PricePosted(address miner, address token, uint256 index, uint256 ethAmount, uint256 tokenAmount);

@@ -342,7 +342,7 @@ library MiningV1Calc {
         ) 
         view 
         public
-        returns (MiningV1Data.PriceSheet[] memory sheets) 
+        returns (MiningV1Data.PriceSheetPub2[] memory sheets) 
     {
         MiningV1Data.PriceSheet[] storage _list = state.priceSheetList[token]; 
         uint256 len = _list.length;
@@ -354,13 +354,25 @@ library MiningV1Calc {
             num += 1;
         }
 
-        sheets = new MiningV1Data.PriceSheet[](num);
+        sheets = new MiningV1Data.PriceSheetPub2[](num);
         for (uint i = 0; i < num; i++) {
             MiningV1Data.PriceSheet memory _sheet = _list[len - 1 - i];
             if (_sheet.height + state.priceDurationBlock < block.number) {
                 break;
             }
-            sheets[i] = _sheet;
+            //sheets[i] = _sheet;
+            sheets[i].miner = _sheet.miner;
+            sheets[i].height = _sheet.height;
+            sheets[i].ethNum = _sheet.ethNum;
+            sheets[i].remainNum = _sheet.remainNum;
+            sheets[i].level = _sheet.level;
+            sheets[i].typ = _sheet.typ;
+            sheets[i].state = _sheet.state;
+
+            sheets[i].index = len - 1 - i;
+
+            sheets[i].nestNum1k = _sheet.nestNum1k;
+            sheets[i].tokenAmountPerEth = _sheet.tokenAmountPerEth;
         }
     }
 
@@ -372,9 +384,9 @@ library MiningV1Calc {
             uint256 num) 
         view 
         external
-        returns (MiningV1Data.PriceSheet[] memory sheets) 
+        returns (MiningV1Data.PriceSheetPub2[] memory sheets) 
     {
-        sheets = new MiningV1Data.PriceSheet[](num);
+        sheets = new MiningV1Data.PriceSheetPub2[](num);
         MiningV1Data.PriceSheet[] storage _list = state.priceSheetList[token]; 
         uint256 len = _list.length;
         require(fromIndex < len, "Nest:Mine:!from");
@@ -388,7 +400,20 @@ library MiningV1Calc {
             if (uint256(_sheet.miner) == uint256(miner)
                 && (_sheet.state == MiningV1Data.PRICESHEET_STATE_POSTED 
                     || _sheet.state == MiningV1Data.PRICESHEET_STATE_BITTEN)) {
-                sheets[i] = _sheet;
+            
+            sheets[i].miner = _sheet.miner;
+            sheets[i].height = _sheet.height;
+            sheets[i].ethNum = _sheet.ethNum;
+            sheets[i].remainNum = _sheet.remainNum;
+            sheets[i].level = _sheet.level;
+            sheets[i].typ = _sheet.typ;
+            sheets[i].state = _sheet.state;
+
+            sheets[i].index = fromIndex - i;
+
+            sheets[i].nestNum1k = _sheet.nestNum1k;
+            sheets[i].tokenAmountPerEth = _sheet.tokenAmountPerEth;
+
             }
         }
     }
@@ -402,9 +427,9 @@ library MiningV1Calc {
         ) 
         view 
         external
-        returns (MiningV1Data.PriceSheet[] memory sheets) 
+        returns (MiningV1Data.PriceSheetPub2[] memory sheets) 
     {
-        sheets = new MiningV1Data.PriceSheet[](num);
+        sheets = new MiningV1Data.PriceSheetPub2[](num);
         MiningV1Data.PriceSheet[] storage _list = state.priceSheetList[token]; 
         uint256 len = _list.length;
         require(fromIndex < len, "Nest:Mine:!from");
@@ -415,7 +440,20 @@ library MiningV1Calc {
             }
             MiningV1Data.PriceSheet memory _sheet = _list[fromIndex - i];
             if (uint256(_sheet.miner) == uint256(miner)) {
-                sheets[i] = _sheet;
+            
+            sheets[i].miner = _sheet.miner;
+            sheets[i].height = _sheet.height;
+            sheets[i].ethNum = _sheet.ethNum;
+            sheets[i].remainNum = _sheet.remainNum;
+            sheets[i].level = _sheet.level;
+            sheets[i].typ = _sheet.typ;
+            sheets[i].state = _sheet.state;
+
+            sheets[i].index = fromIndex - i;
+
+            sheets[i].nestNum1k = _sheet.nestNum1k;
+            sheets[i].tokenAmountPerEth = _sheet.tokenAmountPerEth;
+
             }
         }
     }
