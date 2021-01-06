@@ -202,6 +202,10 @@ describe("NestToken contract", function () {
             console.log("bal_nestpool_pre = ", bal_nestpool_pre.toString());
 
 
+            const bal_token_pre = await NestPool.balanceOfTokenInPool(_C_NestPool, CNUSDC.address);
+            console.log("bal_token_pre = ", bal_token_pre.toString());
+
+
             //================preparation==================//
             const token = _C_USDC;
             const params = await NestMining.parameters();
@@ -218,17 +222,31 @@ describe("NestToken contract", function () {
             //=========================================//
 
             const totalSupply_pos = await CNUSDC.totalSupply();
-            console.log("totalSupply_pos = ", totalSupply_pos.toString());
+            //console.log("totalSupply_pos = ", totalSupply_pos.toString());
 
             const bal_nestpool_pos = await CNUSDC.balanceOf(_C_NestPool);
-            console.log("bal_nestpool_pos = ", bal_nestpool_pos.toString());
-
+            //console.log("bal_nestpool_pos = ", bal_nestpool_pos.toString());
+           
+            const bal_token_pos = await NestPool.balanceOfTokenInPool(_C_NestPool, CNUSDC.address);
+            //console.log("bal_token_pos = ", bal_token_pos.toString());
 
             const index = await NestMining.lengthOfPriceSheets(token);
 
             await goBlocks(provider, priceDurationBlock);
 
             await NestMining.connect(userA).close(token, index.sub(1));
+
+
+            const bal_userA_token_pos = await NestPool.balanceOfTokenInPool(userA.address, CNUSDC.address);
+            //console.log("bal_userA_token_pos = ", bal_userA_token_pos.toString());
+
+            const userA_eth_pos = await NestPool.balanceOfEthInPool(userA.address);
+            //console.log("userA_eth_pos = ", userA_eth_pos.toString());
+
+            await NestMining.connect(userA).withdrawEthAndToken(ETH(1), CNUSDC.address, bal_userA_token_pos);
+
+            const bal_userA_token_pos1 = await NestPool.balanceOfTokenInPool(userA.address, CNUSDC.address);
+            //console.log("bal_userA_token_pos1 = ", bal_userA_token_pos1.toString());
 
             // msg.sender == C_NestMining
             await expect(CNUSDC.mint(USDC(10), userA.address)).to.be.reverted;
@@ -239,20 +257,21 @@ describe("NestToken contract", function () {
         it("should transfer correctly", async () => {
 
             const totalSupply_pre = await CNUSDC.totalSupply();
-            console.log("totalSupply_pre = ", totalSupply_pre.toString());
+            //console.log("totalSupply_pre = ", totalSupply_pre.toString());
 
             const bal_nestpool_pre = await CNUSDC.balanceOf(_C_NestPool);
-            console.log("bal_nestpool_pre = ", bal_nestpool_pre.toString());
+            //console.log("bal_nestpool_pre = ", bal_nestpool_pre.toString());
 
             const bal_userA_pre = await CNUSDC.balanceOf(userA.address);
             console.log("bal_userA_pre = ", bal_userA_pre.toString());
-
 
             await CNUSDC.connect(userA).transfer(userB.address, 0);
 
             await CNUSDC.transferFrom(userA.address, userB.address, 0);
 
-            await expect(CNUSDC.connect(userA).transfer(userB.address, 10)).to.be.reverted;
+            await CNUSDC.connect(userA).transfer(userB.address, 10);
+
+            // no authorisation
             await expect(CNUSDC.transferFrom(userA.address, userB.address, 10)).to.be.reverted;
 
         });
