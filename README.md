@@ -52,8 +52,8 @@ npx hardhat scripts/setup_testnet.js --network kovan
 | NN |  0x7CbE1918bA3bC0d30dD0cAC2391F6f7434c1929F | 
 | IterableMapping |  0x21A183fbdbb0bBf303cDB0E3f205Db092A38BFB3 |  
 | NestPool |  0x4A3D5D1c95aC73C6b02Bd3b4252EF54EF47170A4 | 
-| MiningV1Calc |  0xD256Ce11d5544822A386992c240bC940829905f7 | 
-| MiningV1Op |  0x27650dDafeB0787FF5511571daC593b49A05cB27 | 
+| MiningV1Calc |  0x9Be21a958A27AA67105Ba7dbebbE082C311e4234 | 
+| MiningV1Op |  0x0Bb79bfc11e5e6d6857ab8c82a60242Caa1Ca490 | 
 | NestMining |  0x66faAF2f2F052602823766085555448306556763 | 
 | NestStaking |  0x57669663fd38a0bD5383132BbFC27E156158b9b1 | 
 | NNRewardPool |  0x069b4E4F3806AE8A51ca505035F764C6C30cDf1d | 
@@ -125,6 +125,7 @@ npx hardhat scripts/setup_testnet.js --network ropsten
 
 ## Changelog
 
+- 2021-01-06: upgrade kovan addresses
 - 2020-12-25: upgrade kovan addresses
 - 2020-12-24: upgrade kovan addresses about MiningV1Calc and MiningV1Op
 - 2020-12-16: update ropsten addresses
