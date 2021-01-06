@@ -34,12 +34,14 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     uint8 constant DAO_FLAG_ACTIVE           = 2;
     uint8 constant DAO_FLAG_NO_STAKING       = 3;
     uint8 constant DAO_FLAG_PAUSED           = 4;
+    uint8 constant DAO_FLAG_SHUTDOWN         = 127;
 
     struct Ledger {
         uint128 rewardedAmount;
         uint128 redeemedAmount;
         uint128 quotaAmount;
         uint32  lastBlock;
+        uint96  _reserved;
     }
 
     /// @dev Mapping from ntoken => amount (of ntokens owned by DAO)
@@ -160,12 +162,38 @@ contract NestDAO is INestDAO, ReentrancyGuard {
        return  ethLedger[ntoken];
     }
 
+    /// @notice Migrate ethers to a new NestDAO
+    /// @param newDAO_ The address of the new contract
+    /// @param ntokenL_ The list of ntokens whose ethers are going to be migrated
+    function migrateTo(address newDAO_, address[] memory ntokenL_) external onlyGovernance
+    {
+        require(flag == DAO_FLAG_PAUSED, "Nest:DAO:!flag");
+        uint256 _len = ntokenL_.length;
+        for (uint256 i; i < _len; i++) {
+            address _ntoken = ntokenL_[i];
+            uint256 _blncs = ethLedger[_ntoken]; 
+            INestDAO(newDAO_).addETHReward{value:_blncs}(_ntoken);
+            
+            uint256 _staked = INestStaking(C_NestStaking).stakedBalanceOf(_ntoken, address(this));
+            if (_staked > 0) {
+                INestStaking(C_NestStaking).unstake(_ntoken, _staked);
+            }
+
+            uint256 _ntokenAmount = ERC20(_ntoken).balanceOf(address(this));
+            if (_ntokenAmount > 0) {
+                ERC20(_ntoken).transfer(newDAO_, _ntokenAmount);
+            }
+        }
+    }
+
     /* ========== MAIN ========== */
 
+    /// @notice Pump eth rewards to NestDAO for repurchasing `ntoken`
+    /// @param ntoken The address of ntoken in the ether Ledger
     function addETHReward(address ntoken) 
-        override 
-        external 
-        payable 
+        override
+        external
+        payable
     {
         ethLedger[ntoken] = ethLedger[ntoken].add(msg.value);
     }
@@ -177,7 +205,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         onlyGovOrBy(C_NestMining)
     {
         Ledger storage it = ntokenLedger[C_NestToken];
-        it.redeemedAmount = uint128(uint256(it.redeemedAmount).add(amount));
+        it.rewardedAmount = uint128(uint256(it.rewardedAmount).add(amount));
     }
 
     /// @dev Collect ethers from NestStaking
