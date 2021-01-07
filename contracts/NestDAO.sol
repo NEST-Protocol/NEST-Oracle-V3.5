@@ -186,6 +186,16 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         }
     }
 
+    /// @dev The function shall be called when ethers are taken from Nestv3.0
+    function initEthLedger(address ntoken, uint256 amount) 
+        external
+        onlyGovernance 
+    {
+        require (flag == DAO_FLAG_INITIALIZED, "Nest:DAO:!flag");
+        ethLedger[ntoken] = amount;
+
+    }
+
     /* ========== MAIN ========== */
 
     /// @notice Pump eth rewards to NestDAO for repurchasing `ntoken`
