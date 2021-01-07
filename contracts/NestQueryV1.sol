@@ -432,7 +432,20 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         
         return data;
     }
+    
+    function latestPrice(address token)
+        override 
+        public 
+        view 
+        whenActive
+        noContract
+        returns (uint256 ethAmount, uint256 tokenAmount, uint128 avgPrice, int128 vola, uint256 bn) 
+    {
+        (ethAmount, tokenAmount, bn) = INestMining(C_NestMining).latestPriceOf(token);
+        (, avgPrice, vola,) = INestMining(C_NestMining).priceAvgAndSigmaOf(token);
 
+    }
+  
     /* ========== INTER-CALLS ========== */
 
     // /// @dev Withdraw NEST only when emergency or governance
