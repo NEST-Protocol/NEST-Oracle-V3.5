@@ -124,7 +124,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         C_NestMining = INestPool(C_NestPool).addrOfNestMining();
     }
 
-    function start() external onlyGovernance
+    function start() override external onlyGovernance
     {  
         require(flag == DAO_FLAG_INITIALIZED, "Nest:DAO:!flag");
         ERC20(C_NestToken).approve(C_NestStaking, uint(-1));
@@ -188,7 +188,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
 
     /// @dev The function shall be called when ethers are taken from Nestv3.0
     function initEthLedger(address ntoken, uint256 amount) 
-        external
+        override external
         onlyGovernance 
     {
         require (flag == DAO_FLAG_INITIALIZED, "Nest:DAO:!flag");

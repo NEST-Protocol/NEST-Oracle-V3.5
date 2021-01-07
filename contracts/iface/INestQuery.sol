@@ -60,6 +60,11 @@ interface INestQuery {
     function priceList(address token, uint8 num) 
         external view returns (uint128[] memory);
 
+    /// @notice A view function returning the latestPrice
+    /// @param token  The address of the token contract
+    function latestPrice(address token)
+    external view returns (uint256 ethAmount, uint256 tokenAmount, uint128 avgPrice, int128 vola, uint256 bn) ;
+
     /// @dev Only for governance
     function loadContracts() external; 
 
