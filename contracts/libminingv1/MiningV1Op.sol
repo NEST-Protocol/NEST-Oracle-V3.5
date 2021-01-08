@@ -486,7 +486,7 @@ library MiningV1Op {
                 uint32(ethNum),                 // remainNum
                 uint8(0),                       // level
                 uint8(typ1),     // typ
-                uint8(MiningV1Data.PRICESHEET_STATE_POSTED), // state 
+                uint8(MiningV1Data.PRICESHEET_STATE_CLOSED), // state 
                 uint8(0),                       // _reserved
                 uint32(ethNum),                 // ethNumBal
                 uint32(ethNum),                 // tokenNumBal
@@ -503,7 +503,7 @@ library MiningV1Op {
                 uint32(ethNum),                 // remainNum
                 uint8(0),                       // level
                 uint8(typ2),     // typ
-                uint8(MiningV1Data.PRICESHEET_STATE_POSTED), // state 
+                uint8(MiningV1Data.PRICESHEET_STATE_CLOSED), // state 
                 uint8(0),                       // _reserved
                 uint32(ethNum),                 // ethNumBal
                 uint32(ethNum),                 // tokenNumBal
