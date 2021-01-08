@@ -43,7 +43,7 @@ import "./iface/INest_NToken_TokenMapping.sol";
     nest3.5: NestMining.setParams1(latestHeight, minedNestAmount)
     nest3: Nest_3_MiningContract.takeOutNest(NestPool.address)
     nest3.5: NestPool.initNestLedger(amount)
-    transfer funds from Nest_3_Abonus and Nest_3_Leveling to NeatDAO
+    transfer funds from Nest_3_Abonus and Nest_3_Leveling to NestDAO
     
     nest3.5: NestMining.upgrade()
     nest3.5: NestDAO.start()
