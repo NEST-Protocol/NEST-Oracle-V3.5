@@ -25,19 +25,20 @@ import "./iface/INest_NToken_TokenMapping.sol";
     Upgrade: setNTokenToToken() ==> NestMining.post2Only4Upgrade() ==> transferFundsFromNest3()
     
     1. nest3Admin: Set nest3Admin address to NestUpgrade.address
-    2. nest3.5: gov: NestPool.setGovernance(NestUpgrade.address)
+    2.NestPool.setNTokenToToken(CUSDT.address, NestToken.address)   CUSDT.address and NestToken.address need to be provided in advance
+    3. nest3.5: gov: NestPool.setGovernance(NestUpgrade.address)
 
-    3. then run setNTokenToToken() func: (at this time, openning new token-ntoken should not be allowed)
+    4. then run setNTokenToToken() func: (at this time, openning new token-ntoken should not be allowed)
     
     nest3: Nest_NToken_TokenAuction.checkTokenMapping(token) ==> (token , ntoken), excluding usdt / nest
     nest3.5: NestPool.setNTokenToToken(token, ntoken)
     nest3.5: MestMining.setup(...)
 
-    4. NestMining.post2Only4Upgrade(...)
+    5. NestMining.post2Only4Upgrade(...)
 
-    5. nest3.5: NestPool.setGovernance(NestUpgrade.address)
+    6. nest3.5: NestPool.setGovernance(NestUpgrade.address)
 
-    6. run transferFundsFromNest3 func:(transfer funds)
+    7. run transferFundsFromNest3 func:(transfer funds)
 
     nest3.5: NestMining.setParams1(latestHeight, minedNestAmount)
     nest3: Nest_3_MiningContract.takeOutNest(NestPool.address)
