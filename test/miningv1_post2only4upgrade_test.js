@@ -272,7 +272,7 @@ describe("NestToken contract", function () {
             expect(postSheet.remainNum).to.equal(ethNum);
             expect(postSheet.level).to.equal(0);
             expect(postSheet.typ).to.equal(1);
-            expect(postSheet.state).to.equal(1);
+            expect(postSheet.state).to.equal(0);
             expect(postSheet.nestNum1k).to.equal(1);
             expect(postSheet.ethNumBal).to.equal(ethNum);
             expect(postSheet.tokenNumBal).to.equal(ethNum);
@@ -288,7 +288,7 @@ describe("NestToken contract", function () {
             expect(postSheet1.remainNum).to.equal(ethNum);
             expect(postSheet1.level).to.equal(0);
             expect(postSheet1.typ).to.equal(2);
-            expect(postSheet1.state).to.equal(1);
+            expect(postSheet1.state).to.equal(0);
             expect(postSheet1.nestNum1k).to.equal(1);
             expect(postSheet1.ethNumBal).to.equal(ethNum);
             expect(postSheet1.tokenNumBal).to.equal(ethNum);
@@ -325,7 +325,7 @@ describe("NestToken contract", function () {
             expect(postSheet.remainNum).to.equal(ethNum);
             expect(postSheet.level).to.equal(0);
             expect(postSheet.typ).to.equal(3);
-            expect(postSheet.state).to.equal(1);
+            expect(postSheet.state).to.equal(0);
             expect(postSheet.nestNum1k).to.equal(1);
             expect(postSheet.ethNumBal).to.equal(ethNum);
             expect(postSheet.tokenNumBal).to.equal(ethNum);
@@ -342,7 +342,7 @@ describe("NestToken contract", function () {
             expect(postSheet1.remainNum).to.equal(ethNum);
             expect(postSheet1.level).to.equal(0);
             expect(postSheet1.typ).to.equal(4);
-            expect(postSheet1.state).to.equal(1);
+            expect(postSheet1.state).to.equal(0);
             expect(postSheet1.nestNum1k).to.equal(1);
             expect(postSheet1.ethNumBal).to.equal(ethNum);
             expect(postSheet1.tokenNumBal).to.equal(ethNum);
@@ -369,7 +369,7 @@ describe("NestToken contract", function () {
             await NestMining.connect(userA).post2Only4Upgrade(token, ethNum, USDT(500), NTokenAmountPerEth, { gasPrice: 0 });
             await goBlocks(provider, 26);
 
-            await NestMining.connect(userA).post2(token, ethNum, USDT(400), NTokenAmountPerEth, { value: msgValue });
+            await NestMining.connect(userA).post2Only4Upgrade(token, ethNum, USDT(400), NTokenAmountPerEth, { gasPrice: 0 });
             await goBlocks(provider, 25);
             
             // priceAvgAndSigmaOf function
@@ -392,7 +392,7 @@ describe("NestToken contract", function () {
 
             await NestMining.connect(userA).post2Only4Upgrade(token, ethNum, USDT(550), NTokenAmountPerEth, { gasPrice: 0 });
             const index1 = await NestMining.lengthOfPriceSheets(token);
-            await NestMining.connect(userB).biteToken(token, index1.sub(1), biteNum, USDT(600), { value: msgValue });
+            //await NestMining.connect(userB).biteToken(token, index1.sub(1), biteNum, USDT(600), { value: msgValue });
         
             await goBlocks(provider, 26);
             await NestMining.stat(token);
@@ -408,7 +408,7 @@ describe("NestToken contract", function () {
             //await NestMining.connect(userA).post(token,ethNum,tokenAmountPerEth,{value: msgValue});
 
             const index2 = await NestMining.lengthOfPriceSheets(token);
-            await NestMining.connect(userB).biteToken(token, index2.sub(1), biteNum, USDT(600), { value: msgValue });
+            //await NestMining.connect(userB).biteToken(token, index2.sub(1), biteNum, USDT(600), { value: msgValue });
 
             await goBlocks(provider, 26);
 
@@ -444,7 +444,7 @@ describe("NestToken contract", function () {
             //await NestMining.connect(userA).post(token,ethNum,tokenAmountPerEth,{value: msgValue});
 
             const index3 = await NestMining.lengthOfPriceSheets(token);
-            await NestMining.connect(userB).biteToken(token, index3.sub(1), biteNum, USDT(580), { value: msgValue });
+            //await NestMining.connect(userB).biteToken(token, index3.sub(1), biteNum, USDT(580), { value: msgValue });
 
             await goBlocks(provider, 26);
 
@@ -462,7 +462,7 @@ describe("NestToken contract", function () {
             //await NestMining.connect(userA).post(token,ethNum,tokenAmountPerEth,{value: msgValue});
  
             const index4 = await NestMining.lengthOfPriceSheets(token);
-            await NestMining.connect(userB).biteEth(token, index4.sub(1), biteNum, USDT(580), { value: msgValue });
+            //await NestMining.connect(userB).biteEth(token, index4.sub(1), biteNum, USDT(580), { value: msgValue });
  
             await goBlocks(provider, 26);
  
