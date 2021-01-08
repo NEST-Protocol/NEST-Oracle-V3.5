@@ -25,16 +25,16 @@ import "./iface/INest_NToken_TokenMapping.sol";
     Upgrade: setNTokenToToken() ==> NestMining.post2Only4Upgrade() ==> transferFundsFromNest3()
     
     1. nest3Admin: Set nest3Admin address to NestUpgrade.address
-    2.NestPool.setNTokenToToken(CUSDT.address, NestToken.address)   CUSDT.address and NestToken.address need to be provided in advance
+    2. nest3.5: NestPool.setNTokenToToken(CUSDT.address, NestToken.address)   CUSDT.address and NestToken.address need to be provided in advance
     3. nest3.5: gov: NestPool.setGovernance(NestUpgrade.address)
 
     4. then run setNTokenToToken() func: (at this time, openning new token-ntoken should not be allowed)
     
-    nest3: Nest_NToken_TokenAuction.checkTokenMapping(token) ==> (token , ntoken), excluding usdt / nest
+    nest3: Nest_NToken_TokenAuction.checkTokenMapping(token) ==> (token , ntoken), usdt / nest is not included
     nest3.5: NestPool.setNTokenToToken(token, ntoken)
     nest3.5: MestMining.setup(...)
 
-    5. NestMining.post2Only4Upgrade(...)
+    5. nest3.5: NestMining.post2Only4Upgrade(...)
 
     6. nest3.5: NestPool.setGovernance(NestUpgrade.address)
 
@@ -169,14 +169,12 @@ contract NestUpgrade {
     /// @dev transfer funds from nest3 to nest3.5
     /// @param Nest_3_MiningContract: address of Nest_3_MiningContract
     /// @param Nest_NToken_TokenAuction: address of Nest_NToken_TokenAuction
-    /// @param Nest_NToken_TokenMapping: address of Nest_NToken_TokenMapping
     /// @param Nest_3_Abonus: address of Nest_NToken_TokenMapping
     /// @param Nest_3_Leveling: address of Nest_NToken_TokenMapping
     /// @param tokenL: lists of tokens addresses, usdt included
     function transferFundsFromNest3(
             address Nest_3_MiningContract,
             address Nest_NToken_TokenAuction,
-            address Nest_NToken_TokenMapping,
             address Nest_3_Abonus,
             address Nest_3_Leveling,
             address[] memory tokenL
@@ -224,7 +222,7 @@ contract NestUpgrade {
         require(ntoken_num == tokenL.length, "Token:Upg: !sufficient");
         
         for(uint i=0; i<tokenL.length; i++){
-            ntokenL[i] = INest_NToken_TokenMapping(Nest_NToken_TokenMapping).checkTokenMapping(tokenL[i]);
+            ntokenL[i] = _C_NestPool.getNTokenFromToken(tokenL[i]);
 
             require(ntokenL[i] != address(0), "Ntoken:Upg: err");
         }
@@ -267,13 +265,6 @@ contract NestUpgrade {
         INestDAO(C_NestDAO).loadGovernance();
 
         return;
-    }
-
-
-    /// @dev if deploy failed, release gov of nest 3.0
-    function releaseAdminOfNest30(address OldAdmin) public onlyGovernance
-    {
-        // 需要接口
     }
 
 }
