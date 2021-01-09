@@ -19,16 +19,16 @@ import "./iface/INest_3_MiningContract.sol";
 import "./iface/INest_NToken_TokenAuction.sol";
 import "./iface/INest_NToken_TokenMapping.sol";
 
-//import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 /*
-    Upgrade: setNTokenToToken() ==> NestMining.post2Only4Upgrade() ==> transferFundsFromNest3()
+    Upgrade: setParamsOfNest35() ==> NestMining.post2Only4Upgrade() ==> transferFundsFromNest3()
     
     1. nest3Admin: Set nest3Admin address to NestUpgrade.address
     2. nest3.5: NestPool.setNTokenToToken(CUSDT.address, NestToken.address)   CUSDT.address and NestToken.address need to be provided in advance
     3. nest3.5: gov: NestPool.setGovernance(NestUpgrade.address)
 
-    4. then run setNTokenToToken() func: (at this time, openning new token-ntoken should not be allowed)
+    4. then run setParamsOfNest35() func: (at this time, openning new token-ntoken should not be allowed)
     
     nest3: Nest_NToken_TokenAuction.checkTokenMapping(token) ==> (token , ntoken), usdt / nest is not included
     nest3.5: NestPool.setNTokenToToken(token, ntoken)
@@ -89,19 +89,20 @@ contract NestUpgrade {
     /// @dev Upgrade from Nest v3.0 to v3.5
     /// @dev setNtokenToToken(token, ntoken), excluding usdt / nest
     /// open new ntoken in nest3 should not be allowed.
-    function setNTokenToToken(
+    function setParamsOfNest35(
             address Nest_3_MiningContract,
             address Nest_NToken_TokenMapping, 
             address Nest_NToken_TokenAuction, 
             INestMining.Params memory params,
             address[] memory tokenL) public onlyGovernance
     {
+
         uint32 genesisBlockNumber = 6236588;
         uint256 latestMiningHeight;
         uint256 nestBalance;
         uint256 minedNestTotalAmount;
         uint256 ntoken_num;
-        address[] memory ntokenL;
+        address[] memory ntokenL = new address[](tokenL.length);
 
         latestMiningHeight = INest_3_MiningContract(Nest_3_MiningContract).checkLatestMining();
         
@@ -115,12 +116,9 @@ contract NestUpgrade {
         
         for(uint i=0; i<tokenL.length; i++){
             ntokenL[i] = INest_NToken_TokenMapping(Nest_NToken_TokenMapping).checkTokenMapping(tokenL[i]);
-
             require(ntokenL[i] != address(0), "Ntoken:Upg: err");
         }
 
-        require(tokenL.length == ntokenL.length, "Ntoken:Upg:!len");
-        
         _upgradeAndSetup(
             genesisBlockNumber, 
             uint128(latestMiningHeight),
@@ -130,7 +128,6 @@ contract NestUpgrade {
             ntokenL);
 
         return;
-
     }
 
 
@@ -144,6 +141,8 @@ contract NestUpgrade {
     {
         
         require(flag < 2, "Nest:Upg:!flag");
+        require(tokenL.length == ntokenL.length, "Ntoken:Upg:!len");
+
         INestPool _C_NestPool = INestPool(C_NestPool);
         C_NestToken = _C_NestPool.addrOfNestToken();
         C_NestMining = _C_NestPool.addrOfNestMining();
@@ -180,8 +179,7 @@ contract NestUpgrade {
             address[] memory tokenL
             ) public onlyGovernance
     {
-
-        address[] memory ntokenL;
+        address[] memory ntokenL = new address[](tokenL.length);
         uint256 ntoken_num;
 
         require(flag < 2, "Nest:Upg:!flag");
@@ -191,9 +189,10 @@ contract NestUpgrade {
         C_NestMining = _C_NestPool.addrOfNestMining();
         C_NestDAO = _C_NestPool.addrOfNestDAO();
         
-
         INestMining(C_NestMining).loadGovernance();
+
         INestDAO(C_NestDAO).loadGovernance();
+
         
         /// @dev set latestMiningHeight and minedNestTotalAmount
         uint256 latestHeight;
@@ -257,6 +256,8 @@ contract NestUpgrade {
         /// @dev start nest3.5
         /// new ntoken not turned on at this time, set ntokenCounter by C_NTokenController.start(...)
         INestMining(C_NestMining).upgrade();
+
+        INestDAO(C_NestDAO).loadContracts();
         INestDAO(C_NestDAO).start();
 
         _C_NestPool.setGovernance(governance);
