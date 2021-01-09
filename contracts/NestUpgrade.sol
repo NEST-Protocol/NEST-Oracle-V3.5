@@ -101,7 +101,6 @@ contract NestUpgrade {
         uint256 latestMiningHeight;
         uint256 nestBalance;
         uint256 minedNestTotalAmount;
-        uint256 ntoken_num;
         address[] memory ntokenL = new address[](tokenL.length);
 
         latestMiningHeight = INest_3_MiningContract(Nest_3_MiningContract).checkLatestMining();
@@ -110,10 +109,16 @@ contract NestUpgrade {
        
         minedNestTotalAmount = uint256(total_nest).mul(1e18).sub(nestBalance);
 
-        ntoken_num = INest_NToken_TokenAuction(Nest_NToken_TokenAuction).checkTokenNum();
 
+        /// @notice If the number of ntokens is too large 
+        /// @notice and gas consumption exceeds the limit,
+        /// @notice you can comment out the following three 
+        /// @notice lines of code and execute setParamsOfNest35() multiple times.
+        uint256 ntoken_num;
+        ntoken_num = INest_NToken_TokenAuction(Nest_NToken_TokenAuction).checkTokenNum();
         require(ntoken_num == tokenL.length + 1, "Token:Upg: !sufficient");
         
+
         for(uint i=0; i<tokenL.length; i++){
             ntokenL[i] = INest_NToken_TokenMapping(Nest_NToken_TokenMapping).checkTokenMapping(tokenL[i]);
             require(ntokenL[i] != address(0), "Ntoken:Upg: err");
@@ -165,7 +170,7 @@ contract NestUpgrade {
     }
 
 
-    /// @dev transfer funds from nest3 to nest3.5
+    /// @dev transfer funds from nest3 to nest3.5, only be executed once
     /// @param Nest_3_MiningContract: address of Nest_3_MiningContract
     /// @param Nest_NToken_TokenAuction: address of Nest_NToken_TokenAuction
     /// @param Nest_3_Abonus: address of Nest_NToken_TokenMapping
@@ -180,7 +185,6 @@ contract NestUpgrade {
             ) public onlyGovernance
     {
         address[] memory ntokenL = new address[](tokenL.length);
-        uint256 ntoken_num;
 
         require(flag < 2, "Nest:Upg:!flag");
         INestPool _C_NestPool = INestPool(C_NestPool);
@@ -216,6 +220,7 @@ contract NestUpgrade {
 
 
         /// @dev send funds to nestDAO
+        uint256 ntoken_num;
         ntoken_num = INest_NToken_TokenAuction(Nest_NToken_TokenAuction).checkTokenNum();
 
         require(ntoken_num == tokenL.length, "Token:Upg: !sufficient");
