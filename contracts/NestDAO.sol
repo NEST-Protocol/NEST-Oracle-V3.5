@@ -129,6 +129,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         require(flag == DAO_FLAG_INITIALIZED, "Nest:DAO:!flag");
         ERC20(C_NestToken).approve(C_NestStaking, uint(-1));
         startedBlock = uint32(block.number);
+        lastCollectingBlock = uint32(block.number);
         flag = DAO_FLAG_ACTIVE;
         collectInterval = DAO_COLLECT_INTERVAL;
         emit FlagSet(address(msg.sender), uint256(DAO_FLAG_ACTIVE));
@@ -259,11 +260,14 @@ contract NestDAO is INestDAO, ReentrancyGuard {
 
     function _collect(address ntoken) internal
     {
+        uint256 ethAmount = collectETHReward(ntoken);
+
         if (block.number < uint256(lastCollectingBlock).add(collectInterval)) {
             return;
         }
+        
         uint256 nestAmount = collectNestReward();
-        uint256 ethAmount = collectETHReward(ntoken);
+        lastCollectingBlock = uint32(block.number);
         emit AssetsCollected(address(msg.sender), ethAmount, nestAmount);
     }
 
