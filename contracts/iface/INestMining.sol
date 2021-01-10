@@ -37,5 +37,9 @@ interface INestMining {
     
     function loadGovernance() external;
 
+    function upgrade() external;
+
     function setup(uint32   genesisBlockNumber, uint128  latestMiningHeight, uint128  minedNestTotalAmount, Params calldata initParams) external;
+
+    function setParams1(uint128  latestMiningHeight, uint128  minedNestTotalAmount) external;
 }

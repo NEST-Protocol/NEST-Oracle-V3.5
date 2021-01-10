@@ -12,7 +12,12 @@ interface INestDAO {
     function loadContracts() external; 
 
     /// @dev Only for governance
-    function loadGovernance() external; 
+    function loadGovernance() external;
+    
+    /// @dev Only for governance
+    function start() external; 
+
+    function initEthLedger(address ntoken, uint256 amount) external;
 
     event NTokenRedeemed(address ntoken, address user, uint256 amount);
 
