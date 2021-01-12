@@ -66,7 +66,7 @@ import "./iface/INest_NToken_TokenMapping.sol";
         if succeeded: end
 */
 
-contract NestUpgrade_test {
+contract NestUpgrade {
 
     using SafeMath for uint256;
 
