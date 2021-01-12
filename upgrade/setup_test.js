@@ -1,7 +1,7 @@
 
 const { usdtdec, wbtcdec, nestdec, ethdec,
     ETH, USDT, WBTC, MBTC, NEST, BigNum,
-    show_eth, show_usdt, show_64x64, timeConverter } = require("./utils.js");
+    show_eth, show_usdt, show_64x64, timeConverter } = require("../upgrade_new/utils.js");
 
 const { deployUSDT, deployWBTC, deployNN,
     deployNEST,deployUpgrade,
@@ -44,8 +44,6 @@ async function main() {
     const NestQuery = contracts.NestQuery;
     const NestDAO = contracts.NestDAO;
     const NestUpgrade = contracts.NestUpgrade;
-    //====================//
-    const NestUpgrade_test = contracts.NestUpgrade_test;
 
     let params;
     let tx;
@@ -88,9 +86,9 @@ async function main() {
     const param_pre = await NestMining.parameters();
     console.log(`>>> [INFO] parameters=`, param_pre);
     
-    tx = await NestPool.setGovernance(NestUpgrade_test.address);
+    tx = await NestPool.setGovernance(NestUpgrade.address);
     tx.wait(5);
-    console.log(`>>> [STUP] NestPool.governance ==> NestUpgrade (${NestUpgrade_test.address}) ...... OK`);
+    console.log(`>>> [STUP] NestPool.governance ==> NestUpgrade (${NestUpgrade.address}) ...... OK`);
     bn = tx.blockNumber;
     ts = (await ethers.provider.getBlock(bn)).timestamp;
     nw = (await ethers.provider.getNetwork()).name;
@@ -105,7 +103,7 @@ async function main() {
     console.log("params = ",params);
     
     /// @dev need to fix
-    tx = await NestUpgrade_test.setPairsOfTokens(
+    tx = await NestUpgrade.setPairsOfTokens(
         contractsNestv3.USDT,
         contractsNestv3.Nest_NToken_TokenMapping,
         [contractsToken.token1, contractsToken.token2]);

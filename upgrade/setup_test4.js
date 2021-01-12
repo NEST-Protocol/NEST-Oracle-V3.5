@@ -39,25 +39,13 @@ async function main() {
     const NestQuery = contracts.NestQuery;
     const NestDAO = contracts.NestDAO;
     const NestUpgrade = contracts.NestUpgrade;
-    //====================//
-    const NestUpgrade_test = contracts.NestUpgrade_test;
+
 
     let tx;
     
-    const param_pre = await NestMining.parameters();
-    console.log(`>>> [INFO] parameters=`, param_pre);
-
     const gov_pre = await NestPool.governance();
     console.log("gov_pre = ", gov_pre);
-    /*
-    tx = await NestPool.setGovernance(NestUpgrade_test.address);
-    tx.wait(1);
-    console.log(`>>> [STUP] NestPool.governance ==> NestUpgrade (${NestUpgrade_test.address}) ...... OK`);
-    bn = tx.blockNumber;
-    ts = (await ethers.provider.getBlock(bn)).timestamp;
-    nw = (await ethers.provider.getNetwork()).name;
-    console.log(`>>>       network=${nw}, block=${bn}, time=${timeConverter(ts)} `);
-    */
+    
     const gov_pos = await NestPool.governance();
     console.log("gov_pre = ", gov_pos);
 
@@ -69,35 +57,13 @@ async function main() {
     console.log("contractsToken.token1 = ",contractsToken.token1);
     console.log("contractsToken.token2 = ",contractsToken.token2);
     
-    tx = await NestUpgrade_test.latestHeight();
-    console.log("latestHeight = ",tx.toString());
-    
-    tx = await NestUpgrade_test.flag();
-    console.log("flag = ",tx.toString());
-    
-    tx = await NestUpgrade_test.ntoken_num1();
-    console.log("ntoken_num1 = ",tx.toString());
-
-    tx = await NestUpgrade_test.ntoken_num2();
-    console.log("ntoken_num2 = ",tx.toString());
-
-    tx = await NestUpgrade_test.nestBal();
-    console.log("nestBal = ",tx.toString());
-
-    tx = await NestUpgrade_test.minedNestAmount();
-    console.log("minedNestAmount = ",tx.toString());
-     
-    tx = await NestUpgrade_test.nest();
-    console.log("nest = ",tx.toString());
-    
-    
-    /// @dev need to fix
-    tx = await NestUpgrade_test.transferNestFromNest3(contractsNestv3.Nest_3_MiningContract);
+    /// @deav need to fix
+    tx = await NestUpgrade.transferETHToNestDAO(
+        NestDAO.address,
+        contractsNestv3.Nest_NToken_TokenAuction);
     tx.wait(1);
-    console.log(`>>> [STUP] NestUpgrade.transferNestFromNest3() ...... OK`);
+    console.log(`>>> [STUP] NestUpgrade.transferETHToNestDAO() ...... OK`);
     
-    const param_pos = await NestMining.parameters();
-    console.log(`>>> [INFO] parameters=`, param_pos);
 
     bn = tx.blockNumber;
     ts = (await ethers.provider.getBlock(bn)).timestamp;

@@ -31,10 +31,6 @@ async function main() {
 
     const contracts = await getContractsFromAddrList(addrList);
 
-    //const CUSDT = contracts.CUSDT;
-    //const CWBTC = contracts.CWBTC;
-    //const CNWBTC = contracts.CNWBTC;
-    //const NestToken = contracts.NestToken;
     const NestPool = contracts.NestPool;
     const NestMining = contracts.NestMining;
     const NestStaking = contracts.NestStaking;
@@ -44,8 +40,6 @@ async function main() {
     const NestQuery = contracts.NestQuery;
     const NestDAO = contracts.NestDAO;
     const NestUpgrade = contracts.NestUpgrade;
-    //====================//
-    const NestUpgrade_test = contracts.NestUpgrade_test;
 
     let params;
     let tx;
@@ -84,7 +78,7 @@ async function main() {
     console.log("contractsToken.token2 = ",contractsToken.token2);
     console.log("params = ",params);
     /// @dev need to fix
-    tx = await NestUpgrade_test.SetupParamsOfNestMining(
+    tx = await NestUpgrade.SetupParamsOfNestMining(
         contractsNestv3.Nest_3_MiningContract,
         contractsNestv3.Nest_NToken_TokenAuction,
         contractsNestv3.Nest_NToken_TokenMapping,

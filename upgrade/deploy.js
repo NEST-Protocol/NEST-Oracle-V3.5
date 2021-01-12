@@ -117,17 +117,6 @@ exports.printContracts = function (format, contracts) {
 
 const getContractsFromAddrList = async function (addrList) {
 
-    //const CUSDT = await ethers.getContractAt("UERC20", addrList.USDT);
-    //const CWBTC = await ethers.getContractAt("UERC20", addrList.WBTC);
-    //const CNWBTC = await ethers.getContractAt("UERC20", addrList.NWBTC);
-
-    //const NestToken = await ethers.getContractAt("IBNEST", addrList.NEST,
-        //{
-            //libraries: {
-                //IterableMapping: addrList.IterableMapping
-            //}
-        //});
-
     NNToken = await ethers.getContractAt("NNToken", addrList.NN);
     NestPool = await ethers.getContractAt("NestPool", addrList.NestPool);
     NestStaking = await ethers.getContractAt("NestStaking", addrList.NestStaking);
@@ -143,8 +132,6 @@ const getContractsFromAddrList = async function (addrList) {
         });
 
     NestUpgrade = await ethers.getContractAt("NestUpgrade", addrList.NestUpgrade);
-    //======================//
-    NestUpgrade_test = await ethers.getContractAt("NestUpgrade_test", addrList.NestUpgrade_test);
     
     return {
         //CUSDT: CUSDT, 
@@ -160,7 +147,6 @@ const getContractsFromAddrList = async function (addrList) {
         NestQuery: NestQuery,
         NestDAO: NestDAO,
         NestUpgrade: NestUpgrade,
-        NestUpgrade_test: NestUpgrade_test,
     }
 }
 
@@ -340,15 +326,6 @@ exports.deployNestProtocolWithProxy = async function (deployer, contracts) {
     await tx.wait(1);
     console.log(`>>> [DPLY]: NestUpgrade deployed, address=${NestUpgrade.address}, block=${tx.blockNumber}`);
     contracts.NestUpgrade = NestUpgrade;
-
-    //=======================//
-    const UpgContract1 = await ethers.getContractFactory("NestUpgrade_test");
-    const NestUpgrade_test = await UpgContract1.deploy(NestPool.address);
-    tx = NestUpgrade_test.deployTransaction;
-    await tx.wait(1);
-    console.log(`>>> [DPLY]: NestUpgrade_test deployed, address=${NestUpgrade_test.address}, block=${tx.blockNumber}`);
-    contracts.NestUpgrade_test = NestUpgrade_test;
-    //===========================//
 
     const bn = tx.blockNumber;
     const ts = (await ethers.provider.getBlock(bn)).timestamp;
