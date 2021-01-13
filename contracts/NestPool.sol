@@ -14,7 +14,7 @@ import "./iface/INestStaking.sol";
 import "./iface/INNRewardPool.sol";
 import "./iface/INTokenController.sol";
 
-/// @title NNRewardPool
+/// @title NestPool
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
 /// @author Paradox  - <paradox@nestprotocol.org>
 
