@@ -366,7 +366,6 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         public 
         override 
         nonReentrant 
-        onlyOneBlock
         whenActive
         updateReward(ntoken, msg.sender) 
         returns (uint256)
