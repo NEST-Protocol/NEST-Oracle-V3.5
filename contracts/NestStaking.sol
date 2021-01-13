@@ -12,7 +12,7 @@ import "./lib/SafeERC20.sol";
 import "./lib/ReentrancyGuard.sol";
 import './lib/TransferHelper.sol';
 
-/// @title NNRewardPool
+/// @title NestStaking
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
 /// @author Paradox  - <paradox@nestprotocol.org>
 

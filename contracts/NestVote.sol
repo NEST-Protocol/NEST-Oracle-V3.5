@@ -6,13 +6,12 @@ import "./lib/SafeMath.sol";
 import "./lib/AddressPayable.sol";
 
 import "./iface/INestPool.sol";
-import "./iface/INestStaking.sol";
 
 import "./lib/SafeERC20.sol";
 import "./lib/ReentrancyGuard.sol";
 import './lib/TransferHelper.sol';
 
-/// @title NNRewardPool
+/// @title NestVote
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
 /// @author Paradox  - <paradox@nestprotocol.org>
 

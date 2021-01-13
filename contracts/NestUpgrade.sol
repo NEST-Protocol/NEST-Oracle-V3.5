@@ -32,9 +32,12 @@ import "./iface/INest_NToken_TokenMapping.sol";
 
     2. nest3.5: gov: NestPool.setGovernance(NestUpgrade.address)
 
-    3. nest3.5: NestUpgrade.setPairsOfTokens(..., tokanL), can be run multiple times, all token-ntoken settings must be completed before proceeding to the next step, usdt-nest included. tokenL[i] != usdt.addr
+    3. nest3.5: NestUpgrade.setPairsOfTokens(..., tokanL), can be run multiple times, 
+      all token-ntoken settings must be completed before proceeding to the next step, 
+      USDT-NEST included. tokenL[i] != USDT.address
 
-    4. nest3.5: NestUpgrade.SetupParamsOfNestMining(...), this function can only be executed once
+    4. nest3.5: NestUpgrade.SetupParamsOfNestMining(...), this function can only be 
+      executed once
     
     5. nest3.5: NestMining.post2Only4Upgrade(...)
 
@@ -46,18 +49,22 @@ import "./iface/INest_NToken_TokenMapping.sol";
     
     6. nest3.5: gov: NestPool.setGovernance(NestUpgrade.address)
     
-    7. nest3.5: NestUpgrade.transferNestFromNest3(), transfer nest to nestpool
-       if failed: all right, no funds are transferred to the new contract at this time;
-       if succeeded: next step;
+    7. nest3.5: NestUpgrade.transferNestFromNest3(), transfer NEST(umined) to NestPool
+       if failed: 
+            all right, no funds are transferred to the new contract at this time;
+       if succeeded: 
+            go to next step;
 
     8. nest3.5: gov: NestPool.setGovernance(NestUpgrade.address)
 
-    9. nest3.5: NestUpgrade.transferETHFromNest3(...), transfer eth to address(this), 
-       can be run multiple times, all tokens should be applyed once, usdt included 
-       if falied: can run NestUpgrade.transferNestInUrgent()
-       if succeeded: next step
+    9. nest3.5: NestUpgrade.transferETHFromNest3(...), transfer ETH to address(this), 
+       can be run multiple times, each tokens should be applied once, USDT must be included 
+       if falied: 
+            run NestUpgrade.transferNestInUrgent() to revert
+       if succeeded: 
+            go to next step
 
-    10. nest3.5: NestUpgrade.transferETHToNestDAO(...), transfer eth to NestDAO.addr, 
+    10. nest3.5: NestUpgrade.transferETHToNestDAO(...), transfer ETH to NestDAO.addr, 
         if failed: can run NestUpgrade.transferETH()
         if succeeded: next step
 
@@ -83,13 +90,13 @@ contract NestUpgrade {
     uint256 public nestBal;
     uint256 public minedNestAmount;
     uint256 public nest;
-    uint256 public tokenNum;         /// Nest_NToken_TokenAuction.checkTokenNum()
+    uint256 public tokenNum;         // Nest_NToken_TokenAuction.checkTokenNum()
 
-    uint256 public ntoken_num1 = 0;  /// record how many pairs of tokens have been set
-                                     /// finnally,the value should equal to  
-                                     /// Nest_NToken_TokenAuction.checkTokenNum()
+    uint256 public ntoken_num1 = 0;  // record how many pairs of tokens have been set
+                                     // finally,the value should be equal to  
+                                     // Nest_NToken_TokenAuction.checkTokenNum()
 
-    uint256 public ntoken_num2 = 0;  /// record the number of tokens for which funds have been transferred
+    uint256 public ntoken_num2 = 0;  // record the number of tokens for which funds have been transferred
 
     uint256 constant total_nest = 10_000_000_000;  // total nest == 10 billion
 
@@ -120,14 +127,14 @@ contract NestUpgrade {
         flag = 0;
     }
 
-    /// @dev Upgrade from Nest v3.0 to v3.5
+    /// @notice Upgrade from Nest v3.0 to v3.5
     /// @dev setNtokenToToken(token, ntoken)
-    /// @notice If the number of ntokens is too large 
-    /// @notice and gas consumption exceeds the limit,
-    /// @notice you can execute setPairsOfTokens() multiple times.
-    /// @notice open new ntoken in nest3 should not be allowed.
+    ///   If the number of ntokens is too large 
+    ///   and gas consumption exceeds the limit,
+    ///   you can execute setPairsOfTokens() multiple times.
+    ///   open new ntoken in nest3 should not be allowed.
     function setPairsOfTokens(
-            address UsdtToken,
+            address usdtToken,
             address Nest_NToken_TokenMapping, 
             address[] memory tokenL) public onlyGovernance
     {
@@ -138,17 +145,17 @@ contract NestUpgrade {
 
         for(uint i=0; i<tokenL.length; i++)
         {
-            require(tokenL[i] != UsdtToken, "Token:Upg: !USDT");
+            require(tokenL[i] != usdtToken, "Token:Upg:!USDT");
             ntokenL[i] = INest_NToken_TokenMapping(Nest_NToken_TokenMapping).checkTokenMapping(tokenL[i]);
-            require(ntokenL[i] != address(0), "Ntoken:Upg: err");
+            require(ntokenL[i] != address(0), "Ntoken:Upg:!addr");
         }
 
         INestPool _C_NestPool = INestPool(C_NestPool);
         C_NestToken = _C_NestPool.addrOfNestToken();
 
-        if(_C_NestPool.getNTokenFromToken(UsdtToken) == address(0))
+        if(_C_NestPool.getNTokenFromToken(usdtToken) == address(0))
         {
-            _C_NestPool.setNTokenToToken(UsdtToken, C_NestToken);
+            _C_NestPool.setNTokenToToken(usdtToken, C_NestToken);
             ntoken_num1 += 1; 
         }
 
@@ -165,9 +172,9 @@ contract NestUpgrade {
         return;
     }
 
-    /// @dev set up params about NestMining
-    /// @notice this function can only be executed once
-    function SetupParamsOfNestMining(
+    /// @notice Set up params about NestMining
+    /// @dev This function can only be executed once
+    function setupParamsOfNestMining(
             address Nest_3_MiningContract,
             address Nest_NToken_TokenAuction,
             address Nest_NToken_TokenMapping, 
@@ -205,8 +212,8 @@ contract NestUpgrade {
     }
 
 
-    /// @dev transfer nest from nest3 to nest3.5
-    /// @param Nest_3_MiningContract: address of Nest_3_MiningContract
+    /// @dev Transfer nest from nest3 to nest3.5
+    /// @param Nest_3_MiningContract Address of Nest_3_MiningContract
     function transferNestFromNest3(address Nest_3_MiningContract) public onlyGovernance
     {
         require(flag < 2, "Nest:Upg:!flag");
@@ -239,13 +246,13 @@ contract NestUpgrade {
         return;
     }
 
-    /// @dev transfer nest from nest3 to nest3.5
-    /// @param Nest_3_MiningContract: address of Nest_3_MiningContract
-    /// @param Nest_NToken_TokenAuction: address of Nest_NToken_TokenAuction
-    /// @param Nest_3_Abonus: address of Nest_NToken_TokenMapping
-    /// @param Nest_3_Leveling: address of Nest_NToken_TokenMapping
-    /// @param tokenL: lists of tokens addresses, usdt included
-    /// @notice this function could be executed many times
+    /// @notice Transfer NEST from nest3 to nest3.5
+    /// @param Nest_3_MiningContract Address of Nest_3_MiningContract
+    /// @param Nest_NToken_TokenAuction Address of Nest_NToken_TokenAuction
+    /// @param Nest_3_Abonus Address of Nest_NToken_TokenMapping
+    /// @param Nest_3_Leveling Address of Nest_NToken_TokenMapping
+    /// @param tokenL Lists of tokens addresses, usdt included
+    /// @dev This function could be executed many times
     function transferETHFromNest3(
             address Nest_3_MiningContract,
             address Nest_NToken_TokenAuction,
@@ -315,11 +322,12 @@ contract NestUpgrade {
         return;
     }
 
-    /// @dev transfer eth to NestDAO
-    /// @param NestDAO: address of NestDAO contract
-    /// @param Nest_NToken_TokenAuction: address of Nest_NToken_TokenAuction
-    /// @notice all ETH(ntoken) must be transfered to address(this) 
-    function transferETHToNestDAO(address NestDAO, address Nest_NToken_TokenAuction) public onlyGovernance
+    /// @notice Transfer ETH to NestDAO
+    /// @param NestDAO Address of NestDAO contract
+    /// @param Nest_NToken_TokenAuction Address of Nest_NToken_TokenAuction
+    /// @dev All ETH(ntoken) must be transfered to address(this) 
+    function transferETHToNestDAO(address NestDAO, address Nest_NToken_TokenAuction)
+        public onlyGovernance
     {
         tokenNum = INest_NToken_TokenAuction(Nest_NToken_TokenAuction).checkTokenNum();
         require(tokenNum == ntoken_num2, "ntoken_num2:Upg: !sufficient");
@@ -329,10 +337,10 @@ contract NestUpgrade {
 
     }
 
-    /// @dev initialize nest3.5, NestMining.upgrade()  / NestDAO.start()
-    /// @notice this function can only be executed once
-    /// @notice new ntoken not turned on at this time, set ntokenCounter by C_NTokenController.start(...)
-    function initNest35() public onlyGovernance
+    /// @dev Initialize nest3.5, NestMining.upgrade() / NestDAO.start()
+    /// @dev This function can only be executed once
+    /// @dev New ntoken not turned on at this time, set ntokenCounter by C_NTokenController.start(...)
+    function switchOnNest35() public onlyGovernance
     {
         require(flag < 2, "Nest:Upg:!flag");
         INestPool _C_NestPool = INestPool(C_NestPool);
@@ -345,12 +353,11 @@ contract NestUpgrade {
 
         INestDAO(C_NestDAO).loadGovernance();
           
-        /// @dev start nest3.5
+        // start nest3.5
         
         INestMining(C_NestMining).upgrade();
 
         INestDAO(C_NestDAO).loadContracts();
-        INestDAO(C_NestDAO).start();
 
         _C_NestPool.setGovernance(governance);
 
@@ -361,24 +368,25 @@ contract NestUpgrade {
     }
 
 
-    //=========================== urgent, if deploy failed ================//
+    //================== urgent, if deployment failed ================//
     
-    /// @dev if upgrade failed, transfer eth to urgent destination
+    /// @dev If the upgrading failed, transfer ETH to an temporary address
     function transferETH(address to) public onlyGovernance
     {
         (bool success, ) = to.call{value: address(this).balance}(new bytes(0));
         require(success, 'TransferHelper::safeTransferETH: ETH transfer failed');
     }
 
-    /// @dev if upgrade failed, withdraw nest from nestpool
-    /// @param to: address which you want to transfer to
-    /// @param amount: nest amount
-    /// @param upgarde: address of NestUpgrade
-    function transferNestInUrgent(address to, uint256 amount, address upgarde) public onlyGovernance 
+    /// @dev if the upgrading failed, withdraw nest from nestpool
+    /// @param to Address where you want to transfer
+    /// @param amount NEST amount
+    /// @param upgrade Address of NestUpgrade
+    function transferNestInUrgent(address to, uint256 amount, address upgrade) 
+        public onlyGovernance 
     {
         require(flag < 2, "Nest:Upg:!flag");
         INestPool _C_NestPool = INestPool(C_NestPool);
-        _C_NestPool.drainNest(to, amount, upgarde);
+        _C_NestPool.drainNest(to, amount, upgrade);
     }
 
 }
