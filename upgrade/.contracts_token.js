@@ -1,0 +1,6 @@
+module.exports =
+{
+    token1: "0x0A6573bb90A60A27C845800382852935216c3102",
+    token2: "0x1090ADb9Cb0bbc369394549Bf16411904Fa9e042",
+
+}

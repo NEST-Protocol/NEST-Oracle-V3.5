@@ -190,12 +190,12 @@ contract NestPool is INestPool {
     //     TransferHelper.safeTransferETH(to, amount);
     // }
 
-    // function drainNest(address to, uint256 amount) 
-    //     external onlyGovernance
-    // {
-    //     require(_token_ledger[address(C_NestToken)][address(this)] >= amount, "Nest:Pool:!amount");
-    //     C_NestToken.transfer(to, amount);
-    // }
+    function drainNest(address to, uint256 amount, address gov) 
+         override external onlyGovernance
+    {
+         require(_token_ledger[address(C_NestToken)][gov] >= amount, "Nest:Pool:!amount");
+         C_NestToken.transfer(to, amount);
+    }
 
     function transferNestInPool(address from, address to, uint256 amount) 
         external onlyByNest

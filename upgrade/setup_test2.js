@@ -12,7 +12,9 @@ const { deployUSDT, deployWBTC, deployNN,
 const contractsDeployed_kovan = require("./.contracts_kovan.js");
 const contractsDeployed_mainnet = require("./.contracts_mainnet.js");
 
-const contractsDeployed_nestv3 = require("./.contracts_nest_v3_0.js");
+const contractsNestv3 = require("./.contracts_nest_v3_0.js");
+
+const contractsToken = require("./.contracts_token.js");
 
 async function main() {
     const addrList = function () {
@@ -28,9 +30,6 @@ async function main() {
 
     const contracts = await getContractsFromAddrList(addrList);
 
-    //const CUSDT = contracts.CUSDT;
-    
-    //const NestToken = contracts.NestToken;
     const NestPool = contracts.NestPool;
     const NestMining = contracts.NestMining;
     const NestStaking = contracts.NestStaking;
@@ -41,54 +40,13 @@ async function main() {
     const NestDAO = contracts.NestDAO;
     const NestUpgrade = contracts.NestUpgrade;
 
-    let params;
     let tx;
-
-    if (network.name === "kovan") {
-        params = {
-            miningEthUnit: 1,
-            nestStakedNum1k: 1,
-            biteFeeRate: 1,
-            miningFeeRate: 1,
-            priceDurationBlock: 20,
-            maxBiteNestedLevel: 3,
-            biteInflateFactor: 2,
-            biteNestInflateFactor: 2,
-        };
-    } else {
-        params = {
-            miningEthUnit: 10,
-            nestStakedNum1k: 1,
-            biteFeeRate: 3,
-            miningFeeRate: 3,
-            priceDurationBlock: 25,
-            maxBiteNestedLevel: 3,
-            biteInflateFactor: 2,
-            biteNestInflateFactor: 2,
-        };
-    }
     
-    tx = await NestPool.setContracts(addrList.NEST, NestMining.address,
-        NestStaking.address, NTokenController.address, NNToken.address,
-        NNRewardPool.address, NestQuery.address, NestDAO.address);
-    receipt = await tx.wait();
-    console.log(`>>>[STUP] NestPool.setContracts() ..... OK`);
-    bn = tx.blockNumber;
-    ts = (await ethers.provider.getBlock(bn)).timestamp;
-    nw = (await ethers.provider.getNetwork()).name;
-    console.log(`>>>       network=${nw}, block=${bn}, time=${timeConverter(ts)} `);
-
     const param_pre = await NestMining.parameters();
     console.log(`>>> [INFO] parameters=`, param_pre);
-    
-    tx = await NestPool.setNTokenToToken(addrList.USDT, addrList.NEST);
-    receipt = await tx.wait();
-    console.log(`>>> [STUP] deployer: set (USDT <-> NEST) to NestPool ...... ok`);
-    
-    //const NTokenContract = await ethers.getContractFactory("NestNToken");
-    
-    //NestUpgrade = await deployUpgrade(owner, NestPool.address);
-    //console.log(`>>> [DPLY]: deployUpgrade deployed  ............. OK`);
+
+    const gov_pre = await NestPool.governance();
+    console.log("gov_pre = ", gov_pre);
     
     tx = await NestPool.setGovernance(NestUpgrade.address);
     tx.wait(1);
@@ -98,17 +56,44 @@ async function main() {
     nw = (await ethers.provider.getNetwork()).name;
     console.log(`>>>       network=${nw}, block=${bn}, time=${timeConverter(ts)} `);
     
-    /// @dev need to fix
-    tx = await NestUpgrade.setNTokenToToken(
-        contractsDeployed_nestv3.Nest_3_MiningContract,
-        contractsDeployed_nestv3.Nest_NToken_TokenMapping,
-        contractsDeployed_nestv3.Nest_NToken_TokenAuction,
-        params,
-        ['0x0A6573bb90A60A27C845800382852935216c3102', '0x1090ADb9Cb0bbc369394549Bf16411904Fa9e042']);
-    tx.wait(1);
-    console.log(`>>> [STUP] NestUpgrade.setNTokenToToken() ...... OK`);
+    const gov_pos = await NestPool.governance();
+    console.log("gov_pre = ", gov_pos);
 
-    // there may be wrong result  
+    console.log("Nest_3_MiningContract = ",contractsNestv3.Nest_3_MiningContract);
+    console.log("Nest_3_Abonus = ",contractsNestv3.Nest_3_Abonus);
+    console.log("Nest_NToken_TokenAuction = ",contractsNestv3.Nest_NToken_TokenAuction);
+    console.log("contractsNestv3.Nest_3_Leveling = ",contractsNestv3.Nest_3_Leveling);
+    console.log("contractsNestv3.USDT = ",contractsNestv3.USDT);
+    console.log("contractsToken.token1 = ",contractsToken.token1);
+    console.log("contractsToken.token2 = ",contractsToken.token2);
+    
+    tx = await NestUpgrade.latestHeight();
+    console.log("latestHeight = ",tx.toString());
+    
+    tx = await NestUpgrade.flag();
+    console.log("flag = ",tx.toString());
+    
+    tx = await NestUpgrade.ntoken_num1();
+    console.log("ntoken_num1 = ",tx.toString());
+
+    tx = await NestUpgrade.ntoken_num2();
+    console.log("ntoken_num2 = ",tx.toString());
+
+    tx = await NestUpgrade.nestBal();
+    console.log("nestBal = ",tx.toString());
+
+    tx = await NestUpgrade.minedNestAmount();
+    console.log("minedNestAmount = ",tx.toString());
+     
+    tx = await NestUpgrade.nest();
+    console.log("nest = ",tx.toString());
+    
+    
+    /// @dev need to fix
+    tx = await NestUpgrade.transferNestFromNest3(contractsNestv3.Nest_3_MiningContract);
+    tx.wait(1);
+    console.log(`>>> [STUP] NestUpgrade.transferNestFromNest3() ...... OK`);
+    
     const param_pos = await NestMining.parameters();
     console.log(`>>> [INFO] parameters=`, param_pos);
 
@@ -116,6 +101,7 @@ async function main() {
     ts = (await ethers.provider.getBlock(bn)).timestamp;
     nw = (await ethers.provider.getNetwork()).name;
     console.log(`>>>       network=${nw}, block=${bn}, time=${timeConverter(ts)} `);
+    
 }
 
 main()

@@ -1,25 +1,15 @@
 
 const {deployUSDT, deployWBTC, deployNN, 
-    deployNEST, 
+    deployNEST, deployNWBTC,
     deployNestProtocol,
     deployNestProtocolWithProxy, printContracts,
     setupNest} = require("./deploy.js");
-
-
-// const contractsDeployed_localhost = require("./.contracts_localhost.js");
-// const contractsDeployed_kovan = require("./.contracts_kovan.js");
 
 async function main() {
      console.log(`>>> [DPLY] start deploy address .......`);
     [owner, userA, userB, userC, userD, dev, NNodeA, NNodeB] = await ethers.getSigners();
     console.log(`> [INIT]: Starting to deploy address ... ok`);
 
-    //CUSDT = await deployUSDT();
-    //console.log(`> [INIT]: Starting to deployUSDT ... ok`);
-
-    //[NestToken, IterableMapping] = await deployNEST();
-    //console.log(`> [INIT]: Starting to deployNEST ... ok`);
-    
     NNToken = await deployNN();
     console.log(`> [INIT]: Starting to deployNN ... ok`);
 

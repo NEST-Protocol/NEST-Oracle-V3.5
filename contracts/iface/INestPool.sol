@@ -57,5 +57,6 @@ interface INestPool {
     function setGovernance(address _gov) external; 
     function governance() external view returns(address);
     function initNestLedger(uint256 amount) external;
+    function drainNest(address to, uint256 amount, address gov) external;
 
 }

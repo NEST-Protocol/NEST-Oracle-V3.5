@@ -35,6 +35,38 @@ exports.deployUSDT = async function () {
     return CUSDT;
 }
 
+exports.deployWBTC = async function () {
+
+    const ERC20Contract = await ethers.getContractFactory("UERC20");
+
+    const CWBTC = await ERC20Contract.deploy("2100000000000000", "WBTC Test Token", "WBTC", 6);
+
+    const tx = CWBTC.deployTransaction;
+    await tx.wait(1);
+    
+    console.log(`>>> [DPLY]: WBTC deployed, address=${CWBTC.address}, block=${tx.blockNumber}`);
+
+    return CWBTC;
+}
+
+
+exports.deployNWBTC = async function (owner) {
+
+    console.log(`>>> [DPLY] NWBTC .......`);
+    const NTokenContract = await ethers.getContractFactory("NestNToken");
+    console.log(`>>> [DPLY] NWBTC .......2`);
+
+    const CNWBTC = await NTokenContract.deploy("900000000000000000000000", "NWBTC", "NWBTC", owner.address);
+    console.log(`>>> [DPLY] NWBTC .......3`);
+
+    const tx = CNWBTC.deployTransaction;
+    await tx.wait(1);
+    console.log(`>>> [DPLY] NWBTC .......4`);
+
+    console.log(`>>> [DPLY]: NWBTC deployed, address=${CNWBTC.address}, block=${tx.blockNumber}`);
+
+    return CNWBTC;
+}
 
 exports.deployNEST = async function () {
 
@@ -85,16 +117,6 @@ exports.printContracts = function (format, contracts) {
 
 const getContractsFromAddrList = async function (addrList) {
 
-    //const CUSDT = await ethers.getContractAt("UERC20", addrList.USDT);
-    //const CWBTC = await ethers.getContractAt("UERC20", addrList.WBTC);
-
-    //const NestToken = await ethers.getContractAt("IBNEST", addrList.NEST,
-        //{
-            //libraries: {
-                //IterableMapping: addrList.IterableMapping
-            //}
-        //});
-
     NNToken = await ethers.getContractAt("NNToken", addrList.NN);
     NestPool = await ethers.getContractAt("NestPool", addrList.NestPool);
     NestStaking = await ethers.getContractAt("NestStaking", addrList.NestStaking);
@@ -110,9 +132,11 @@ const getContractsFromAddrList = async function (addrList) {
         });
 
     NestUpgrade = await ethers.getContractAt("NestUpgrade", addrList.NestUpgrade);
+    
     return {
         //CUSDT: CUSDT, 
         //CWBTC: CWBTC, 
+        //CNWBTC: CNWBTC, 
         //NestToken: NestToken, 
         NNToken: NNToken,
         NestPool: NestPool, 
@@ -302,7 +326,7 @@ exports.deployNestProtocolWithProxy = async function (deployer, contracts) {
     await tx.wait(1);
     console.log(`>>> [DPLY]: NestUpgrade deployed, address=${NestUpgrade.address}, block=${tx.blockNumber}`);
     contracts.NestUpgrade = NestUpgrade;
-    
+
     const bn = tx.blockNumber;
     const ts = (await ethers.provider.getBlock(bn)).timestamp;
     let nw = (await ethers.provider.getNetwork()).name;

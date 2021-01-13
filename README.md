@@ -44,22 +44,23 @@ npx hardhat scripts/setup_testnet.js --network kovan
 
 | Contract | Address |
 | ------------ | ------------|
-| block | 22741430 |
-|timestamp| 2020-12-24 23:41:40 |
-| USDT |  0x9aB348f15Bf3CAd27542c4cF07891C5DfCf80bbD | 
-| WBTC |  0x8987FFafed5DB95Df695cD81419f51754E5c2D03 | 
-|NEST| 0xE9Bb75DECa4Cf70Acd3d1ec2aFD840f760E31B07 |
-| NN |  0x7CbE1918bA3bC0d30dD0cAC2391F6f7434c1929F | 
-| IterableMapping |  0x21A183fbdbb0bBf303cDB0E3f205Db092A38BFB3 |  
-| NestPool |  0x4A3D5D1c95aC73C6b02Bd3b4252EF54EF47170A4 | 
-| MiningV1Calc |  0x9Be21a958A27AA67105Ba7dbebbE082C311e4234 | 
-| MiningV1Op |  0x0Bb79bfc11e5e6d6857ab8c82a60242Caa1Ca490 | 
-| NestMining |  0x66faAF2f2F052602823766085555448306556763 | 
-| NestStaking |  0x57669663fd38a0bD5383132BbFC27E156158b9b1 | 
-| NNRewardPool |  0x069b4E4F3806AE8A51ca505035F764C6C30cDf1d | 
-| NTokenController | 0xA55D2203aAa0758BcA319af27C730BAf7eCB05E6 |
-| NestQuery | 0x9e7f2f096F9A1c3630b017d4C06DD54231DF420a |
-| NestDAO | 0xE9EDb48cc2bc9f3Ed09d4c082D4e75FbEaD35A70 |
+| block | 22980753 |
+|timestamp| 2021-1-12 16:37:0 |
+| USDT |  0xbe5b2A10733b85D84D25Cb75385B76DB925305e5 | 
+| WBTC |  0x59fE94363880C02Fe2E3F1f70a2c9E76e7b9C3dA | 
+|NEST| 0xAF90951414154C3dea695096216FE0aef9222E21 |
+| NN |  0x9B8e35a6dB2A2F3B530Ee42Ae430a15349529C99 | 
+| IterableMapping |  0xf792e22886b28Ed5AC361573caBc957Dc7309dA5 |  
+| NestPool |  0x612d00e32C8b99F6f25Eb6ba7f65f74936674826 | 
+| MiningV1Calc |  0x83e81094f876EAB567Ff56A5376949742e055D66 | 
+| MiningV1Op |  0x49692FB96aB98bAB073A11933B1827b83d6A9D25 | 
+| NestMining |  0x260aB8BdE75697cAd7c20e56F325c6981A646c58 | 
+| NestStaking |  0xB79BdCeb7b3B82B64DD4A210CcB9A14b373311CF | 
+| NNRewardPool |  0x2B32c2FA5A9474001Cf3a63FDc00AEE0a20D6Af0 | 
+| NTokenController | 0xA08d25e5daE1C4734e4E27fe923c8E05D3431f7b |
+| NestQuery | 0x7d20754f15e32B821B4308B39a0321FceBf1D379 |
+| NestDAO | 0x6f99158bBABF8b0FCb06cE655E799500B509E008 |
+
 
 #### Ropsten testnet
 
@@ -96,7 +97,7 @@ npx hardhat scripts/setup_testnet.js --network ropsten
 | ------------ | ------------|
 | network | kovan |
 | genesisBlockNumber | 6236588 |
-| latestMiningHeight | 22598957 |
+| latestMiningHeight | 22980700 |
 | minedNestTotalAmount | NEST(1000) |
 | miningEthUnit | 1 |
 | nestStakedNum1k |1 |
@@ -125,6 +126,7 @@ npx hardhat scripts/setup_testnet.js --network ropsten
 
 ## Changelog
 
+- 2021-01-12: update kovan addresses
 - 2021-01-06: upgrade kovan addresses
 - 2020-12-25: upgrade kovan addresses
 - 2020-12-24: upgrade kovan addresses about MiningV1Calc and MiningV1Op
