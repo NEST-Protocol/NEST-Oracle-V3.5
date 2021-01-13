@@ -16,7 +16,7 @@ import './lib/TransferHelper.sol';
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
 /// @author Paradox  - <paradox@nestprotocol.org>
 
-contract NestStaking is ReentrancyGuard {
+contract NestVote is ReentrancyGuard {
 
     using SafeMath for uint256;
 
