@@ -114,6 +114,24 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         _;
     }
 
+    mapping(uint256 => mapping(address => bool)) private _status;
+
+    modifier onlyOneBlock() {
+        require(
+            !_status[block.number][tx.origin],
+            'Nest:Stak:!block'
+        );
+        require(
+            !_status[block.number][msg.sender],
+            'Nest:Stak:!block'
+        );
+
+        _;
+
+        _status[block.number][tx.origin] = true;
+        _status[block.number][msg.sender] = true;
+    }
+
     /* ========== GOVERNANCE ========== */
 
     function loadContracts() override external onlyGovOrBy(C_NestPool)
@@ -296,6 +314,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         external 
         override 
         nonReentrant 
+        onlyOneBlock
         whenActive
         updateReward(ntoken, msg.sender) 
     {
@@ -313,6 +332,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         external 
         override 
         nonReentrant 
+        onlyOneBlock
         whenActive
         updateReward(ntoken, msg.sender) 
     {
@@ -328,6 +348,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         public 
         override 
         nonReentrant 
+        onlyOneBlock
         whenActive
         updateReward(ntoken, msg.sender)
     {
@@ -345,6 +366,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         public 
         override 
         nonReentrant 
+        onlyOneBlock
         whenActive
         updateReward(ntoken, msg.sender) 
         returns (uint256)
