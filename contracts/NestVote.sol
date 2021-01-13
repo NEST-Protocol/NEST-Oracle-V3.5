@@ -27,7 +27,7 @@ contract NestStaking is ReentrancyGuard {
     uint256 proposalStaking = 100_000 * 1e18;
 
     struct Proposal {
-        uint32 state;  // 1: proposed | 2: accepted | 3: rejected
+        uint32 state;  // 0: proposed | 1: accepted | 2: rejected
         uint32 startTime;
         uint32 endTime;
         uint64 voters;
@@ -92,10 +92,12 @@ contract NestStaking is ReentrancyGuard {
         governance = gov;
     }
 
-    function setParams(uint32 voteDuration_, uint32 acceptance_) public onlyGovernance
+    function setParams(uint32 voteDuration_, uint32 acceptance_, uint256 proposalStaking_) 
+        public onlyGovernance
     {
         acceptance = acceptance_;
         voteDuration = voteDuration_;
+        proposalStaking = proposalStaking_;
     }
 
     /* ========== VOTE ========== */
@@ -104,9 +106,9 @@ contract NestStaking is ReentrancyGuard {
     {
         uint256 id = proposalList.length;
         proposalList.push(Proposal(
-            uint32(1),                   // state
+            uint32(0),                   // state
             uint32(block.timestamp),    //startTime
-            uint32(block.timestamp + 7 days),  //endTime
+            uint32(block.timestamp + voteDuration),  //endTime
             uint64(0),                  // voters
             uint128(0),                 // stakedNestAmount
             contract_,                 //contractAddr
@@ -121,19 +123,50 @@ contract NestStaking is ReentrancyGuard {
 
     function vote(uint256 id, uint256 amount) external noContract
     {
-        Proposal storage p = proposalList[id];
-        stakedNestAmount[id][address(msg.sender)] = amount; 
+        Proposal memory p = proposalList[id];
+        uint256 blncs = stakedNestAmount[id][address(msg.sender)];
+        stakedNestAmount[id][address(msg.sender)] = blncs.add(amount); 
         p.stakedNestAmount = uint128(uint256(p.stakedNestAmount).add(amount));
+        if (blncs == 0) {
+            p.voters = uint64(uint256(p.voters).add(1));
+
+        }
+        proposalList[id] = p;
+
         ERC20(C_NestToken).transferFrom(address(msg.sender), address(this), amount);
+    }
+
+    function withdraw(uint256 id) external noContract
+    {
+        Proposal memory p = proposalList[id];
+        require (p.state > 0, "Nest:Vote:!state");
+
+        uint256 blnc = stakedNestAmount[id][address(msg.sender)];
+        p.stakedNestAmount = uint128(uint256(p.stakedNestAmount).sub(blnc));
+        stakedNestAmount[id][address(msg.sender)] = 0;
+
+        proposalList[id] = p;
+
+        ERC20(C_NestToken).transfer(address(msg.sender), blnc);
     }
 
     function revoke(uint256 id, uint256 amount) external noContract
     {
-        Proposal storage p = proposalList[id];
+        Proposal memory p = proposalList[id];
+        require (p.state == 0, "Nest:Vote:!state");
+        require (block.timestamp < p.endTime, "Nest:Vote:!time");
+
         uint256 blnc = stakedNestAmount[id][address(msg.sender)];
         require(blnc >= amount, "Nest:Vote:!amount"); 
+        if (blnc == amount) {
+            p.voters = uint64(uint256(p.voters).sub(1));
+        }
+
         p.stakedNestAmount = uint128(uint256(p.stakedNestAmount).sub(amount));
         stakedNestAmount[id][address(msg.sender)] = blnc.sub(amount);
+
+        proposalList[id] = p;
+
         ERC20(C_NestToken).transfer(address(msg.sender), amount);
     }
 
@@ -145,21 +178,31 @@ contract NestStaking is ReentrancyGuard {
         uint256 _circulation = _total.sub(_repurchased).sub(_burned);
 
         Proposal storage p = proposalList[id];
+        require (p.state == 0, "Nest:Vote:!state");
+        require (p.endTime < block.timestamp, "Nest:Vote:!time");
 
         if (p.stakedNestAmount > _circulation.mul(acceptance).div(100)) {
             address _contract = p.contractAddr;
             (bool success, bytes memory result) = _contract.delegatecall(abi.encodeWithSignature("run()"));
-            p.executor = address(msg.sender);
+            require(success, "Nest:Vote:!exec");
             p.state = 1;
         } else {
             p.state = 2;
         }
+        p.executor = address(msg.sender);
+        
         ERC20(C_NestToken).transfer(p.proposer, proposalStaking);
     }
 
-    function voted(uint256 id) public view returns (uint256) 
+    function stakedNestNum(uint256 id) public view returns (uint256) 
     {
         Proposal storage p = proposalList[id];
         return (uint256(p.stakedNestAmount).div(1e18));
+    }
+
+    function numberOfVoters(uint256 id) public view returns (uint256) 
+    {
+        Proposal storage p = proposalList[id];
+        return (uint256(p.voters));
     }
 }
