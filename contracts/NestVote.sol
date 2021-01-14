@@ -1,15 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "./lib/SafeMath.sol";
 import "./lib/AddressPayable.sol";
 
+import "./iface/INestMining.sol";
 import "./iface/INestPool.sol";
+
 
 import "./lib/SafeERC20.sol";
 import "./lib/ReentrancyGuard.sol";
 import './lib/TransferHelper.sol';
+
+// import "hardhat/console.sol";
+
 
 /// @title NestVote
 /// @author Inf Loop - <inf-loop@nestprotocol.org>
@@ -21,9 +27,9 @@ contract NestVote is ReentrancyGuard {
 
     /* ========== STATE ============== */
 
-    uint32 voteDuration = 7 days;
-    uint32 acceptance = 51;
-    uint256 proposalStaking = 100_000 * 1e18;
+    uint32 public voteDuration = 7 days;
+    uint32 public acceptance = 51;
+    uint256 public proposalStaking = 100_000 * 1e18;
 
     struct Proposal {
         uint32 state;  // 0: proposed | 1: accepted | 2: rejected
@@ -42,8 +48,14 @@ contract NestVote is ReentrancyGuard {
     address private C_NestToken;
     address private C_NestPool;
     address private C_NestDAO;
+    address private C_NestMining;
 
     address public governance;
+   
+    uint8 public  flag;
+    uint8 constant NESTVOTE_FLAG_UNINITIALIZED = 0;
+    uint8 constant NESTVOTE_FLAG_INITIALIZED   = 1;
+
 
     /* ========== EVENTS ========== */
 
@@ -57,6 +69,17 @@ contract NestVote is ReentrancyGuard {
     // NOTE: to support open-zeppelin/upgrades, leave it blank
     constructor() public
     {  }
+
+    // NOTE: can only be executed once
+    function initialize(address NestPool) external
+    {
+        require(flag == NESTVOTE_FLAG_UNINITIALIZED, "Vote:init:!flag" );
+
+        governance = msg.sender;
+        C_NestPool = NestPool;
+        flag = NESTVOTE_FLAG_INITIALIZED;
+
+    }
 
 
     /* ========== MODIFIERS ========== */
@@ -80,10 +103,17 @@ contract NestVote is ReentrancyGuard {
         governance = INestPool(C_NestPool).governance();
     }
 
+
+    function setGovernance(address _gov) external onlyGovernance
+    { 
+        INestPool(C_NestPool).setGovernance(_gov);
+    }
+
     function loadContracts() public onlyGovernance
     {
         C_NestToken = INestPool(C_NestPool).addrOfNestToken();
         C_NestDAO = INestPool(C_NestPool).addrOfNestDAO();
+        C_NestMining = INestPool(C_NestPool).addrOfNestMining();
     }
 
     function releaseGovTo(address gov) public onlyGovernance
@@ -123,6 +153,7 @@ contract NestVote is ReentrancyGuard {
     function vote(uint256 id, uint256 amount) external noContract
     {
         Proposal memory p = proposalList[id];
+        require (block.timestamp <= p.endTime, "Nest:Vote:!time");
         uint256 blncs = stakedNestAmount[id][address(msg.sender)];
         stakedNestAmount[id][address(msg.sender)] = blncs.add(amount); 
         p.stakedNestAmount = uint128(uint256(p.stakedNestAmount).add(amount));
@@ -152,8 +183,8 @@ contract NestVote is ReentrancyGuard {
     function revoke(uint256 id, uint256 amount) external noContract
     {
         Proposal memory p = proposalList[id];
-        require (p.state == 0, "Nest:Vote:!state");
-        require (block.timestamp < p.endTime, "Nest:Vote:!time");
+
+        require (uint256(block.timestamp) <= uint256(p.endTime), "Nest:Vote:!time");
 
         uint256 blnc = stakedNestAmount[id][address(msg.sender)];
         require(blnc >= amount, "Nest:Vote:!amount"); 
@@ -171,10 +202,11 @@ contract NestVote is ReentrancyGuard {
 
     function execute(uint256 id) external
     {
-        uint256 _total = ERC20(C_NestToken).totalSupply();
+        uint256 _total_mined = INestMining(C_NestMining).minedNestAmount();
         uint256 _burned = ERC20(C_NestToken).balanceOf(address(0x1));
         uint256 _repurchased = ERC20(C_NestToken).balanceOf(C_NestDAO);
-        uint256 _circulation = _total.sub(_repurchased).sub(_burned);
+
+        uint256 _circulation = _total_mined.sub(_repurchased).sub(_burned);
 
         Proposal storage p = proposalList[id];
         require (p.state == 0, "Nest:Vote:!state");
@@ -189,6 +221,8 @@ contract NestVote is ReentrancyGuard {
             p.state = 2;
         }
         p.executor = address(msg.sender);
+
+        proposalList[id] = p;
         
         ERC20(C_NestToken).transfer(p.proposer, proposalStaking);
     }
@@ -196,7 +230,8 @@ contract NestVote is ReentrancyGuard {
     function stakedNestNum(uint256 id) public view returns (uint256) 
     {
         Proposal storage p = proposalList[id];
-        return (uint256(p.stakedNestAmount).div(1e18));
+        //return (uint256(p.stakedNestAmount).div(1e18));
+        return (uint256(p.stakedNestAmount));
     }
 
     function numberOfVoters(uint256 id) public view returns (uint256) 
@@ -204,4 +239,5 @@ contract NestVote is ReentrancyGuard {
         Proposal storage p = proposalList[id];
         return (uint256(p.voters));
     }
+
 }
