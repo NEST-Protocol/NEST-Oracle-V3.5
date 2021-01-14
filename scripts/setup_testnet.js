@@ -72,7 +72,7 @@ async function main() {
         };
     } else if (network.name === "kovan") {
         genesis = 6236588;
-        lastB = 22741425;
+        lastB = 22980700;
         mined = NEST(1000);
         params = {
             miningEthUnit: 1,
@@ -99,17 +99,7 @@ async function main() {
             biteNestInflateFactor: 2,
         };
     }
-    
-    tx = await NestPool.setContracts(NestToken.address, NestMining.address,
-        NestStaking.address, NTokenController.address, NNToken.address,
-        NNRewardPool.address, NestQuery.address, NestDAO.address);
-    receipt = await tx.wait(1);
-    console.log(`>>> [STUP] NestMining setup() ...... OK`);
-    bn = tx.blockNumber;
-    ts = (await ethers.provider.getBlock(bn)).timestamp;
-    nw = (await ethers.provider.getNetwork()).name;
-    console.log(`>>>       network=${nw}, block=${bn}, time=${timeConverter(ts)} `);
-    
+
     tx = await NestPool.setContracts(NestToken.address, NestMining.address,
         NestStaking.address, NTokenController.address, NNToken.address,
         NNRewardPool.address, NestQuery.address, NestDAO.address);
@@ -135,25 +125,21 @@ async function main() {
     tx = CNWBTC.deployTransaction;
     await tx.wait(1);
 
-    NestUpgrade = await deployUpgrade(owner, NestPool.address);
-    console.log(`>>> [DPLY]: deployUpgrade deployed  ............. OK`);
-    
-    tx = await NestPool.setGovernance(NestUpgrade.address);
+    tx = await NestPool.setNTokenToToken(CWBTC.address, CNWBTC.address);
     tx.wait(1);
-    console.log(`>>> [STUP] NestPool.governance ==> NestUpgrade (${NestUpgrade.address}) ...... OK`);
-    bn = tx.blockNumber;
-    ts = (await ethers.provider.getBlock(bn)).timestamp;
-    nw = (await ethers.provider.getNetwork()).name;
-    console.log(`>>>       network=${nw}, block=${bn}, time=${timeConverter(ts)} `);
+    console.log(`>>> [STUP] deployer: set (WBTC <-> CWBTC) to NestPool ...... ok`);
 
-    tx = await NestUpgrade.upgradeAndSetup(genesis, lastB, mined, params, 
-        [CUSDT.address, CWBTC.address], [NestToken.address, CNWBTC.address]);
+    tx = await NestMining.setup(genesis, lastB, mined, params);
     tx.wait(1);
-    console.log(`>>> [STUP] NestUpgrade.setup() ...... OK`);
+    console.log(`>>> [STUP] NestMining.setup() ...... OK`);
     
     // there may be wrong result  
     const param_pos = await NestMining.parameters();
     console.log(`>>> [INFO] parameters=`, param_pos);
+
+    tx.wait(2);
+    const param_pos1 = await NestMining.parameters();
+    console.log(`>>> [INFO] parameters=`, param_pos1);
 
     bn = tx.blockNumber;
     ts = (await ethers.provider.getBlock(bn)).timestamp;

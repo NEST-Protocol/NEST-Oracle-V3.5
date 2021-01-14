@@ -68,6 +68,7 @@ const main = async function () {
     const NToken = await NestPool.getNTokenFromToken(CUSDT.address);
     console.log("NToken = ",NToken);
     
+    
     let tx = await NestMining.connect(userA).post2(CUSDT.address, 1, USDT(450), NEST(1000), { value: ETH(ethNum.mul(2).add(1))});
     console.log('> [INIT]: NestMining.post2() userA post2 ...... ok');
      
@@ -75,8 +76,13 @@ const main = async function () {
     console.log('>>> [WAIT]: waited 1 blocks ...... ok');
     
     const index_post_usdt = await NestMining.lengthOfPriceSheets(CUSDT.address);
+    console.log("index_post_usdt = ", index_post_usdt.toString());
+
+    const pricesheet_post = await NestMining.fullPriceSheet(CUSDT.address, index_post_usdt.sub(1));
+    console.log("pricesheet_post = ", pricesheet_post);
+
     const index_post_ntoken = await NestMining.lengthOfPriceSheets(NestToken.address);
-    console.log("index_post_usdt = ",index_post_usdt.toString());
+    console.log("index_post_ntoken = ",index_post_ntoken.toString());
     console.log('> [INIT]: NestMining.lengthOfPriceSheets() lengthOfPriceSheets() ...... ok');
     
     const pricesheet_post_usdt_pre = await NestMining.fullPriceSheet(CUSDT.address, index_post_usdt.sub(1));
