@@ -57,9 +57,9 @@ async function main() {
     console.log("contractsToken.token2 = ",contractsToken.token2);
     
     /// @deav need to fix
-    tx = await NestUpgrade.initNest35();
+    tx = await NestUpgrade.switchOnNest35();
     tx.wait(3);
-    console.log(`>>> [STUP] NestUpgrade.initNest35() ...... OK`);
+    console.log(`>>> [STUP] NestUpgrade.switchOnNest35() ...... OK`);
     
 
     bn = tx.blockNumber;

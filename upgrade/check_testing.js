@@ -40,7 +40,7 @@ async function main() {
     const NNRewardPool = contracts.NNRewardPool;
     const NestQuery = contracts.NestQuery;
     const NestDAO = contracts.NestDAO;
-    //const NestUpgrade = contracts.NestUpgrade;
+    const NestUpgrade = contracts.NestUpgrade;
 
     let tx;
     
@@ -67,9 +67,10 @@ async function main() {
     tx = await NestDAO.totalETHRewards(contractsNToken.ntoken2);
     console.log("ETH(ntoken2) = ", tx.toString());
 
-    //tx = await NestPool.balanceOfNestInPool(NestUpgrade.address);
-    tx = await NestPool.balanceOfNestInPool(gov_pos);
-    console.log("NESt(nestpool) = ", tx.toString());
+    // need to fix
+    tx = await NestPool.balanceOfNestInPool(NestUpgrade.address);
+    //tx = await NestPool.balanceOfNestInPool(gov_pos);
+    console.log("NEST(nestpool) = ", tx.toString());
 
 
     bn = tx.blockNumber;

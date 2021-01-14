@@ -78,13 +78,13 @@ async function main() {
     console.log("contractsToken.token2 = ",contractsToken.token2);
     console.log("params = ",params);
     /// @dev need to fix
-    tx = await NestUpgrade.SetupParamsOfNestMining(
+    tx = await NestUpgrade.setupParamsOfNestMining(
         contractsNestv3.Nest_3_MiningContract,
         contractsNestv3.Nest_NToken_TokenAuction,
         contractsNestv3.Nest_NToken_TokenMapping,
         params);
     tx.wait(3);
-    console.log(`>>> [STUP] NestUpgrade.SetupParamsOfNestMining() ...... OK`);
+    console.log(`>>> [STUP] NestUpgrade.setupParamsOfNestMining() ...... OK`);
 
     // there may be wrong result  
     tx.wait(2);
