@@ -222,7 +222,7 @@ contract NestUpgrade {
 
         C_NestMining = _C_NestPool.addrOfNestMining();
 
-        /// @dev set latestMiningHeight and minedNestTotalAmount
+        // set latestMiningHeight and minedNestTotalAmount
     
         latestHeight = INest_3_MiningContract(Nest_3_MiningContract).checkLatestMining();
         
@@ -234,7 +234,7 @@ contract NestUpgrade {
 
         INestMining(C_NestMining).setParams1(uint128(latestHeight), uint128(minedNestAmount));
 
-        /// @dev send nest to nestpool.addr
+        // send nest to nestpool.addr
         INest_3_MiningContract(Nest_3_MiningContract).takeOutNest(C_NestPool);
         nest = ERC20(C_NestToken).balanceOf(C_NestPool);
         _C_NestPool.initNestLedger(nest);
