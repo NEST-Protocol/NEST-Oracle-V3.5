@@ -227,7 +227,7 @@ describe("NestToken contract", function () {
         // check propose func 
         it("should propose correctly", async () => {
 
-            await NestVote.connect(userA).propose(userA.address);
+            await NestVote.connect(userA).propose(userA.address, 'test0');
 
             const list = await NestVote.proposalList([0]);
             //console.log("list = ", list);
@@ -239,9 +239,10 @@ describe("NestToken contract", function () {
             expect(blnc).to.equal(NEST(100));
         });
 
+    
         // check vote func
         it("should vote correctly", async () => {
-            await NestVote.connect(userA).propose(userA.address);
+            await NestVote.connect(userA).propose(userA.address, 'test1');
 
             await NestVote.connect(userA).vote(1, NEST(100));
 
@@ -293,7 +294,7 @@ describe("NestToken contract", function () {
             // voteDuration = 10 s, acceptance = 50%, proposalStaking = NEST(100)
             await NestVote.setParams(10, 50, NEST(100));
 
-            await NestVote.connect(userA).propose(userA.address);
+            await NestVote.connect(userA).propose(userA.address, 'test2');
             //console.log("userA.address = ", userA.address);
 
             const list1 = await NestVote.proposalList(2);
@@ -329,7 +330,7 @@ describe("NestToken contract", function () {
         // check execute func
         it("should execute correctly", async () => {
             
-            await NestVote.connect(userA).propose(_C_VoteTest1);
+            await NestVote.connect(userA).propose(_C_VoteTest1, 'setParams');
 
             const list = await NestVote.proposalList(3);
 
@@ -376,7 +377,7 @@ describe("NestToken contract", function () {
             //console.log("NestVote.address = ", NestVote.address);
             expect(gov_pre).to.equal(NestVote.address);
 
-            await NestVote.connect(userA).propose(_C_VoteTest2);
+            await NestVote.connect(userA).propose(_C_VoteTest2, 'setGovernance');
 
             await NestVote.connect(userA).vote(4, NEST(300));
 
@@ -389,7 +390,7 @@ describe("NestToken contract", function () {
             const gov_pos = await NestPool.governance();
             //console.log("gov_pos = ", gov_pos);
         })
-
+    
 
 
     });
