@@ -32,6 +32,7 @@ contract NestVote is ReentrancyGuard {
     uint256 public proposalStaking = 100_000 * 1e18;
 
     struct Proposal {
+        string description;
         uint32 state;  // 0: proposed | 1: accepted | 2: rejected
         uint32 startTime;
         uint32 endTime;
@@ -131,10 +132,11 @@ contract NestVote is ReentrancyGuard {
 
     /* ========== VOTE ========== */
     
-    function propose(address contract_) external
+    function propose(address contract_, string memory description) external
     {
         uint256 id = proposalList.length;
         proposalList.push(Proposal(
+            string(description),
             uint32(0),                   // state
             uint32(block.timestamp),    //startTime
             uint32(block.timestamp + voteDuration),  //endTime
