@@ -61,7 +61,10 @@ contract NestVote is ReentrancyGuard {
     /* ========== EVENTS ========== */
 
     event NIPSubmitted(address proposer, uint256 id);
-    event NIPVoted(address voter, uint256 amount);
+    event NIPVoted(address voter, uint256 id, uint256 amount);
+    event NIPWithdraw(address voter, uint256 id, uint256 blnc);
+    event NIPRevoke(address voter, uint256 id, uint256 amount);
+    event NIPExecute(address executor, uint256 id);
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -166,6 +169,8 @@ contract NestVote is ReentrancyGuard {
         proposalList[id] = p;
 
         ERC20(C_NestToken).transferFrom(address(msg.sender), address(this), amount);
+
+        emit NIPVoted(msg.sender, id, amount);
     }
 
     function withdraw(uint256 id) external noContract
@@ -180,6 +185,8 @@ contract NestVote is ReentrancyGuard {
         proposalList[id] = p;
 
         ERC20(C_NestToken).transfer(address(msg.sender), blnc);
+
+        emit NIPWithdraw(msg.sender, id, blnc);
     }
 
     function revoke(uint256 id, uint256 amount) external noContract
@@ -200,6 +207,8 @@ contract NestVote is ReentrancyGuard {
         proposalList[id] = p;
 
         ERC20(C_NestToken).transfer(address(msg.sender), amount);
+
+        emit NIPRevoke(msg.sender, id, amount);
     }
 
     function execute(uint256 id) external
@@ -227,6 +236,8 @@ contract NestVote is ReentrancyGuard {
         proposalList[id] = p;
         
         ERC20(C_NestToken).transfer(p.proposer, proposalStaking);
+
+        emit NIPExecute(msg.sender, id);
     }
 
     function stakedNestNum(uint256 id) public view returns (uint256) 
