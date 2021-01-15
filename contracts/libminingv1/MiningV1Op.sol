@@ -449,6 +449,7 @@ library MiningV1Op {
         }
     }
 
+    /*
     /// @dev This function is only for post dual-price-sheet before upgrading without assets
     function _post2Only4Upgrade(
             MiningV1Data.State storage state,
@@ -518,5 +519,6 @@ library MiningV1Op {
 
         return; 
     }
+    */
 
 }

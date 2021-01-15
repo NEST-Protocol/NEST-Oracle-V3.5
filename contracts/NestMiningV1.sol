@@ -835,7 +835,7 @@ contract NestMiningV1 {
     //     return (uint128(enc / (1 << 128)), uint128(enc % (1 << 128)));
     // }
 
-/*
+    /*
     function decode(bytes32 x) internal pure returns (uint64 a, uint64 b, uint64 c, uint64 d) {
         assembly {
             d := x
@@ -847,7 +847,7 @@ contract NestMiningV1 {
             c := mload(0)
         }
     }
-*/   
+   
     /// @dev The function will be disabled when the upgrading is completed
     /// TODO: (TBD) auth needed? 
     function post2Only4Upgrade(
@@ -868,5 +868,5 @@ contract NestMiningV1 {
         state._stat(token);
         state._stat(_ntoken);
     }
-    
+    */
 }
