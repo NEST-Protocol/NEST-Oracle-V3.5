@@ -44,7 +44,7 @@ import "./iface/INest_NToken_TokenMapping.sol";
     //========================================================//
     
     
-    Attenion: nest 3 stops running when funds are transferred !!!!
+    Attention: nest 3 stops running when funds are transferred !!!!
     //===================== transfer funds ===================//
     
     6. nest3.5: gov: NestPool.setGovernance(NestUpgrade.address)
