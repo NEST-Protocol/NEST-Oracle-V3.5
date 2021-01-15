@@ -193,7 +193,9 @@ describe("NestToken contract", function () {
 
         it("should be able to post dual price sheets", async () => {
             await NestMining.connect(userA).post2(_C_USDT, 10, USDT(450), NEST(1000), { value: ETH(22) });
+            await expect(NestMining.connect(userA).post2(_C_NestToken, 10, USDT(450), NEST(1000), { value: ETH(22) })).to.be.reverted;
         });
+        
 
         it("should be able to close two price sheets", async () => {
             await goBlocks(provider, 25);

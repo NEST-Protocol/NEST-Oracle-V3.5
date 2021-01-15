@@ -309,6 +309,10 @@ describe("NestToken contract", function () {
             await goBlocks(provider, 1000);
 
             await NestMining.connect(userA).post(token, ethNum, tokenAmountPerEth, { value: msgValue });
+            
+            await expect(NestMining.connect(userA).post(NToken, ethNum, tokenAmountPerEth, { value: msgValue })).to.be.reverted;
+
+
     
             const index = await NestMining.lengthOfPriceSheets(token);
 

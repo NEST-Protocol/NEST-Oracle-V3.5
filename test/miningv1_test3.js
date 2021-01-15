@@ -2035,6 +2035,54 @@ describe("NestToken contract", function () {
         });
 
 
+        //================================== closeList priceSheeet ( ntoken ) =================================//
+        //=====================================================================================================//
+
+        it("can close priceSheeet correctly !", async () => {
+
+            //=======================  preparation  ==================//
+            const token = _C_USDT;
+            const params = await NestMining.parameters();
+            const ethNum = params.miningEthUnit;
+            const priceDurationBlock = params.priceDurationBlock;
+            const biteNum = ethNum;
+            const tokenAmountPerEth = USDT(450);
+            const NTokenAmountPerEth = NEST(1000);
+            const newTokenAmountPerEth = USDT(300);
+            const msgValue = ETH(BigN(50));
+            const MINER_NEST_REWARD_PERCENTAGE = 80;
+
+            const NToken = await NestPool.getNTokenFromToken(token);
+
+
+
+            //  post2 
+            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
+            
+            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
+           
+            const index = await NestMining.lengthOfPriceSheets(NToken);
+            
+            // price sheet will be generated here 
+            await NestMining.connect(userA).biteToken(NToken, index.sub(1), biteNum, NEST(500), { value: msgValue });
+
+            // updated  postSheet
+            const postSheet = await NestMining.fullPriceSheet(NToken, index.sub(1));
+
+            // timed out
+            await goBlocks(provider, priceDurationBlock);
+
+            // read the new price sheet
+            const index1 = await NestMining.lengthOfPriceSheets(NToken);
+            const postSheet1 = await NestMining.fullPriceSheet(NToken, index1.sub(1));
+
+            //==========================================//
+
+            // close priceSheet 
+            await NestMining.connect(userA).closeList(NToken, [index.sub(1), index1.sub(1)]);
+
+        });
+
         //===================================== closeAndWithdraw ETH-WBTC =====================================//
         //=====================================================================================================//
 
