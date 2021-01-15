@@ -290,7 +290,7 @@ contract NestMiningV1 {
 
         INestPool _C_NestPool = INestPool(state.C_NestPool);
         address _ntoken = _C_NestPool.getNTokenFromToken(token);
-        require(_ntoken != address(0) &&  _ntoken != address(state.C_NestToken), "Nest:Mine:!(ntoken)");
+        require(_ntoken != address(0) &&  _ntoken != address(state.C_NestToken) && token != _ntoken, "Nest:Mine:!(ntoken)");
 
         // check if the totalsupply of ntoken is less than MINING_NTOKEN_NON_DUAL_POST_THRESHOLD, otherwise use post2()
         require(INToken(_ntoken).totalSupply() < MiningV1Data.MINING_NTOKEN_NON_DUAL_POST_THRESHOLD, "Nest:Mine:!ntoken");
@@ -388,7 +388,7 @@ contract NestMiningV1 {
         address _ntoken = INestPool(state.C_NestPool).getNTokenFromToken(token);
 
         // NOTE: uncomment the line below to ensure that only (ETH, NEST) can be dual-posted
-        //require(_ntoken == address(state.C_NestToken), "Nest:Mine:!(ntoken)");
+        require(_ntoken != token, "Nest:Mine:!(ntoken)");
 
         // calculate eth fee
         uint256 _ethFee = ethNum.mul(state.miningFeeRate).mul(1e18).div(1000);
