@@ -303,7 +303,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         require(isDeviated == false, "Nest:DAO:!price");
 
         // check if there is sufficient quota for repurchase
-        require (amount < quota, "Nest:DAO:!quota");
+        require (amount <= quota, "Nest:DAO:!quota");
         require (amount.mul(1e18) <= bal.mul(price), "Nest:DAO:!bal2");
         //require (amount.mul(1e18).div(price) < bal, "Nest:DAO:!bal2");
 
@@ -353,8 +353,22 @@ contract NestDAO is INestDAO, ReentrancyGuard {
             _acc = (n * intv > 3000)? 3000 : (n * intv);
         }
 
-        // check if there is sufficient quota for repurchase
-        quota = _acc.mul(1e18).add(it.quotaAmount);
+        uint256 total;
+         total = _acc.mul(1e18).add(it.quotaAmount);
+        if(ntoken == C_NestToken){
+            if(total > uint256(300_000).mul(1e18)){
+                quota = uint256(300_000).mul(1e18);
+            }else{
+                quota = total;
+            }   
+        }else{
+            if(total > uint256(3000).mul(1e18)){
+                quota = uint256(3000).mul(1e18);
+            }else{
+                quota = total;
+            }   
+        }
+        
     }
 
     /* ========== VIEWS ========== */
