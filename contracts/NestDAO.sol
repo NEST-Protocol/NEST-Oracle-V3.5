@@ -14,7 +14,7 @@ import "./iface/INestDAO.sol";
 import "./iface/INestStaking.sol";
 import "./iface/INestQuery.sol";
 
-import "hardhat/console.sol";
+//import "hardhat/console.sol";
 
 
 /// @dev The contract is for redeeming nest token and getting ETH in return
