@@ -305,7 +305,7 @@ contract NestMiningV1 {
         // check if the totalsupply of ntoken is less than MINING_NTOKEN_NON_DUAL_POST_THRESHOLD, otherwise use post2()
         require(INToken(_ntoken).totalSupply() < MiningV1Data.MINING_NTOKEN_NON_DUAL_POST_THRESHOLD, "Nest:Mine:!ntoken");
         // calculate eth fee
-        uint256 _ethFee = ethNum.mul(state.miningFeeRate).mul(1e18).div(1000);
+        uint256 _ethFee = ethNum.mul(state.miningFeeRate).mul(1e18).div(10000);
 
         { // settle ethers and tokens
 
@@ -401,7 +401,7 @@ contract NestMiningV1 {
         require(_ntoken != token, "Nest:Mine:!(ntoken)");
 
         // calculate eth fee
-        uint256 _ethFee = ethNum.mul(state.miningFeeRate).mul(1e18).div(1000);
+        uint256 _ethFee = ethNum.mul(state.miningFeeRate).mul(1e18).div(10000);
 
         { // settle ethers and tokens
             INestPool _C_NestPool = INestPool(state.C_NestPool);
