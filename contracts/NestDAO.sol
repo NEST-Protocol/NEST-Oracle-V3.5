@@ -14,9 +14,6 @@ import "./iface/INestDAO.sol";
 import "./iface/INestStaking.sol";
 import "./iface/INestQuery.sol";
 
-//import "hardhat/console.sol";
-
-
 /// @dev The contract is for redeeming nest token and getting ETH in return
 contract NestDAO is INestDAO, ReentrancyGuard {
 
@@ -61,6 +58,8 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     uint256 constant DAO_REPURCHASE_NTOKEN_TOTALSUPPLY = 200_000_000;  // total supply > 200 million 
 
     uint256 constant DAO_COLLECT_INTERVAL = 5_760;  // 25 hour * 60 min * 4 tx/min ~= 1 day
+
+    uint256 constant _ethFee = 0.01 ether;
 
     /* ========== ADDRESSES ============== */
 
@@ -281,6 +280,8 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         address _ntoken = INestPool(C_NestPool).getNTokenFromToken(ntoken);
         require (_ntoken == ntoken, "Nest:DAO:!ntoken");
 
+        require (msg.value >= _ethFee, "Nest:DAO:!ethFee");
+
         require(INToken(ntoken).totalSupply() >= ntokenRepurchaseThreshold, "Nest:DAO:!total");
 
         // check if there is sufficient ethers for repurchase
@@ -294,6 +295,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         uint256 price;
         bool isDeviated;
         
+        
         {
             (uint256 ethAmount, uint256 tokenAmount,) = INestMining(C_NestMining).latestPriceOf(ntoken);
             (, uint256 avg, ,) = INestMining(C_NestMining).priceAvgAndSigmaOf(ntoken);
@@ -302,7 +304,11 @@ contract NestDAO is INestDAO, ReentrancyGuard {
             uint256 diff = price > avg? (price - avg) : (avg - price);
             isDeviated = (diff.mul(100) < avg.mul(DAO_REPURCHASE_PRICE_DEVIATION))? false : true;
 
-            this.addETHReward{value:0.01 ether}(address(ntoken));
+            if(msg.value > _ethFee){
+                TransferHelper.safeTransferETH(msg.sender, msg.value.sub(_ethFee));
+            }
+            this.addETHReward{value:_ethFee}(address(ntoken));
+
         }
 
         require(isDeviated == false, "Nest:DAO:!price");
