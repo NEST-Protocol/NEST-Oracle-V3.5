@@ -57,7 +57,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     uint256 constant DAO_REPURCHASE_PRICE_DEVIATION = 5;  // price deviation < 5% 
     uint256 constant DAO_REPURCHASE_NTOKEN_TOTALSUPPLY = 200_000_000;  // total supply > 200 million 
 
-    uint256 constant DAO_COLLECT_INTERVAL = 5_760;  // 25 hour * 60 min * 4 tx/min ~= 1 day
+    uint256 constant DAO_COLLECT_INTERVAL = 5_760;  // 24 hour * 60 min * 4 block/min ~= 1 day
 
     uint256 constant _ethFee = 0.01 ether;
 
@@ -173,9 +173,12 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         uint256 _len = ntokenL_.length;
         for (uint256 i; i < _len; i++) {
             address _ntoken = ntokenL_[i];
-            uint256 _blncs = ethLedger[_ntoken]; 
+            uint256 _blncs = ethLedger[_ntoken];
+
             INestDAO(newDAO_).addETHReward{value:_blncs}(_ntoken);
             
+            ethLedger[_ntoken] = 0;
+
             uint256 _staked = INestStaking(C_NestStaking).stakedBalanceOf(_ntoken, address(this));
             if (_staked > 0) {
                 INestStaking(C_NestStaking).unstake(_ntoken, _staked);
@@ -210,7 +213,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         ethLedger[ntoken] = ethLedger[ntoken].add(msg.value);
     }
 
-    /// @dev (Obsolete) 
+    /// @dev Called by NestMining
     function addNestReward(uint256 amount) 
         override 
         external 
@@ -220,7 +223,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         it.rewardedAmount = uint128(uint256(it.rewardedAmount).add(amount));
     }
 
-    /// @dev Collect ethers from NestStaking
+    /// @dev Collect ethers from NestPool
     function collectNestReward() public returns(uint256)
     {
         // withdraw NEST from NestPool (mined by miners)
@@ -230,9 +233,6 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         }
 
         INestPool(C_NestPool).withdrawNest(address(this), nestAmount);
-
-        Ledger storage lg = ntokenLedger[C_NestToken];
-        lg.rewardedAmount = uint128(uint256(lg.rewardedAmount).add(nestAmount));
 
         return nestAmount;
     }
@@ -246,11 +246,17 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         require (_ntoken == ntoken, "Nest:DAO:!ntoken");
 
         uint256 ntokenAmount = ERC20(ntoken).balanceOf(address(this));
-        if (ntokenAmount == 0) {
-            return 0;
+
+        // if (ntokenAmount == 0) {
+        //     return 0;
+        // }
+        // // stake new NEST/NTOKENs into StakingPool
+        // INestStaking(C_NestStaking).stake(ntoken, ntokenAmount);
+
+        if (ntokenAmount != 0) {
+            // stake new NEST/NTOKENs into StakingPool
+            INestStaking(C_NestStaking).stake(ntoken, ntokenAmount);
         }
-        // stake new NEST/NTOKENs into StakingPool
-        INestStaking(C_NestStaking).stake(ntoken, ntokenAmount);
 
         // claim rewards from StakingPool 
         uint256 _rewards = INestStaking(C_NestStaking).claim(ntoken);
@@ -261,13 +267,14 @@ contract NestDAO is INestDAO, ReentrancyGuard {
 
     function _collect(address ntoken) internal
     {
-        uint256 ethAmount = collectETHReward(ntoken);
-
         if (block.number < uint256(lastCollectingBlock).add(collectInterval)) {
             return;
         }
+
+        uint256 ethAmount = collectETHReward(ntoken);
         
         uint256 nestAmount = collectNestReward();
+        
         lastCollectingBlock = uint32(block.number);
         emit AssetsCollected(address(msg.sender), ethAmount, nestAmount);
     }
@@ -315,8 +322,8 @@ contract NestDAO is INestDAO, ReentrancyGuard {
 
         // check if there is sufficient quota for repurchase
         require (amount <= quota, "Nest:DAO:!quota");
+        // amount.mul(1e18).div(price) < bal
         require (amount.mul(1e18) <= bal.mul(price), "Nest:DAO:!bal2");
-        //require (amount.mul(1e18).div(price) < bal, "Nest:DAO:!bal2");
 
         // update the ledger
         Ledger memory it = ntokenLedger[ntoken];
