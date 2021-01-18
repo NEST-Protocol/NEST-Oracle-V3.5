@@ -60,7 +60,7 @@ async function main() {
             miningEthUnit: 10,
             nestStakedNum1k: 1,
             biteFeeRate: 3,
-            miningFeeRate: 3,
+            miningFeeRate: 33,
             priceDurationBlock: 25,
             maxBiteNestedLevel: 3,
             biteInflateFactor: 2,

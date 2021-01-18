@@ -283,7 +283,7 @@ describe("NestToken contract", function () {
             await NestMining.connect(userA).post(token, ethNum, tokenAmountPerEth, { value: msgValue });
 
             // calculate fee
-            const ethFee = ETH(BigN(ethNum).mul(miningFeeRate)).div(1000);
+            const ethFee = ETH(BigN(ethNum).mul(miningFeeRate)).div(10000);
             const eth_reward_NestStakingOfNToken = ethFee.mul(MINING_NTOKEN_FEE_DIVIDEND_RATE).div(100);
             const eth_reward_NestDAoOfNToken = ethFee.mul(MINING_NTOKEN_FEE_DAO_RATE).div(100);
             const eth_reward_NestDaoOfNestToken = ethFee.mul(MINING_NTOKEN_FEE_NEST_DAO_RATE).div(100);
@@ -413,7 +413,7 @@ describe("NestToken contract", function () {
             
 
             // calculate fee
-            const ethFee = ETH(BigN(ethNum).mul(miningFeeRate)).div(1000);
+            const ethFee = ETH(BigN(ethNum).mul(miningFeeRate)).div(10000);
             const eth_reward_NestStaking = ethFee.mul(MINING_NEST_FEE_DIVIDEND_RATE).div(100);
             const eth_reward_NestDao = ethFee.mul(MINING_NEST_FEE_DAO_RATE).div(100);
 

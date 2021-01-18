@@ -38,9 +38,10 @@ async function main() {
     // const NNToken = contracts.NNToken;
     // const NNRewardPool = contracts.NNRewardPool;
     // const NestQuery = contracts.NestQuery;
-    // const NestDAO = contracts.NestDAO;
+     const NestDAO = contracts.NestDAO;
 
     console.log(`> [INIT]: Starting to upgrade Nest-Protocol v3.5 ...`);
+
 
     // upgrade NestMining
     const MiningV1CalcLibrary = await ethers.getContractFactory("MiningV1Calc");
@@ -79,6 +80,16 @@ async function main() {
     console.log(`>>>    [INFO]: NEW NestMining.version = ${v1}, block=${tx.blockNumber}`);
 
     await printContracts("js", addrList);
+
+    /*
+   const NewNestDAOContract = await ethers.getContractFactory("NestDAO");
+   const NewNestDAO = await upgrades.upgradeProxy(addrList.NestDAO, NewNestDAOContract, 
+    { unsafeAllowCustomTypes: true, unsafeAllowLinkedLibraries: true});
+   console.log(`>>> [UPGD]: NestDAO upgraded with Proxy ...... [OK]`);
+   console.log(`>>>    [INFO]: NestDAO.address=${NewNestDAO.address}`);
+
+   await printContracts("js", addrList);
+   */
 
 }
 
