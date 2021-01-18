@@ -14,6 +14,8 @@ import "./iface/INestDAO.sol";
 import "./iface/INestStaking.sol";
 import "./iface/INestQuery.sol";
 
+// import "hardhat/console.sol";
+
 
 /// @dev The contract is for redeeming nest token and getting ETH in return
 contract NestDAO is INestDAO, ReentrancyGuard {
@@ -291,13 +293,16 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         // check if the price is steady
         uint256 price;
         bool isDeviated;
+        
         {
-            (uint256 ethAmount, uint256 tokenAmount, uint256 avg, , ) = 
-                INestQuery(C_NestQuery).queryPriceAvgVola{value:msg.value}(ntoken, address(msg.sender));
+            (uint256 ethAmount, uint256 tokenAmount,) = INestMining(C_NestMining).latestPriceOf(ntoken);
+            (, uint256 avg, ,) = INestMining(C_NestMining).priceAvgAndSigmaOf(ntoken);
             price = tokenAmount.mul(1e18).div(ethAmount);
 
             uint256 diff = price > avg? (price - avg) : (avg - price);
             isDeviated = (diff.mul(100) < avg.mul(DAO_REPURCHASE_PRICE_DEVIATION))? false : true;
+
+            this.addETHReward{value:0.01 ether}(address(ntoken));
         }
 
         require(isDeviated == false, "Nest:DAO:!price");
@@ -316,6 +321,8 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         ntokenLedger[ntoken] = it;
 
         // transactions
+        //this.addETHReward{value:0.01 ether}(address(ntoken));
+        //ethLedger[ntoken] = ethLedger[ntoken].add(0.01 ether);
         ERC20(ntoken).transferFrom(address(msg.sender), address(this), amount);
         TransferHelper.safeTransferETH(msg.sender, amount.mul(1e18).div(price));
 

@@ -190,6 +190,16 @@ contract NestMiningV1 {
         _entrant_state = _NOT_ENTERED;
     }
 
+    modifier onlyByNest()
+    {
+        require(address(msg.sender) == address(tx.origin)
+            || msg.sender == state.C_NestDAO 
+            || msg.sender == state.C_NestStaking 
+            || msg.sender == state.C_NNRewardPool 
+            || msg.sender == state.C_NestQuery, "Nest:Mine:!Auth");
+        _;
+    }
+
     /* ========== GOVERNANCE ========== */
 
     function loadGovernance() external
@@ -598,7 +608,7 @@ contract NestMiningV1 {
     function latestPriceOf(address token) 
         public 
         view 
-        noContractExcept(state.C_NestQuery)
+        onlyByNest
         returns(uint256 ethAmount, uint256 tokenAmount, uint256 blockNum) 
     {
         MiningV1Data.PriceSheet[] storage _plist = state.priceSheetList[token];
@@ -645,7 +655,7 @@ contract NestMiningV1 {
     function priceAvgAndSigmaOf(address token) 
         public 
         view 
-        noContractExcept(state.C_NestQuery)
+        onlyByNest
         returns (uint128, uint128, int128, uint32) 
     {
         MiningV1Data.PriceInfo memory pi = state.priceInfo[token];
