@@ -14,7 +14,7 @@ import "./iface/INestDAO.sol";
 import "./iface/INestStaking.sol";
 import "./iface/INestQuery.sol";
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 
 /// @dev The contract is for redeeming nest token and getting ETH in return
@@ -321,8 +321,8 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         ntokenLedger[ntoken] = it;
 
         // transactions
-        //this.addETHReward{value:0.01 ether}(address(ntoken));
-        //ethLedger[ntoken] = ethLedger[ntoken].add(0.01 ether);
+        ethLedger[ntoken] = ethLedger[ntoken].sub(amount.mul(1e18).div(price));
+
         ERC20(ntoken).transferFrom(address(msg.sender), address(this), amount);
         TransferHelper.safeTransferETH(msg.sender, amount.mul(1e18).div(price));
 
