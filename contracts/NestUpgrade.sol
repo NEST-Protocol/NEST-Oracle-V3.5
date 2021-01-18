@@ -38,8 +38,6 @@ import "./iface/INest_NToken_TokenMapping.sol";
 
     4. nest3.5: NestUpgrade.SetupParamsOfNestMining(...), this function can only be 
       executed once
-    
-    5. nest3.5: NestMining.post2Only4Upgrade(...)
 
     //========================================================//
     
@@ -47,28 +45,28 @@ import "./iface/INest_NToken_TokenMapping.sol";
     Attention: nest 3 stops running when funds are transferred !!!!
     //===================== transfer funds ===================//
     
-    6. nest3.5: gov: NestPool.setGovernance(NestUpgrade.address)
+    5. nest3.5: gov: NestPool.setGovernance(NestUpgrade.address)
     
-    7. nest3.5: NestUpgrade.transferNestFromNest3(), transfer NEST(umined) to NestPool
+    6. nest3.5: NestUpgrade.transferNestFromNest3(), transfer NEST(umined) to NestPool
        if failed: 
             all right, no funds are transferred to the new contract at this time;
        if succeeded: 
             go to next step;
 
-    8. nest3.5: gov: NestPool.setGovernance(NestUpgrade.address)
+    7. nest3.5: gov: NestPool.setGovernance(NestUpgrade.address)
 
-    9. nest3.5: NestUpgrade.transferETHFromNest3(...), transfer ETH to address(this), 
+    8. nest3.5: NestUpgrade.transferETHFromNest3(...), transfer ETH to address(this), 
        can be run multiple times, each tokens should be applied once, USDT must be included 
        if falied: 
             run NestUpgrade.transferNestInUrgent() to revert
        if succeeded: 
             go to next step
 
-    10. nest3.5: NestUpgrade.transferETHToNestDAO(...), transfer ETH to NestDAO.addr, 
+    9. nest3.5: NestUpgrade.transferETHToNestDAO(...), transfer ETH to NestDAO.addr, 
         if failed: can run NestUpgrade.transferETH()
         if succeeded: next step
 
-    11. nest3.5: NestUpgrade.initNest35(), NestMining.upgrade() / NestDAO.start()
+    10. nest3.5: NestUpgrade.initNest35(), NestMining.upgrade() / NestDAO.start()
         if failed: NestDAO.migrateTo(...), transfer eth to new DAO
         if succeeded: end
 */
