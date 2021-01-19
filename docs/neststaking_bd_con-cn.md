@@ -6,14 +6,14 @@
 
 ## Changelog
 
-- 2020-12-18 修订
+- 2021-01-19 修订
 
 
 &emsp;
 
 ### `stake()`
 
-**功能:** 向 nestStaking 合约存入指定数量的 NToken
+**功能:** 向 nestStaking 合约存入指定数量的NEST或QP Token
 
 **函数:** `stake(ntoken, amount)`
    + `ntoken` 指定 ntoken 地址
@@ -35,7 +35,7 @@
 
 **函数:** `unstake(ntoken, amount)`
    + `ntoken` 指定 ntoken 地址
-   + `amount` 存入资金数量
+   + `amount` 取出资金数量
 
 **能否携带资金:** 否
 
