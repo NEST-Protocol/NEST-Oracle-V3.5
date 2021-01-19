@@ -387,4 +387,21 @@ contract NestUpgrade {
         _C_NestPool.drainNest(to, amount, upgrade);
     }
 
+    ///@dev set NestPool gov
+    /// NestPool.setGovernance(NestUpgrade.address) at first
+    function setGov() public onlyGovernance
+    {
+        INestPool _C_NestPool = INestPool(C_NestPool);
+        
+        _C_NestPool.setGovernance(governance);
+
+        C_NestMining = _C_NestPool.addrOfNestMining();
+
+        C_NestDAO = _C_NestPool.addrOfNestDAO();
+        
+        INestMining(C_NestMining).loadGovernance();
+
+        INestDAO(C_NestDAO).loadGovernance();
+    }
+
 }
