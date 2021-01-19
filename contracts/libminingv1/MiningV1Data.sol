@@ -49,9 +49,9 @@ library MiningV1Data {
 
     // uint256[10] private _mining_ntoken_yield_per_block_amount;
 
-    uint256 constant c_mining_eth_unit = 10;  // 10 ether
+    //uint256 constant c_mining_eth_unit = 10;  // 10 ether
     // uint256 constant c_mining_price_deviateion_factor = 10; // removed
-    uint256 constant c_mining_fee_thousandth = 10;
+    //uint256 constant c_mining_fee_thousandth = 10;
 
     uint256 constant NN_NEST_REWARD_PERCENTAGE = 15;
     uint256 constant DAO_NEST_REWARD_PERCENTAGE = 5;
