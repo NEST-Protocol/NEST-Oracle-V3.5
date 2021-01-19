@@ -55,7 +55,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     uint256 public collectInterval;
 
     uint256 constant DAO_REPURCHASE_PRICE_DEVIATION = 5;  // price deviation < 5% 
-    uint256 constant DAO_REPURCHASE_NTOKEN_TOTALSUPPLY = 200_000_000;  // total supply > 200 million 
+    uint256 constant DAO_REPURCHASE_NTOKEN_TOTALSUPPLY = 5_000_000;  // total supply > 5 million 
 
     uint256 constant DAO_COLLECT_INTERVAL = 5_760;  // 24 hour * 60 min * 4 block/min ~= 1 day
 
