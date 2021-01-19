@@ -81,7 +81,7 @@ library MiningV1Data {
     uint8 constant STATE_FLAG_PRICE_STOPPED    = 7;
     uint8 constant STATE_FLAG_SHUTDOWN         = 127;
 
-    uint256 constant MINING_NTOKEN_NON_DUAL_POST_THRESHOLD = 1_000_000 ether;
+    uint256 constant MINING_NTOKEN_NON_DUAL_POST_THRESHOLD = 5_000_000 ether;
 
 
     /// @dev size: (2 x 256 bit)
