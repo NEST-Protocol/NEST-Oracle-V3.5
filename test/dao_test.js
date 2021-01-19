@@ -179,7 +179,8 @@ describe("NestToken contract", function () {
             const rs_pre = await NestDAO.ntokenLedger(_C_NestToken);
             await NestDAO.collectNestReward();
             const rs_post = await NestDAO.ntokenLedger(_C_NestToken);
-            expect(rs_pre.rewardedAmount.add(NEST(100))).to.equal(rs_post.rewardedAmount);
+            expect(rs_pre.rewardedAmount.add(NEST(100))).to.equal(NEST(100));
+            expect(rs_post.rewardedAmount).to.equal(0);
         });
 
         it("can collect ETH reward", async () => {

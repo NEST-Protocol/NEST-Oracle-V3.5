@@ -566,6 +566,46 @@ describe("NestStaking contract", function () {
             NestStaking.connect(userA).stake(_C_NestToken, NEST(100));
 
         })
+
+
+        // check migrateTo func which located on NestDAO
+        it("should migrateTo correctly", async () => {
+
+            await NestDAO.start();
+            const blnc_pre = await NestDAO.totalETHRewards(_C_NestToken);
+            //console.log("blnc_pre = ",blnc_pre.toString());
+
+            await NestDAO.addETHReward(_C_NestToken, {value: ETH(10)});
+            const blnc = await NestDAO.totalETHRewards(_C_NestToken);
+            //console.log("blnc = ",blnc.toString());
+
+            const eth_pre = await provider.getBalance(NestDAO.address);
+            //console.log("eth_pre = ",eth_pre.toString());
+
+            const nest_blnc_pre = await NestStaking.stakedBalanceOf(_C_NestToken, NestDAO.address);
+            //console.log("nest_blnc_pre = ",nest_blnc_pre.toString());
+            
+
+            await NestDAO.collectNestReward();
+            await NestDAO.collectETHReward(_C_NestToken);
+
+            const nest_blnc_pos = await NestStaking.stakedBalanceOf(_C_NestToken, NestDAO.address);
+            
+            const nest_pre = await NestToken.balanceOf(NestDAO.address);
+           
+            await NestDAO.pause();
+            await NestDAO.migrateTo(NestDAO.address, [_C_NestToken]);
+
+            const nest_pos = await NestToken.balanceOf(NestDAO.address);
+
+            await NestDAO.resume();
+
+            expect(nest_blnc_pre).to.equal(0);
+            expect(nest_blnc_pos).to.equal(nest_pos);
+            expect(nest_pre).to.equal(0);
+
+        })
+
     });
 
 });

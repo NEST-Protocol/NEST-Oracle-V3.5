@@ -323,7 +323,7 @@ describe("NestToken contract", function () {
             const userA_NToken_pool_pre = await NestPool.balanceOfTokenInPool(userA.address, NToken);
             //console.log("userA_NToken_pool_pre = ", userA_NToken_pool_pre.toString());
 
-            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NWBTC(100), { value: msgValue });
+            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NWBTC(10), { value: msgValue });
 
             const userA_NToken_pool_pos = await NestPool.balanceOfTokenInPool(userA.address, NToken);
             //console.log("userA_NToken_pool_pos = ", userA_NToken_pool_pos.toString());
