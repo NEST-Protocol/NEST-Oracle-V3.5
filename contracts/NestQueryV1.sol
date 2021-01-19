@@ -71,7 +71,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
     /// @dev The default values of parameters. They shall be setup via `setParams()` before 
     ///     the contract starts to rotates.
     uint32  constant CLIENT_QUERY_FEE_ETH_TWEI = (0.01 ether) / 1e12;
-    uint32  constant CLIENT_ACTIVATION_NEST_AMOUNT = 100_000;
+    uint32  constant CLIENT_ACTIVATION_NEST_AMOUNT = 0;
     uint32  constant CLIENT_MONTHLY_FEE_NEST_AMOUNT = 1_000;
     uint32  constant CLIENT_ACTIVATION_DURATION_SECOND = 10;
 
