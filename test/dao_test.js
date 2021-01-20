@@ -399,6 +399,47 @@ describe("NestToken contract", function () {
         });
 
 
+        // check redeem funds
+        it("can redeem correctly", async () => {
+            const bn = await ethers.provider.getBlockNumber();
+            await MockNestMining.mock.latestPriceOf.withArgs(_C_NWBTC).returns(ETH(100), NWBTC(1000), bn);
+            await MockNestMining.mock.priceAvgAndSigmaOf.withArgs(_C_NWBTC).returns(ETH(90), ETH(10), 5, 100);
+
+            const total_pre0 = await NestDAO.totalETHRewards(_C_NWBTC);
+
+            const nestDAO_eth0 = await provider.getBalance(NestDAO.address);
+            
+            await NestDAO.addETHReward(_C_NWBTC, { value: ETH(2)});
+
+            const eth_A_pre = await userA.getBalance();
+            console.log("eth_A_pre = ", eth_A_pre.toString());
+            
+            
+
+            const total_pre = await NestDAO.totalETHRewards(_C_NWBTC);
+            console.log("total_pre = ", total_pre.toString());
+
+            const nestDAO_eth_pre = await provider.getBalance(NestDAO.address);
+        
+
+            await NestDAO.connect(userA).redeem(_C_NWBTC, NWBTC(10), {value: ETH(5) , gasPrice: 0});
+            const eth_A_post = await userA.getBalance(); 
+            console.log("eth_A_post = ", eth_A_post.toString());
+
+           
+            const total_pos = await NestDAO.totalETHRewards(_C_NWBTC);
+        
+            const nestDAO_eth_pos = await provider.getBalance(NestDAO.address);
+
+            //await NestDAO.connect(userA).redeem(_C_NWBTC, NWBTC(10), {value: ETH(5) , gasPrice: 0});
+        
+            expect(eth_A_post.sub(eth_A_pre)).to.equal(ETH(99).div(100));
+            expect(total_pre.sub(total_pos)).to.equal(ETH(99).div(100));
+            expect(nestDAO_eth_pre.sub(nestDAO_eth_pos)).to.equal(ETH(99).div(100));
+        });
+
+
+
         // check quota function
         it("should run correctly", async () => {
             await NestDAO.quotaOf(_C_NestToken);
