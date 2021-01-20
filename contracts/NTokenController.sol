@@ -30,7 +30,9 @@ contract NTokenController is INTokenController, ReentrancyGuard {
 
     /// @dev A number counter for generating ntoken name
     uint32  public ntokenCounter;
-    uint8   public flag;         // 0: uninitialized | 1: active | 2: shutdown
+    uint8   public flag;         // 0: uninitialized 
+                                 // 1: active (and initialized)
+                                 // 2: paused
     uint216 private _reserved;
 
     uint8   constant NTCTRL_FLAG_UNINITIALIZED    = 0;
@@ -39,7 +41,7 @@ contract NTokenController is INTokenController, ReentrancyGuard {
 
     /// @dev A mapping for all auctions
     ///     token(address) => NTokenTag
-    mapping(address => NTokenTag) private nTokenTagList;
+    mapping(address => NTokenTag) public nTokenTagList;
 
     /* ========== PARAMETERS ============== */
 
@@ -54,7 +56,7 @@ contract NTokenController is INTokenController, ReentrancyGuard {
     /// @dev Contract address of NestDAO
     address public C_NestDAO;
 
-    address private governance;
+    address public governance;
 
     /* ========== EVENTS ============== */
 
@@ -63,7 +65,9 @@ contract NTokenController is INTokenController, ReentrancyGuard {
     /// @param ntoken   The address of the ntoken w.r.t. token for incentives
     /// @param owner    The address of miner who opened the oracle
     event NTokenOpened(address token, address ntoken, address owner);
+
     event NTokenDisabled(address token);
+    
     event NTokenEnabled(address token);
 
     /* ========== CONSTRUCTOR ========== */
@@ -99,9 +103,8 @@ contract NTokenController is INTokenController, ReentrancyGuard {
 
     modifier onlyGovOrBy(address _account)
     {
-        if (msg.sender != governance) { 
-            require(msg.sender == _account,
-                "Nest:NTC:!Auth");
+        if (msg.sender != governance) {
+            require(msg.sender == _account, "Nest:NTC:!Auth");
         }
         _;
     }
@@ -119,7 +122,7 @@ contract NTokenController is INTokenController, ReentrancyGuard {
         governance = INestPool(C_NestPool).governance();
     }
 
-    /// @dev  It should be called immediately after the depolyment
+    /// @dev  It should be called immediately after being deployed
     function loadContracts() override external onlyGovOrBy(C_NestPool) 
     {
         C_NestToken = INestPool(C_NestPool).addrOfNestToken();
@@ -128,8 +131,9 @@ contract NTokenController is INTokenController, ReentrancyGuard {
     
     function setParams(uint256 _openFeeNestAmount) override external onlyGovernance
     {
-        emit ParamsSetup(address(msg.sender), openFeeNestAmount, _openFeeNestAmount);
+        uint256 _old = openFeeNestAmount;
         openFeeNestAmount = _openFeeNestAmount;
+        emit ParamsSetup(address(msg.sender), _old, _openFeeNestAmount);
     }
 
     /// @dev  Bad tokens should be banned 
