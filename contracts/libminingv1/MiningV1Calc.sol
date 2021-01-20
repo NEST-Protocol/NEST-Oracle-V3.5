@@ -22,8 +22,10 @@ import "../libminingv1/MiningV1Data.sol";
 library MiningV1Calc {
 
     using SafeMath for uint256;
-    // average block-out time: 14s
+    
+    /// @dev Average block mining interval, ~ 14s
     uint256 constant ETHEREUM_BLOCK_TIMESPAN = 14;
+
     function _calcVola(
             // uint256 ethA0, 
             uint256 tokenA0, 
@@ -33,7 +35,7 @@ library MiningV1Calc {
             int128 _ut_sq,
             uint256 _interval
         )
-        private 
+        private
         pure
         // pure 
         returns (int128, int128)
@@ -42,7 +44,7 @@ library MiningV1Calc {
             ABDKMath64x64.fromUInt(_interval.mul(ETHEREUM_BLOCK_TIMESPAN)));
 
         int128 _new_sigma_sq = ABDKMath64x64.add(
-            ABDKMath64x64.mul(ABDKMath64x64.divu(95, 100), _sigma_sq), 
+            ABDKMath64x64.mul(ABDKMath64x64.divu(95, 100), _sigma_sq),
             ABDKMath64x64.mul(ABDKMath64x64.divu(5,100), _ut_sq_2));
 
         int128 _new_ut_sq;
@@ -128,7 +130,7 @@ library MiningV1Calc {
                     uint256(p0.tokenAmount).div(uint256(p0.ethNum)), 
                     uint256(tokenA1).div(uint256(ethA1)),
                 p0.volatility_sigma_sq, p0.volatility_ut_sq, 
-                i - p0.index);
+                h - p0.height);
             }
         }
         uint256 _newAvg = _calcAvg(ethA1, tokenA1, p0.avgTokenAmount); 

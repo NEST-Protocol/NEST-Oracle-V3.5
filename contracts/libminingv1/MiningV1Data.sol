@@ -33,7 +33,7 @@ library MiningV1Data {
 
 
     uint256 constant MINING_NEST_FEE_DIVIDEND_RATE = 80;    // percentage = 80%
-    uint256 constant MINING_NEST_FEE_DAO_RATE = 20;         // percentage = 80%
+    uint256 constant MINING_NEST_FEE_DAO_RATE = 20;         // percentage = 20%
 
     uint256 constant MINING_NTOKEN_FEE_DIVIDEND_RATE        = 60;     // percentage = 60%
     uint256 constant MINING_NTOKEN_FEE_DAO_RATE             = 20;     // percentage = 20%
