@@ -129,7 +129,7 @@ library MiningV1Calc {
                 (new_sigma_sq, new_ut_sq) = _calcVola(
                     uint256(p0.tokenAmount).div(uint256(p0.ethNum)), 
                     uint256(tokenA1).div(uint256(ethA1)),
-                p0.volatility_sigma_sq, p0.volatility_ut_sq, 
+                p0.volatility_sigma_sq, p0.volatility_ut_sq,
                 h - p0.height);
             }
         }
@@ -162,6 +162,7 @@ library MiningV1Calc {
         }
 
         if (p0.height == 0) {
+
             MiningV1Data.PriceSheet memory _sheet = pL[0];
             p0.ethNum = _sheet.ethNum;
             p0.tokenAmount = uint128(uint256(_sheet.tokenAmountPerEth).mul(_sheet.ethNum));
@@ -169,6 +170,7 @@ library MiningV1Calc {
             p0.volatility_sigma_sq = 0;
             p0.volatility_ut_sq = 0;
             p0.avgTokenAmount = uint128(_sheet.tokenAmountPerEth);
+            // write back
             state.priceInfo[token] = p0;
         }
 
@@ -198,6 +200,7 @@ library MiningV1Calc {
         if (p0.index > state.priceInfo[token].index) {
             state.priceInfo[token] = p0;
         }
+
         return;
     }
 
@@ -308,7 +311,7 @@ library MiningV1Calc {
                     _ethNum = uint256(_sheet.remainNum);
                     ethAmount = _ethNum.mul(1 ether);
                     tokenAmount = _ethNum.mul(_sheet.tokenAmountPerEth);
-                    blockNum = _first;
+                    blockNum = _first + state.priceDurationBlock;
                     _prev = _first;
                 }
             } else if (_first == _prev) {
@@ -363,7 +366,7 @@ library MiningV1Calc {
         sheets = new MiningV1Data.PriceSheetPub2[](num);
         for (uint i = 0; i < num; i++) {
             MiningV1Data.PriceSheet memory _sheet = _list[len - 1 - i];
-            if (_sheet.height + state.priceDurationBlock < block.number) {
+            if (uint256(_sheet.height) + state.priceDurationBlock < block.number) {
                 break;
             }
             //sheets[i] = _sheet;
@@ -407,18 +410,18 @@ library MiningV1Calc {
                 && (_sheet.state == MiningV1Data.PRICESHEET_STATE_POSTED 
                     || _sheet.state == MiningV1Data.PRICESHEET_STATE_BITTEN)) {
             
-            sheets[i].miner = _sheet.miner;
-            sheets[i].height = _sheet.height;
-            sheets[i].ethNum = _sheet.ethNum;
-            sheets[i].remainNum = _sheet.remainNum;
-            sheets[i].level = _sheet.level;
-            sheets[i].typ = _sheet.typ;
-            sheets[i].state = _sheet.state;
+                sheets[i].miner = _sheet.miner;
+                sheets[i].height = _sheet.height;
+                sheets[i].ethNum = _sheet.ethNum;
+                sheets[i].remainNum = _sheet.remainNum;
+                sheets[i].level = _sheet.level;
+                sheets[i].typ = _sheet.typ;
+                sheets[i].state = _sheet.state;
 
-            sheets[i].index = fromIndex - i;
+                sheets[i].index = fromIndex - i;
 
-            sheets[i].nestNum1k = _sheet.nestNum1k;
-            sheets[i].tokenAmountPerEth = _sheet.tokenAmountPerEth;
+                sheets[i].nestNum1k = _sheet.nestNum1k;
+                sheets[i].tokenAmountPerEth = _sheet.tokenAmountPerEth;
 
             }
         }
@@ -447,18 +450,17 @@ library MiningV1Calc {
             MiningV1Data.PriceSheet memory _sheet = _list[fromIndex - i];
             if (uint256(_sheet.miner) == uint256(miner)) {
             
-            sheets[i].miner = _sheet.miner;
-            sheets[i].height = _sheet.height;
-            sheets[i].ethNum = _sheet.ethNum;
-            sheets[i].remainNum = _sheet.remainNum;
-            sheets[i].level = _sheet.level;
-            sheets[i].typ = _sheet.typ;
-            sheets[i].state = _sheet.state;
+                sheets[i].miner = _sheet.miner;
+                sheets[i].height = _sheet.height;
+                sheets[i].ethNum = _sheet.ethNum;
+                sheets[i].remainNum = _sheet.remainNum;
+                sheets[i].level = _sheet.level;
+                sheets[i].typ = _sheet.typ;
+                sheets[i].state = _sheet.state;
 
-            sheets[i].index = fromIndex - i;
-
-            sheets[i].nestNum1k = _sheet.nestNum1k;
-            sheets[i].tokenAmountPerEth = _sheet.tokenAmountPerEth;
+                sheets[i].index = fromIndex - i;
+                sheets[i].nestNum1k = _sheet.nestNum1k;
+                sheets[i].tokenAmountPerEth = _sheet.tokenAmountPerEth;
 
             }
         }

@@ -74,14 +74,14 @@ library MiningV1Data {
     /// @dev size: (2 x 256 bit)
     struct PriceSheet {    
         uint160 miner;       //  miner who posted the price (most significant bits, or left-most)
-        uint32  height;
+        uint32  height;      //
         uint32  ethNum;   
         uint32  remainNum;    
 
         uint8   level;           // the level of bitting, 1-4: eth-doubling | 5 - 127: nest-doubling
-        uint8   typ;             // 1: USD | 2: NEST | 3: TOKEN | 4: NTOKEN(Not Available)
+        uint8   typ;             // 1: USD | 2: NEST | 3: TOKEN | 4: NTOKEN
         uint8   state;           // 0: closed | 1: posted | 2: bitten
-        uint8   _reserved; 
+        uint8   _reserved;       // for padding
         uint32  ethNumBal;
         uint32  tokenNumBal;
         uint32  nestNum1k;
@@ -91,13 +91,13 @@ library MiningV1Data {
     /// @dev size: (3 x 256 bit)
     struct PriceInfo {
         uint32  index;
-        uint32  height;
+        uint32  height;         // NOTE: the height of being posted
         uint32  ethNum;         //  the balance of eth
         uint32  _reserved;
         uint128 tokenAmount;    //  the balance of token 
         int128  volatility_sigma_sq;
         int128  volatility_ut_sq;
-        uint128  avgTokenAmount;
+        uint128  avgTokenAmount;  // avg = (tokenAmount : perEth)
         uint128 _reserved2;     
     }
 
@@ -151,10 +151,10 @@ library MiningV1Data {
     struct State {
         // TODO: more comments
 
-        uint8   miningEthUnit;      // = 10;
+        uint8   miningEthUnit;      // = 30 on mainnet;
         uint32  nestStakedNum1k;    // = 100;
-        uint8   biteFeeRate;        // = 1; 
-        uint8   miningFeeRate;      // = 10;
+        uint8   biteFeeRate;        // 
+        uint8   miningFeeRate;      // = 10;  
         uint8   priceDurationBlock; // = 25;
         uint8   maxBiteNestedLevel; // = 3;
         uint8   biteInflateFactor;  // = 2;
@@ -162,18 +162,18 @@ library MiningV1Data {
 
         uint32  genesisBlock;       // = 6236588;
 
-        uint128  latestMiningHeight;
-        uint128  minedNestAmount;   
+        uint128  latestMiningHeight;  // latest block number of NEST mining
+        uint128  minedNestAmount;     // the total amount of mined NEST
         
-        address  _developer_address;
-        address  _NN_address;
+        address  _developer_address;  // WARNING: DO NOT delete this unused variable
+        address  _NN_address;         // WARNING: DO NOT delete this unused variable
 
-        address     C_NestPool;
-        address     C_NestToken;
-        address     C_NestStaking;
-        address     C_NNRewardPool;
-        address     C_NestQuery;
-        address     C_NestDAO;
+        address  C_NestPool;
+        address  C_NestToken;
+        address  C_NestStaking;
+        address  C_NNRewardPool;
+        address  C_NestQuery;
+        address  C_NestDAO;
 
         uint256[10] _mining_nest_yield_per_block_amount;
         uint256[10] _mining_ntoken_yield_per_block_amount;
@@ -187,10 +187,11 @@ library MiningV1Data {
         // (token-address, block-number) => (ethFee-total, nest/ntoken-mined-total)
         mapping(address => mapping(uint256 => uint256)) minedAtHeight;
 
+        // WARNING: DO NOT delete these variables, reserved for future use
         uint256  _reserved1;
         uint256  _reserved2;
         uint256  _reserved3;
         uint256  _reserved4;
     }
 
-}
+}/

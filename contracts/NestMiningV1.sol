@@ -31,7 +31,7 @@ contract NestMiningV1 {
 
     /* ========== STATE VARIABLES ============== */
 
-    uint8       public  flag;
+    uint8       public  flag;  // 0:  | 1:  | 2:  | 3:
     uint64      public  version; 
     uint8       private _entrant_state; 
     uint176     private _reserved;
@@ -55,12 +55,12 @@ contract NestMiningV1 {
     /* ========== STRUCTURES ============== */
 
     struct Params {
-        uint8    miningEthUnit;     // = 10;
-        uint32   nestStakedNum1k;   // = 1;
-        uint8    biteFeeRate;       // = 1; 
-        uint8    miningFeeRate;     // = 10;
+        uint8    miningEthUnit;     
+        uint32   nestStakedNum1k;   
+        uint8    biteFeeRate;     
+        uint8    miningFeeRate;     
         uint8    priceDurationBlock; 
-        uint8    maxBiteNestedLevel; // = 3;
+        uint8    maxBiteNestedLevel; 
         uint8    biteInflateFactor;
         uint8    biteNestInflateFactor;
     }
@@ -71,6 +71,7 @@ contract NestMiningV1 {
 
     function initialize(address NestPool) external 
     {
+        // check flag
         require(flag == MINING_FLAG_UNINITIALIZED, "Nest:Mine:!flag");
 
         uint256 amount = MiningV1Data.MINING_NEST_YIELD_PER_BLOCK_BASE;
@@ -85,11 +86,17 @@ contract NestMiningV1 {
             amount = amount.mul(MiningV1Data.MINING_NTOKEN_YIELD_CUTBACK_RATE).div(100);
         }
         
+        // set a temporary governance
         governance = msg.sender;
+
+        // increase version number
         version = uint64(block.number);
 
-        flag = MINING_FLAG_SETUP_NEEDED;
+        // set the address of NestPool 
         C_NestPool = NestPool;
+
+        // set flag
+        flag = MINING_FLAG_SETUP_NEEDED;
     }
 
     /// @dev This function can only be called once immediately right after deployment
@@ -100,8 +107,10 @@ contract NestMiningV1 {
             Params calldata initParams
         ) external onlyGovernance
     {
+        // check flag
         require(flag == MINING_FLAG_SETUP_NEEDED, "Nest:Mine:!flag");
         
+        // set system-wide parameters
         state.miningEthUnit = initParams.miningEthUnit;
         state.nestStakedNum1k = initParams.nestStakedNum1k;
         state.biteFeeRate = initParams.biteFeeRate;    // 0.1%
@@ -110,15 +119,17 @@ contract NestMiningV1 {
         state.maxBiteNestedLevel = initParams.maxBiteNestedLevel;  
         state.biteInflateFactor = initParams.biteInflateFactor;   // 1 on testnet
         state.biteNestInflateFactor = initParams.biteNestInflateFactor; // 1 on testnet
-
         state.latestMiningHeight = latestMiningHeight;
         state.minedNestAmount = minedNestTotalAmount;
         
         // genesisBlock = 6236588 on mainnet
         state.genesisBlock = genesisBlockNumber;
 
-        flag = MINING_FLAG_UPGRADE_NEEDED;
+        // increase version number
         version = uint64(block.number);
+        
+        // set flag
+        flag = MINING_FLAG_UPGRADE_NEEDED;
     }
 
     /// @dev The function will be kicking off Nest Protocol v3.5.
@@ -190,7 +201,7 @@ contract NestMiningV1 {
         _entrant_state = _NOT_ENTERED;
     }
 
-    modifier onlyByNest()
+    modifier onlyByNestOrNoContract()
     {
         require(address(msg.sender) == address(tx.origin)
             || msg.sender == state.C_NestDAO 
@@ -202,6 +213,7 @@ contract NestMiningV1 {
 
     /* ========== GOVERNANCE ========== */
 
+    /// @dev Load real governance from NestPool, invalidate the temporary 
     function loadGovernance() external
     {
         governance = INestPool(C_NestPool).governance();
@@ -220,18 +232,10 @@ contract NestMiningV1 {
     function setParams(Params calldata newParams) external 
         onlyGovernance
     {
-        if (newParams.miningEthUnit != 0) {
-            state.miningEthUnit = newParams.miningEthUnit;
-        }
-        if (newParams.nestStakedNum1k != 0) {
-            state.nestStakedNum1k = newParams.nestStakedNum1k;
-        }
-        
+        state.miningEthUnit = newParams.miningEthUnit;
+        state.nestStakedNum1k = newParams.nestStakedNum1k;
         state.biteFeeRate = newParams.biteFeeRate;
-
-        if (newParams.miningFeeRate != 0) {
-            state.miningFeeRate = newParams.miningFeeRate;
-        }
+        state.miningFeeRate = newParams.miningFeeRate;
 
         state.priceDurationBlock = newParams.priceDurationBlock;
         state.maxBiteNestedLevel = newParams.maxBiteNestedLevel;
@@ -243,17 +247,17 @@ contract NestMiningV1 {
                                     state.biteInflateFactor, state.biteNestInflateFactor);
     }
 
-    /// @dev only be used at upgrade 3.0 to 3.5
+    /// @dev only be used when upgrading 3.0 to 3.5
     /// @dev when the upgrade is complete, this function is disabled
     function setParams1(
             uint128  latestMiningHeight,
             uint128  minedNestTotalAmount
         ) external onlyGovernance
-        {
-            require(flag == MINING_FLAG_UPGRADE_NEEDED, "Nest:Mine:!flag");
-            state.latestMiningHeight = latestMiningHeight;
-            state.minedNestAmount = minedNestTotalAmount;
-        }
+    {
+        require(flag == MINING_FLAG_UPGRADE_NEEDED, "Nest:Mine:!flag");
+        state.latestMiningHeight = latestMiningHeight;
+        state.minedNestAmount = minedNestTotalAmount;
+    }
 
     /* ========== HELPERS ========== */
 
@@ -279,7 +283,7 @@ contract NestMiningV1 {
     /* ========== POST/CLOSE Price Sheets ========== */
 
     /// @notice Post a price sheet for TOKEN
-    /// @dev  It is for TOKEN (except USDx) whose total supply is below 1,000,000 * 1e18
+    /// @dev  It is for TOKEN (except USDT and NTOKENs) whose NTOKEN has a total supply below a threshold (e.g. 5,000,000 * 1e18)
     /// @param token The address of TOKEN contract
     /// @param ethNum The numbers of ethers to post sheets
     /// @param tokenAmountPerEth The price of TOKEN
@@ -294,7 +298,6 @@ contract NestMiningV1 {
     {
         // check parameters
         require(ethNum == state.miningEthUnit, "Nest:Mine:!(ethNum)");
-        // require(ethNum >= state.miningEthUnit && ethNum % state.miningEthUnit == 0, "Nest:Mine:!(ethNum)");
         require(tokenAmountPerEth > 0, "Nest:Mine:!(price)");
 
         INestPool _C_NestPool = INestPool(state.C_NestPool);
@@ -306,7 +309,7 @@ contract NestMiningV1 {
 
         // calculate eth fee
         // NOTE: fee = ethAmount * (feeRate * 1/10k)
-        uint256 _ethFee = ethNum.mul(state.miningFeeRate).mul(1e18).div(10000);
+        uint256 _ethFee = ethNum.mul(state.miningFeeRate).mul(1e18).div(10_000);
 
         { // settle ethers and tokens
 
@@ -315,14 +318,18 @@ contract NestMiningV1 {
                 _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
             }
 
+            // load addresses
             INestStaking _C_NestStaking = INestStaking(state.C_NestStaking);
             INestDAO _C_NestDAO = INestDAO(state.C_NestDAO);
 
+            // 60% fee => NestStaking
             _C_NestStaking.addETHReward{value:_ethFee.mul(MiningV1Data.MINING_NTOKEN_FEE_DIVIDEND_RATE).div(100)}(_ntoken);       
+            // 20% fee => NestDAO[NTOKEN]
             _C_NestDAO.addETHReward{value:_ethFee.mul(MiningV1Data.MINING_NTOKEN_FEE_DAO_RATE).div(100)}(_ntoken);       
+            // 20% fee => NestDAO[NEST]
             _C_NestDAO.addETHReward{value:_ethFee.mul(MiningV1Data.MINING_NTOKEN_FEE_NEST_DAO_RATE).div(100)}(address(state.C_NestToken));  
 
-            // freeze eths and tokens in the nest pool
+            // freeze eths and tokens inside NestPool
             _C_NestPool.freezeEthAndToken(msg.sender, ethNum.mul(1 ether), 
                 token, tokenAmountPerEth.mul(ethNum));
             _C_NestPool.freezeNest(msg.sender, uint256(state.nestStakedNum1k).mul(1000 * 1e18));
@@ -349,25 +356,31 @@ contract NestMiningV1 {
 
         }
 
-        { // mining
+        { // mining; NTOKEN branch only
+            // load mining record from `minedAtHeight`
             uint256 _minedH = state.minedAtHeight[token][block.number];
+            // decode `_ntokenH` & `_ethH`
             uint256 _ntokenH = uint256(_minedH >> 128);
             uint256 _ethH = uint256(_minedH % (1 << 128));
-            if (_ntokenH == 0) {
+            if (_ntokenH == 0) {  // the sheet is the first in the block
+                // calculate the amount the NTOKEN to be mined
                 uint256 _ntokenAmount = mineNToken(_ntoken);  
+                // load `Bidder` from NTOKEN contract
                 address _bidder = INToken(_ntoken).checkBidder();
                 if (_bidder == state.C_NestPool) { // for new NTokens, 100% to miners
                     _ntokenH = _ntokenAmount;
                     INToken(_ntoken).mint(_ntokenAmount, address(state.C_NestPool));
-                } else {// for old NTokens, 95% to miners, 5% to the bidder
+                } else { // for old NTokens, 95% to miners, 5% to the bidder
                     _ntokenH = _ntokenAmount.mul(MiningV1Data.MINING_LEGACY_NTOKEN_MINER_REWARD_PERCENTAGE).div(100);
                     INTokenLegacy(_ntoken).increaseTotal(_ntokenAmount);
                     INTokenLegacy(_ntoken).transfer(state.C_NestPool, _ntokenAmount);
                     INestPool(state.C_NestPool).addNToken(_bidder, _ntoken, _ntokenAmount.sub(_ntokenH));
                 }
             }
+            
+            // add up `_ethH`
             _ethH = _ethH.add(ethNum);
-            // require(_nestH < (1 << 128) && _ethH < (1 << 128), "nestAtHeight/ethAtHeight error");
+            // store `_ntokenH` & `_ethH` into `minedAtHeight`
             state.minedAtHeight[token][block.number] = (_ntokenH * (1<< 128) + _ethH);
         }
 
@@ -400,7 +413,7 @@ contract NestMiningV1 {
         require(_ntoken != token && _ntoken != address(0), "Nest:Mine:!(ntoken)");
 
         // calculate eth fee
-        uint256 _ethFee = ethNum.mul(state.miningFeeRate).mul(1e18).div(10000);
+        uint256 _ethFee = ethNum.mul(state.miningFeeRate).mul(1e18).div(10_000);
 
         { // settle ethers and tokens
             INestPool _C_NestPool = INestPool(state.C_NestPool);
@@ -409,18 +422,26 @@ contract NestMiningV1 {
             if (msg.value.sub(_ethFee) > 0) {
                 _C_NestPool.depositEth{value:msg.value.sub(_ethFee)}(address(msg.sender));
             }
+
+            // load addresses
             INestStaking _C_NestStaking = INestStaking(state.C_NestStaking);
             INestDAO _C_NestDAO = INestDAO(state.C_NestDAO);
 
             if (_ntoken == address(state.C_NestToken)) {
+                // %80 => NestStaking
                 _C_NestStaking.addETHReward{value:_ethFee.mul(MiningV1Data.MINING_NEST_FEE_DIVIDEND_RATE).div(100)}(_ntoken);       
+                // %20 => NestDAO
                 _C_NestDAO.addETHReward{value:_ethFee.mul(MiningV1Data.MINING_NEST_FEE_DAO_RATE).div(100)}(_ntoken);       
             } else {
+                // 60% => NestStaking
                 _C_NestStaking.addETHReward{value:_ethFee.mul(MiningV1Data.MINING_NTOKEN_FEE_DIVIDEND_RATE).div(100)}(_ntoken);       
+                // 20% => NestDAO[NTOKEN]
                 _C_NestDAO.addETHReward{value:_ethFee.mul(MiningV1Data.MINING_NTOKEN_FEE_DAO_RATE).div(100)}(_ntoken);       
+                // 20% => NestDAO[NEST]
                 _C_NestDAO.addETHReward{value:_ethFee.mul(MiningV1Data.MINING_NTOKEN_FEE_NEST_DAO_RATE).div(100)}(address(state.C_NestToken));  
             }
-            // freeze assets in the nest pool
+
+            // freeze assets inside NestPool
             _C_NestPool.freezeEthAndToken(msg.sender, ethNum.mul(1 ether), 
                 token, tokenAmountPerEth.mul(ethNum));
             _C_NestPool.freezeEthAndToken(msg.sender, ethNum.mul(1 ether), 
@@ -446,7 +467,7 @@ contract NestMiningV1 {
                 uint32(ethNum),                 // ethNum
                 uint32(ethNum),                 // remainNum
                 uint8(0),                       // level
-                uint8(typ1),     // typ
+                uint8(typ1),                    // typ
                 uint8(MiningV1Data.PRICESHEET_STATE_POSTED), // state 
                 uint8(0),                       // _reserved
                 uint32(ethNum),                 // ethNumBal
@@ -463,7 +484,7 @@ contract NestMiningV1 {
                 uint32(ethNum),                 // ethNum
                 uint32(ethNum),                 // remainNum
                 uint8(0),                       // level
-                uint8(typ2),     // typ
+                uint8(typ2),                    // typ
                 uint8(MiningV1Data.PRICESHEET_STATE_POSTED), // state 
                 uint8(0),                       // _reserved
                 uint32(ethNum),                 // ethNumBal
@@ -475,15 +496,26 @@ contract NestMiningV1 {
             emit MiningV1Data.PricePosted(msg.sender, _ntoken, (_sheetNToken.length - 1), ethNum.mul(1 ether), ntokenAmountPerEth.mul(ethNum)); 
         }
 
-        { // mining
+        { // mining; NEST branch & NTOKEN branch
             if (_ntoken == address(state.C_NestToken)) {
+                // load mining records `minedAtHeight` in the same block 
                 uint256 _minedH = state.minedAtHeight[token][block.number];
+                // decode `_nestH` and `_ethH` from `minedAtHeight`
                 uint256 _nestH = uint256(_minedH >> 128);
                 uint256 _ethH = uint256(_minedH % (1 << 128));
-                if (_nestH == 0) {
+
+                if (_nestH == 0) { // the sheet is the first in the block
+
+                    // calculate the amount of NEST to be mined
                     uint256 _nestAmount = mineNest(); 
+
+                    // update `latestMiningHeight`, the lastest NEST-mining block 
                     state.latestMiningHeight = uint32(block.number); 
+
+                    // accumulate the amount of NEST
                     state.minedNestAmount += uint128(_nestAmount);
+
+                    // 
                     _nestH = _nestAmount.mul(MiningV1Data.MINER_NEST_REWARD_PERCENTAGE).div(100); 
 
                     // 15% of NEST to NNRewardPool
@@ -494,26 +526,48 @@ contract NestMiningV1 {
                     INestPool(state.C_NestPool).addNest(state.C_NestDAO, _nestAmount.mul(MiningV1Data.DAO_NEST_REWARD_PERCENTAGE).div(100));
                     INestDAO(state.C_NestDAO).addNestReward(_nestAmount.mul(MiningV1Data.DAO_NEST_REWARD_PERCENTAGE).div(100));
                 }
+
+                // add up `ethNum` into `minedAtHeight`
                 _ethH = _ethH.add(ethNum);
+                // encode `_nestH` and `_ethH` into `minedAtHeight`
                 state.minedAtHeight[token][block.number] = (_nestH * (1<< 128) + _ethH);
             } else {
+                // load mining records `minedAtHeight` in the same block 
                 uint256 _minedH = state.minedAtHeight[token][block.number];
+                // decode `_ntokenH` and `_ethH` from `minedAtHeight`
                 uint256 _ntokenH = uint256(_minedH >> 128);
                 uint256 _ethH = uint256(_minedH % (1 << 128));
-                if (_ntokenH == 0) {
-                    uint256 _ntokenAmount = mineNToken(_ntoken);  
+
+                if (_ntokenH == 0) { // the sheet is the first in the block
+
+                    // calculate the amount of NEST to be mined
+                    uint256 _ntokenAmount = mineNToken(_ntoken);
+
+                    // load `Bidder` from NTOKEN contract
                     address _bidder = INToken(_ntoken).checkBidder();
+
                     if (_bidder == state.C_NestPool) { // for new NTokens, 100% to miners
+                        
+                        // save the amount of NTOKEN to be mined
                         _ntokenH = _ntokenAmount;
+                        // mint NTOKEN(new, v3.5) to NestPool
                         INToken(_ntoken).mint(_ntokenAmount, address(state.C_NestPool));
+
                     } else {                           // for old NTokens, 95% to miners, 5% to the bidder
-                        _ntokenH = _ntokenAmount.mul(MiningV1Data.MINING_LEGACY_NTOKEN_MINER_REWARD_PERCENTAGE).div(100);
+                        
+                        // mint NTOKEN(old, v3.0)
                         INTokenLegacy(_ntoken).increaseTotal(_ntokenAmount);
+                        // transfer NTOKEN(old) to NestPool
                         INTokenLegacy(_ntoken).transfer(state.C_NestPool, _ntokenAmount);
+                        // calculate the amount of NTOKEN, 95% => miner
+                        _ntokenH = _ntokenAmount.mul(MiningV1Data.MINING_LEGACY_NTOKEN_MINER_REWARD_PERCENTAGE).div(100);
+                        // 5% NTOKEN =>  `Bidder`
                         INestPool(state.C_NestPool).addNToken(_bidder, _ntoken, _ntokenAmount.sub(_ntokenH));
                     }
                 }
+                // add up `ethNum` into `minedAtHeight`
                 _ethH = _ethH.add(ethNum);
+                // encode `_nestH` and `_ethH` into `minedAtHeight`
                 state.minedAtHeight[token][block.number] = (_ntokenH * (1<< 128) + _ethH);
             }
         }
@@ -533,7 +587,7 @@ contract NestMiningV1 {
         public 
         noContract 
     {
-
+        // call library
         state._close(token, index);
 
         // calculate average-price and volatility (forward)
@@ -550,8 +604,10 @@ contract NestMiningV1 {
         external 
         noContract
     {
-       state._closeAndWithdraw(token, index);
-       state._stat(token);
+        // call library
+        state._closeAndWithdraw(token, index);
+        // calculate average-price and volatility (forward)
+        state._stat(token);
     }
 
     /// @notice Close a batch of price sheets passed VERIFICATION-PHASE
@@ -562,8 +618,10 @@ contract NestMiningV1 {
         external 
         noContract
     {
+        // call library
         state._closeList(token, indices);
 
+        // calculate average-price and volatility (forward)
         state._stat(token);
 
     }
@@ -580,7 +638,10 @@ contract NestMiningV1 {
         payable 
         noContract
     {
+        // call library
         state._biteToken(token, index, biteNum, newTokenAmountPerEth);
+
+        // calculate average-price and volatility (forward)
         state._stat(token);
     }
 
@@ -595,7 +656,10 @@ contract NestMiningV1 {
         payable
         noContract
     {
+        // call library
         state._biteEth(token, index, biteNum, newTokenAmountPerEth);
+
+        // calculate average-price and volatility (forward)
         state._stat(token);
     }
 
@@ -604,9 +668,9 @@ contract NestMiningV1 {
 
     function stat(address _token) public 
     {
+        // call library
         return state._stat(_token);
     }
-
     
     /* ========== PRICE QUERIES ========== */
 
@@ -615,7 +679,7 @@ contract NestMiningV1 {
     function latestPriceOf(address token) 
         public 
         view 
-        onlyByNest
+        onlyByNestOrNoContract
         returns(uint256 ethAmount, uint256 tokenAmount, uint256 blockNum) 
     {
         MiningV1Data.PriceSheet[] storage _plist = state.priceSheetList[token];
@@ -629,7 +693,7 @@ contract NestMiningV1 {
         uint256 _first = 0;
         for (uint i = 1; i <= len; i++) {
             _sheet = _plist[len-i];
-            if (_first == 0 && _sheet.height + state.priceDurationBlock < block.number) {
+            if (_first == 0 && uint256(_sheet.height) + state.priceDurationBlock < block.number) {
                 _first = uint256(_sheet.height);
                 _ethNum = uint256(_sheet.remainNum);
                 tokenAmount = uint256(_sheet.tokenAmountPerEth).mul(_ethNum);
@@ -662,7 +726,7 @@ contract NestMiningV1 {
     function priceAvgAndSigmaOf(address token) 
         public 
         view 
-        onlyByNest
+        onlyByNestOrNoContract
         returns (uint128, uint128, int128, uint32) 
     {
         MiningV1Data.PriceInfo memory pi = state.priceInfo[token];
@@ -710,20 +774,6 @@ contract NestMiningV1 {
         
         return _nestPerBlock.mul(block.number.sub(state.latestMiningHeight));
     }
-
-/*
-    function yieldAmountAtHeight(uint64 height) public view returns (uint128) {
-        uint256 period = uint256(height).sub(MINING_NEST_GENESIS_BLOCK_HEIGHT).div(MINING_NEST_YIELD_CUTBACK_PERIOD);
-        uint256 nestPerBlock;
-        if (period > 9) {
-            nestPerBlock = MINING_NEST_YIELD_OFF_PERIOD_AMOUNT;
-        } else {
-            nestPerBlock = _mining_nest_yield_per_block_amount[period];
-        }
-        uint256 yieldAmount = nestPerBlock.mul(uint256(height).sub(latestMiningHeight));
-        return uint128(yieldAmount);
-    }
-    */
 
     function minedNestAmount() external view returns (uint256) 
     {
@@ -811,7 +861,7 @@ contract NestMiningV1 {
         return state.priceSheetList[token][index];
     }
 
-    function unVerifiedSheetList(address token) 
+    function unVerifiedSheetList(address token)
         view 
         public
         noContract
