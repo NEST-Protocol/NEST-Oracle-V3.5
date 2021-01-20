@@ -14,6 +14,8 @@ import "./iface/INestDAO.sol";
 import "./iface/INestStaking.sol";
 import "./iface/INestQuery.sol";
 
+// import "hardhat/console.sol";
+
 /// @dev The contract is for redeeming nest token and getting ETH in return
 contract NestDAO is INestDAO, ReentrancyGuard {
 
@@ -55,7 +57,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     uint256 public collectInterval;
 
     uint256 constant DAO_REPURCHASE_PRICE_DEVIATION = 5;  // price deviation < 5% 
-    uint256 constant DAO_REPURCHASE_NTOKEN_TOTALSUPPLY = 200_000_000;  // total supply > 200 million 
+    uint256 constant DAO_REPURCHASE_NTOKEN_TOTALSUPPLY = 5_000_000;  // total supply > 5 million 
 
     uint256 constant DAO_COLLECT_INTERVAL = 5_760;  // 24 hour * 60 min * 4 block/min ~= 1 day
 
@@ -139,6 +141,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     /// @dev Stop service for emergency
     function pause() external onlyGovernance
     {
+        require(flag == DAO_FLAG_ACTIVE, "Nest:DAO:!flag");
         flag = DAO_FLAG_PAUSED;
         emit FlagSet(address(msg.sender), uint256(DAO_FLAG_PAUSED));
     }
@@ -146,6 +149,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     /// @dev Resume service 
     function resume() external onlyGovernance
     {
+        require(flag == DAO_FLAG_ACTIVE || flag == DAO_FLAG_PAUSED, "Nest:DAO:!flag");
         flag = DAO_FLAG_ACTIVE;
         emit FlagSet(address(msg.sender), uint256(DAO_FLAG_ACTIVE));
     }
@@ -185,8 +189,10 @@ contract NestDAO is INestDAO, ReentrancyGuard {
             }
 
             uint256 _ntokenAmount = ERC20(_ntoken).balanceOf(address(this));
+
             if (_ntokenAmount > 0) {
                 ERC20(_ntoken).transfer(newDAO_, _ntokenAmount);
+
             }
         }
     }

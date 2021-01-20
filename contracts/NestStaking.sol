@@ -196,7 +196,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         return _staked_balances[ntoken][account];
     }
 
-    // CM: <token收益> = <token原收益> + (<新增总收益> * _dividend_share% / <token总锁仓量>) 
+    // CM: <tokenShare> = <OldTokenShare> + (<NewTokenShare> * _dividend_share% / <tokenAmount>) 
     function rewardPerToken(address ntoken) 
         public 
         view 
@@ -214,7 +214,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         return _rewardPerToken;
     }
 
-    // CM: <新增总收益> = <rewardToken 余额> - <上次余额>
+    // CM: <NewTokenShare> = <rewardToken blnc> - <last blnc>
     function accrued(address ntoken) 
         public 
         view 
@@ -226,7 +226,7 @@ contract NestStaking is INestStaking, ReentrancyGuard {
         return _newest.sub(lastRewardsTotal[ntoken]); 
     }
 
-    // CM: <用户收益> = [<用户token锁仓> * (<token收益> - <用户已领收益>) / 1e18] + <用户奖励>
+    // CM: <user share> = [<tokenAmonut> * (<tokenShare> - <tokenShareCollected>) / 1e18] + <reward>
     function earned(address ntoken, address account) 
         public 
         view 

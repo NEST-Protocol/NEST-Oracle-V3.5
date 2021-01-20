@@ -1,7 +1,7 @@
 
 const { usdtdec, wbtcdec, nestdec, ethdec,
     ETH, USDT, WBTC, MBTC, NEST, BigNum,
-    show_eth, show_usdt, show_64x64, timeConverter } = require("../upgrade_new/utils.js");
+    show_eth, show_usdt, show_64x64, timeConverter } = require("../upgrade/utils.js");
 
 const { deployUSDT, deployWBTC, deployNN,
     deployNEST,deployUpgrade,

@@ -690,7 +690,7 @@ contract NestMiningV1 {
     
     function mineNest() public view returns (uint256) 
     {
-        uint256 _period = block.number.sub(MiningV1Data.MINING_NEST_GENESIS_BLOCK_HEIGHT).div(MiningV1Data.MINING_NEST_YIELD_CUTBACK_PERIOD);
+        uint256 _period = block.number.sub(state.genesisBlock).div(MiningV1Data.MINING_NEST_YIELD_CUTBACK_PERIOD);
         uint256 _nestPerBlock;
         if (_period > 9) {
             _nestPerBlock = MiningV1Data.MINING_NEST_YIELD_OFF_PERIOD_AMOUNT;

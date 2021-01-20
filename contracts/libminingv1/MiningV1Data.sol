@@ -17,11 +17,6 @@ library MiningV1Data {
 
     /* ========== CONSTANTS ========== */
 
-    // uint256 constant PRICE_DURATION_BLOCK = 25;
-
-    // uint256 constant MINING_NEST_GENESIS_BLOCK_HEIGHT = 6236588;
-    uint256 constant MINING_NEST_GENESIS_BLOCK_HEIGHT = 1; // for testing    
-
     uint256 constant MINING_NEST_YIELD_CUTBACK_PERIOD = 2400000; // ~ 1 years 
     uint256 constant MINING_NEST_YIELD_CUTBACK_RATE = 80;     // percentage = 80%
 
@@ -34,7 +29,6 @@ library MiningV1Data {
     uint256 constant MINING_NTOKEN_YIELD_OFF_PERIOD_AMOUNT = 0.4 ether;
     uint256 constant MINING_NTOKEN_YIELD_PER_BLOCK_BASE = 4 ether;
 
-    uint256 constant MINING_GENESIS_BLOCK_NUMBER = 6236588;
     uint256 constant MINING_FINAL_BLOCK_NUMBER = 173121488;
 
 
@@ -45,18 +39,11 @@ library MiningV1Data {
     uint256 constant MINING_NTOKEN_FEE_DAO_RATE             = 20;     // percentage = 20%
     uint256 constant MINING_NTOKEN_FEE_NEST_DAO_RATE        = 20;     // percentage = 20%
 
-    uint256 constant MINING_NTOKEN_YIELD_BLOCK_LIMIT = 300;
-
-    // uint256[10] private _mining_ntoken_yield_per_block_amount;
-
-    uint256 constant c_mining_eth_unit = 10;  // 10 ether
-    // uint256 constant c_mining_price_deviateion_factor = 10; // removed
-    uint256 constant c_mining_fee_thousandth = 10;
+    uint256 constant MINING_NTOKEN_YIELD_BLOCK_LIMIT = 100;
 
     uint256 constant NN_NEST_REWARD_PERCENTAGE = 15;
     uint256 constant DAO_NEST_REWARD_PERCENTAGE = 5;
     uint256 constant MINER_NEST_REWARD_PERCENTAGE = 80;
-    // uint256 constant BIDDER_NTOKEN_REWARD_PERCENTAGE = 5;
 
     uint256 constant MINING_LEGACY_NTOKEN_MINER_REWARD_PERCENTAGE = 95;
     uint256 constant MINING_LEGACY_NTOKEN_BIDDER_REWARD_PERCENTAGE = 5;
@@ -81,7 +68,7 @@ library MiningV1Data {
     uint8 constant STATE_FLAG_PRICE_STOPPED    = 7;
     uint8 constant STATE_FLAG_SHUTDOWN         = 127;
 
-    uint256 constant MINING_NTOKEN_NON_DUAL_POST_THRESHOLD = 1_000_000 ether;
+    uint256 constant MINING_NTOKEN_NON_DUAL_POST_THRESHOLD = 5_000_000 ether;
 
 
     /// @dev size: (2 x 256 bit)
