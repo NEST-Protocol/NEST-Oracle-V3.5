@@ -248,32 +248,36 @@ library MiningV1Calc {
             _curr = uint256(_sheet.height);
             if (_prev == 0) {
                 if (_curr + state.priceDurationBlock < block.number) {
-                    data[_index] = uint128(_curr + state.priceDurationBlock); // safe math
                     _ethNum = uint256(_sheet.remainNum);
-                    data[_index + 1] = uint128(_ethNum.mul(1 ether));
-                    data[_index + 2] = uint128(_ethNum.mul(_sheet.tokenAmountPerEth));
-                    bn = _curr + state.priceDurationBlock;  // safe math
-                    _prev = _curr;
+                    if(_ethNum > 0) {
+
+                        data[_index] = uint128(_curr + state.priceDurationBlock); // safe math
+                        data[_index + 1] = uint128(_ethNum.mul(1 ether));
+                        data[_index + 2] = uint128(_ethNum.mul(_sheet.tokenAmountPerEth));
+                        bn = _curr + state.priceDurationBlock;  // safe math
+                        _prev = _curr;
+                    }
                 }
             } else if (_prev == _curr) {
                 _ethNum = uint256(_sheet.remainNum);
                 data[_index + 1] += uint128(_ethNum.mul(1 ether));
                 data[_index + 2] += uint128(_ethNum.mul(_sheet.tokenAmountPerEth));
             } else if (_prev > _curr) {
-                _index += 3;
-                if (_index >= uint256(num * 3)) {
-                    break;
-                }
-                data[_index] = uint128(_curr + state.priceDurationBlock); // safe math
                 _ethNum = uint256(_sheet.remainNum);
-                data[_index + 1] = uint128(_ethNum.mul(1 ether));
-                data[_index + 2] = uint128(_ethNum.mul(_sheet.tokenAmountPerEth));
-                _prev = _curr;
+                if(_ethNum > 0){
+                    _index += 3;
+                    if (_index >= uint256(num * 3)) {
+                        break;
+                    }
+                    data[_index] = uint128(_curr + state.priceDurationBlock); // safe math
+                    data[_index + 1] = uint128(_ethNum.mul(1 ether));
+                    data[_index + 2] = uint128(_ethNum.mul(_sheet.tokenAmountPerEth));
+                    _prev = _curr;
+                }
             }
         } 
         // require (data.length == uint256(num * 3), "Incorrect price list length");
     }
-
 
     function _priceOfTokenAtHeight(
             MiningV1Data.State storage state, 
