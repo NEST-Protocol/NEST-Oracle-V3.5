@@ -162,24 +162,6 @@ contract NestStaking is INestStaking, ReentrancyGuard {
     }
 
     /*
-    // exist bug
-    function withdrawSavingByGov(address ntoken, address to, uint256 amount) 
-        external 
-        nonReentrant 
-        onlyGovernance 
-    {
-        require(flag == STAKING_FLAG_PAUSED, "Nest:Stak:!flag");
-
-        _pending_saving_amount[ntoken] = _pending_saving_amount[ntoken].sub(amount);
-
-        // must refresh WETH balance record after updating WETH balance
-        // or lastRewardsTotal could be less than the newest WETH balance in the next update
-        uint256 _newTotal = rewardsTotal[ntoken].sub(amount);
-        lastRewardsTotal[ntoken] = _newTotal;
-        rewardsTotal[ntoken] = _newTotal;
-        emit SavingWithdrawn(ntoken, to, amount);
-        TransferHelper.safeTransferETH(to, amount);      
-    }
    
     function setParams(uint8 dividendShareRate) override external onlyGovernance
     {
