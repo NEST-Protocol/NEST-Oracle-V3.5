@@ -194,4 +194,4 @@ library MiningV1Data {
         uint256  _reserved4;
     }
 
-}/
+}

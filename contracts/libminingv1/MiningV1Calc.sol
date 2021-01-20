@@ -291,6 +291,7 @@ library MiningV1Calc {
         view 
         returns(uint256 ethAmount, uint256 tokenAmount, uint256 blockNum) 
     {
+        require(atHeight <= block.number, "Nest:Mine:!height");
 
         MiningV1Data.PriceSheet[] storage _list = state.priceSheetList[token];
         uint256 len = state.priceSheetList[token].length;
@@ -307,7 +308,7 @@ library MiningV1Calc {
             _sheet = _list[len - i];
             _first = uint256(_sheet.height);
             if (_prev == 0) {
-                if (_first <= uint256(atHeight) && _first + state.priceDurationBlock < block.number) {
+                if (_first + state.priceDurationBlock < uint256(atHeight)) {
                     _ethNum = uint256(_sheet.remainNum);
                     ethAmount = _ethNum.mul(1 ether);
                     tokenAmount = _ethNum.mul(_sheet.tokenAmountPerEth);

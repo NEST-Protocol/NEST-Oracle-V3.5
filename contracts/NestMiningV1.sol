@@ -736,11 +736,11 @@ contract NestMiningV1 {
         return (p, pi.avgTokenAmount, v, pi.height + uint32(state.priceDurationBlock)); // safe math
     }
 
-    function priceOfTokenAtHeight(address token, uint64 atHeight) 
+    function priceOfTokenAtHeight(address token, uint64 atHeight)
         public 
         view 
         noContractExcept(state.C_NestQuery)
-        returns(uint256 ethAmount, uint256 tokenAmount, uint256 height) 
+        returns(uint256 ethAmount, uint256 tokenAmount, uint256 bn) 
     {
         return state._priceOfTokenAtHeight(token, atHeight);
     }
