@@ -34,7 +34,7 @@ contract NestMiningV1 {
     uint8       public  flag;
     uint64      public  version; 
     uint8       private _entrant_state; 
-    uint176     private _reserved; 
+    uint176     private _reserved;
 
     MiningV1Data.State state;
     
@@ -114,7 +114,7 @@ contract NestMiningV1 {
         state.latestMiningHeight = latestMiningHeight;
         state.minedNestAmount = minedNestTotalAmount;
         
-        // genesisBlock = 6236588 on testnet or mainnet
+        // genesisBlock = 6236588 on mainnet
         state.genesisBlock = genesisBlockNumber;
 
         flag = MINING_FLAG_UPGRADE_NEEDED;
@@ -278,7 +278,6 @@ contract NestMiningV1 {
 
     /* ========== POST/CLOSE Price Sheets ========== */
 
-
     /// @notice Post a price sheet for TOKEN
     /// @dev  It is for TOKEN (except USDx) whose total supply is below 1,000,000 * 1e18
     /// @param token The address of TOKEN contract
@@ -304,7 +303,9 @@ contract NestMiningV1 {
 
         // check if the totalsupply of ntoken is less than MINING_NTOKEN_NON_DUAL_POST_THRESHOLD, otherwise use post2()
         require(INToken(_ntoken).totalSupply() < MiningV1Data.MINING_NTOKEN_NON_DUAL_POST_THRESHOLD, "Nest:Mine:!ntoken");
+
         // calculate eth fee
+        // NOTE: fee = ethAmount * (feeRate * 1/10k)
         uint256 _ethFee = ethNum.mul(state.miningFeeRate).mul(1e18).div(10000);
 
         { // settle ethers and tokens
@@ -341,7 +342,7 @@ contract NestMiningV1 {
                 uint8(0),                       // _reserved
                 uint32(ethNum),                 // ethNumBal
                 uint32(ethNum),                 // tokenNumBal
-                uint32(state.nestStakedNum1k),        // nestNum1k
+                uint32(state.nestStakedNum1k),    // nestNum1k
                 uint128(tokenAmountPerEth)      // tokenAmountPerEth
             ));
             emit MiningV1Data.PricePosted(msg.sender, token, (_sheetToken.length - 1), ethNum.mul(1 ether), tokenAmountPerEth.mul(ethNum)); 
@@ -354,7 +355,6 @@ contract NestMiningV1 {
             uint256 _ethH = uint256(_minedH % (1 << 128));
             if (_ntokenH == 0) {
                 uint256 _ntokenAmount = mineNToken(_ntoken);  
-                state.latestMiningHeight = uint32(block.number); 
                 address _bidder = INToken(_ntoken).checkBidder();
                 if (_bidder == state.C_NestPool) { // for new NTokens, 100% to miners
                     _ntokenH = _ntokenAmount;
@@ -397,8 +397,7 @@ contract NestMiningV1 {
         require(tokenAmountPerEth > 0 && ntokenAmountPerEth > 0, "Nest:Mine:!(price)");
         address _ntoken = INestPool(state.C_NestPool).getNTokenFromToken(token);
 
-        // NOTE: uncomment the line below to ensure that only (ETH, NEST) can be dual-posted
-        require(_ntoken != token, "Nest:Mine:!(ntoken)");
+        require(_ntoken != token && _ntoken != address(0), "Nest:Mine:!(ntoken)");
 
         // calculate eth fee
         uint256 _ethFee = ethNum.mul(state.miningFeeRate).mul(1e18).div(10000);
@@ -503,7 +502,6 @@ contract NestMiningV1 {
                 uint256 _ethH = uint256(_minedH % (1 << 128));
                 if (_ntokenH == 0) {
                     uint256 _ntokenAmount = mineNToken(_ntoken);  
-                    state.latestMiningHeight = uint32(block.number); 
                     address _bidder = INToken(_ntoken).checkBidder();
                     if (_bidder == state.C_NestPool) { // for new NTokens, 100% to miners
                         _ntokenH = _ntokenAmount;
@@ -600,6 +598,15 @@ contract NestMiningV1 {
         state._biteEth(token, index, biteNum, newTokenAmountPerEth);
         state._stat(token);
     }
+
+
+    /* ========== CALCULATION ========== */
+
+    function stat(address _token) public 
+    {
+        return state._stat(_token);
+    }
+
     
     /* ========== PRICE QUERIES ========== */
 
@@ -830,53 +837,4 @@ contract NestMiningV1 {
     {
         return state.sheetListOf(miner, token, fromIndex, num);
     }
-
-    /* ========== CALCULATION ========== */
-
-    function stat(address _token) public 
-    {
-        return state._stat(_token);
-    }
-
-
-    /* ========== ENCODING/DECODING ========== */
-
-    // function decodeU256Two(uint256 enc) public pure returns (uint128, uint128) {
-    //     return (uint128(enc / (1 << 128)), uint128(enc % (1 << 128)));
-    // }
-
-    /*
-    function decode(bytes32 x) internal pure returns (uint64 a, uint64 b, uint64 c, uint64 d) {
-        assembly {
-            d := x
-            mstore(0x18, x)
-            a := mload(0)
-            mstore(0x10, x)
-            b := mload(0)
-            mstore(0x8, x)
-            c := mload(0)
-        }
-    }
-   
-    /// @dev The function will be disabled when the upgrading is completed
-    /// TODO: (TBD) auth needed? 
-    function post2Only4Upgrade(
-            address token,
-            uint256 ethNum,
-            uint256 tokenAmountPerEth,
-            uint256 ntokenAmountPerEth
-        )
-        external 
-        noContract
-    {
-       // only avialble in upgrade phase
-        require (flag == MINING_FLAG_UPGRADE_NEEDED, "Nest:Mine:!flag");
-        state._post2Only4Upgrade(token, ethNum, tokenAmountPerEth, ntokenAmountPerEth);
-        address _ntoken = INestPool(state.C_NestPool).getNTokenFromToken(token);
-
-        // calculate average price and volatility
-        state._stat(token);
-        state._stat(_ntoken);
-    }
-    */
 }
