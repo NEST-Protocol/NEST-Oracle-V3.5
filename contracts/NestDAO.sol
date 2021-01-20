@@ -57,7 +57,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     uint256 public collectInterval;
 
     uint256 constant DAO_REPURCHASE_PRICE_DEVIATION = 5;  // price deviation < 5% 
-    uint256 constant DAO_REPURCHASE_NTOKEN_TOTALSUPPLY = 5_000_000;  // total supply > 5 million 
+    uint256 constant DAO_REPURCHASE_NTOKEN_TOTALSUPPLY = 5_000_000 ether;  // total supply > 5 million 
 
     uint256 constant DAO_COLLECT_INTERVAL = 5_760;  // 24 hour * 60 min * 4 block/min ~= 1 day
 
@@ -130,7 +130,6 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     function start() override external onlyGovernance
     {  
         require(flag == DAO_FLAG_INITIALIZED, "Nest:DAO:!flag");
-        ERC20(C_NestToken).approve(C_NestStaking, uint(-1));
         startedBlock = uint32(block.number);
         lastCollectingBlock = uint32(block.number);
         flag = DAO_FLAG_ACTIVE;
@@ -261,7 +260,11 @@ contract NestDAO is INestDAO, ReentrancyGuard {
 
         if (ntokenAmount != 0) {
             // stake new NEST/NTOKENs into StakingPool
+            ERC20(ntoken).approve(C_NestStaking, uint(-1));
+
             INestStaking(C_NestStaking).stake(ntoken, ntokenAmount);
+
+            ERC20(ntoken).approve(C_NestStaking, uint(0));
         }
 
         // claim rewards from StakingPool 
