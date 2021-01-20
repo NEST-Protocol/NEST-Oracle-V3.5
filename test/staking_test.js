@@ -586,7 +586,7 @@ describe("NestStaking contract", function () {
             //console.log("nest_blnc_pre = ",nest_blnc_pre.toString());
             
 
-            await NestDAO.collectNestReward();
+            //await NestDAO.collectNestReward();
             await NestDAO.collectETHReward(_C_NestToken);
 
             const nest_blnc_pos = await NestStaking.stakedBalanceOf(_C_NestToken, NestDAO.address);

@@ -1732,7 +1732,7 @@ describe("NestToken contract", function () {
 
               await goBlocks(provider, priceDurationBlock);
 
-              await NestMining.connect(userA).closeList(token, [index.sub(3), index.sub(2), index.sub(1)]);
+              await NestMining.connect(userA).closeList(token, [index.sub(3), index.sub(3),index.sub(2), index.sub(1)]);
 
               // calculate funds about post from userA
               const reward_userA = NWBTC(BigN(userA_post_priceSheet.ethNum)
@@ -2169,6 +2169,26 @@ describe("NestToken contract", function () {
 
             // PRICESHEET_STATE_CLOSED == 0
             expect(postSheet.state).to.equal(0);
+
+        });
+
+        // check nestQuery
+        it('should correctly', async () => {
+            //const token = _C_WBTC;
+            const token = _C_USDT;
+
+            const priceList = await NestQuery.priceList(token, 10);
+            //console.log("priceList = ", priceList.toString());
+
+
+            const priceList1 = await NestQuery.priceList(_C_WBTC, 10);
+            //console.log("priceList1 = ", priceList1.toString());
+
+            const priceList2 = await NestQuery.priceList(_C_NestToken, 10);
+            //console.log("priceList2 = ", priceList2.toString());
+
+            const priceList3 = await NestQuery.priceList(_C_NWBTC, 10);
+            //console.log("priceList3 = ", priceList3.toString());
 
         });
 

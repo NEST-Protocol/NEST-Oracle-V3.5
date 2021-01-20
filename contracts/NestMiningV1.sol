@@ -887,4 +887,27 @@ contract NestMiningV1 {
     {
         return state.sheetListOf(miner, token, fromIndex, num);
     }
+
+    /*
+     /// @dev The function will be disabled when the upgrading is completed
+    /// TODO: (TBD) auth needed? 
+    function post2Only4Upgrade(
+            address token,
+            uint256 ethNum,
+            uint256 tokenAmountPerEth,
+            uint256 ntokenAmountPerEth
+        )
+        external 
+        noContract
+    {
+       // only avialble in upgrade phase
+        require (flag == MINING_FLAG_UPGRADE_NEEDED, "Nest:Mine:!flag");
+        state._post2Only4Upgrade(token, ethNum, tokenAmountPerEth, ntokenAmountPerEth);
+        address _ntoken = INestPool(state.C_NestPool).getNTokenFromToken(token);
+
+        // calculate average price and volatility
+        state._stat(token);
+        state._stat(_ntoken);
+    }
+    */
 }

@@ -85,11 +85,11 @@ library MiningV1Op {
                 // calculate `(_newEthNum, _newNestNum1k, _newLevel)`
                 if (_level > state.maxBiteNestedLevel && _level < 127) { // bitten sheet, nest doubling
                     _newEthNum = biteNum;
-                    _newNestNum1k = _newNestNum1k.mul(state.biteNestInflateFactor).mul(biteNum).div(_sheet.ethNum);
+                    _newNestNum1k = _newNestNum1k.mul(biteNum.mul(state.biteNestInflateFactor)).div(_sheet.ethNum);
                     _newLevel = _level + 1;
                 } else if (_level <= state.maxBiteNestedLevel) {  // bitten sheet, eth doubling 
                     _newEthNum = biteNum.mul(state.biteInflateFactor);
-                    _newNestNum1k = _newNestNum1k.mul(state.biteNestInflateFactor).mul(biteNum).div(_sheet.ethNum);
+                    _newNestNum1k = _newNestNum1k.mul(biteNum.mul(state.biteNestInflateFactor)).div(_sheet.ethNum);
                     _newLevel = _level + 1;
                 }
 
@@ -200,11 +200,11 @@ library MiningV1Op {
 
                 if (_level > state.maxBiteNestedLevel && _level < 127) { // bitten sheet, nest doubling
                     _newEthNum = biteNum;
-                    _newNestNum1k = _newNestNum1k.mul(state.biteNestInflateFactor).mul(biteNum).div(_sheet.ethNum);
+                    _newNestNum1k = _newNestNum1k.mul(biteNum.mul(state.biteNestInflateFactor)).div(_sheet.ethNum);
                     _newLevel = _level + 1;
                 } else if (_level <= state.maxBiteNestedLevel) {  // bitten sheet, eth doubling 
                     _newEthNum = biteNum.mul(state.biteInflateFactor);
-                    _newNestNum1k = _newNestNum1k.mul(state.biteNestInflateFactor).mul(biteNum).div(_sheet.ethNum);
+                    _newNestNum1k = _newNestNum1k.mul(biteNum.mul(state.biteNestInflateFactor)).div(_sheet.ethNum);
                     _newLevel = _level + 1;
                 }
 
