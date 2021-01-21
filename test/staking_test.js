@@ -78,6 +78,12 @@ describe("NestStaking contract", function () {
 
         await NestPool.setNTokenToToken(_C_WBTC, _C_NWBTC);
         await CNWBTC.setOfferMain(_C_NestMining);
+
+        const amount = NEST("6000000000");
+        await NestPool.initNestLedger(amount);
+        await NestToken.connect(owner).transfer(NestPool.address, amount);
+
+
     });
 
     describe("Deployment", function () {
@@ -93,8 +99,9 @@ describe("NestStaking contract", function () {
         // });
 
         it("Should assign the total supply of tokens to the owner", async function () {
+            const amount = NEST("6000000000");
             const ownerBalance = await NestToken.balanceOf(owner.address);
-            expect(await NestToken.totalSupply()).to.equal(ownerBalance);
+            expect(await NestToken.totalSupply()).to.equal(ownerBalance.add(amount));
         });
     });
 
@@ -102,8 +109,6 @@ describe("NestStaking contract", function () {
         it("should have correct totalSupply, NEST(10,000,000,000)", async () => {
             const expectedTotalSupply = NEST('10000000000');
             let totalSupply = await NestToken.totalSupply();
-            const amount = NEST("20000000");
-            await NestPool.initNestLedger(amount);
             expect(totalSupply).to.equal(expectedTotalSupply);
         });
 
@@ -502,13 +507,52 @@ describe("NestStaking contract", function () {
             const msgValue = ETH(BigN(50));
 
             const NToken = await NestPool.getNTokenFromToken(token);
+
+            //await goBlocks(provider, 1000);
+
         
+            const DAO_nest_pre = await NestToken.balanceOf(NestDAO.address);
+            console.log("DAO_nest_pre = ", DAO_nest_pre.toString());
+
+            const DAO_nestpool_pre = await NestPool.balanceOfNestInPool(NestDAO.address);
+            console.log("DAO_nestpool_pre = ", DAO_nestpool_pre.toString());
+
+
+
+            const nestpool_nest_pre = await NestToken.balanceOf(NestPool.address);
+            console.log("nestpool_nest_pre = ", nestpool_nest_pre.toString());
+
+            const nestpool_pre = await NestPool.balanceOfNestInPool(NestPool.address);
+            console.log("nestpool_pre = ", nestpool_pre.toString());
+
+
+
+            const userA_nest_pre = await NestToken.balanceOf(userA.address);
+            console.log("userA_nest_pre = ", userA_nest_pre.toString());
+
+            const userA_nestpool_pre = await NestPool.balanceOfNestInPool(userA.address);
+            console.log("userA_nestpool_pre = ", userA_nestpool_pre.toString());
+
+
+
             // post2 (in order to calculate reward)
             await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
             
 
             // to calculate this post reward
             await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
+
+            const DAO_nest_pos = await NestToken.balanceOf(NestDAO.address);
+            console.log("DAO_nest_pos = ", DAO_nest_pos.toString());
+
+            
+            const nestpool_nest_pos = await NestToken.balanceOf(NestPool.address);
+            console.log("nestpool_nest_pos = ", nestpool_nest_pos.toString());
+
+
+            const userA_nest_pos = await NestToken.balanceOf(userA.address);
+            console.log("userA_nest_pos = ", userA_nest_pos.toString());
+
            
             await goBlocks(provider, BigN(priceDurationBlock).add(1));
 
@@ -586,7 +630,7 @@ describe("NestStaking contract", function () {
             //console.log("nest_blnc_pre = ",nest_blnc_pre.toString());
             
 
-            //await NestDAO.collectNestReward();
+            await NestDAO.collectNestReward();
             await NestDAO.collectETHReward(_C_NestToken);
 
             const nest_blnc_pos = await NestStaking.stakedBalanceOf(_C_NestToken, NestDAO.address);
