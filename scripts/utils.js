@@ -5,6 +5,7 @@ const usdtdec = BigNumber.from(10).pow(6);
 const wbtcdec = BigNumber.from(10).pow(8);
 const hbtcdec = BigNumber.from(10).pow(18);
 const nhbtcdec = BigNumber.from(10).pow(18);
+const nwbtcdec = BigNumber.from(10).pow(18);
 const ethdec = ethers.constants.WeiPerEther;
 
 exports.ethdec = ethdec;
@@ -13,6 +14,7 @@ exports.usdtdec = usdtdec;
 exports.wbtcdec = wbtcdec;
 exports.hbtcdec = hbtcdec;
 exports.nhbtcdec = nhbtcdec;
+exports.nwbtcdec = nwbtcdec;
 
 const ethTwei = BigNumber.from(10).pow(12);
 exports.ethTwei = ethTwei;
@@ -39,6 +41,10 @@ exports.HBTC = function (amount) {
 }
 
 exports.NHBTC = function (amount) {
+    return BigNumber.from(amount).mul(BigNumber.from(10).pow(18));
+}
+
+exports.NWBTC = function (amount) {
     return BigNumber.from(amount).mul(BigNumber.from(10).pow(18));
 }
 

@@ -6,7 +6,7 @@ const  contractsDeployed_ropsten = require("./.contracts_ropsten.js");
 
 
 const {usdtdec, wbtcdec, nestdec, ethdec, 
-    ETH, USDT, WBTC, MBTC, NEST, BigNum, 
+    ETH, USDT, WBTC, NWBTC, MBTC, NEST, BigNum, 
     show_eth, show_usdt, show_64x64} = require("./utils.js");
 
 const main = async function () {
@@ -25,6 +25,13 @@ const main = async function () {
 
     CUSDT = await ethers.getContractAt("UERC20", contractsDeployed.USDT);
     console.log(`> [INIT]: deployed usdt address ...`);
+    
+    CWBTC = await ethers.getContractAt("UERC20", contractsDeployed.WBTC);
+    console.log(`> [INIT]: deployed wbtc address ...`);
+
+    CNWBTC = await ethers.getContractAt("NestNToken", contractsDeployed.NWBTC);
+    console.log(`> [INIT]: deployed nwbtc address ...`);
+
 
     const NestToken = await ethers.getContractAt("IBNEST", contractsDeployed.NEST,
         {
@@ -69,30 +76,30 @@ const main = async function () {
     await tx.wait();
     console.log(`> [INIT]: transfer Nest to userA about nest ...`);
    
-    const amount = NEST("20000000");
+    const amount = NEST(20000000);
     tx = await NestToken.transfer(NestPool.address, amount);
     await NestPool.initNestLedger(amount);
     console.log(`> [INIT]: transfer NestPool about nest ...`);
     
-    tx = await NestToken.transfer(userB.address, NEST("200000"));
-    await tx.wait();
-    console.log(`> [INIT]: transfer Nest to userB about nest ...`);
+    //tx = await NestToken.transfer(userB.address, NEST("200000"));
+    //await tx.wait();
+    //console.log(`> [INIT]: transfer Nest to userB about nest ...`);
 
     tx = await NestToken.connect(userA).approve(NestPool.address, NEST("10000000000"));
     await tx.wait();
     console.log(`> [INIT]: authorised by the userA to NestPool about nest ...`);
 
-    tx = await NestToken.connect(userB).approve(NestPool.address, NEST("10000000000"));
-    await tx.wait();
-    console.log(`> [INIT]: authorised by the userB to NestPool about nest ...`);
+    //tx = await NestToken.connect(userB).approve(NestPool.address, NEST("10000000000"));
+    //await tx.wait();
+    //console.log(`> [INIT]: authorised by the userB to NestPool about nest ...`);
     
     tx = await NestToken.connect(userA).approve(NestStaking.address, NEST("10000000000"));
     await tx.wait();
     console.log(`> [INIT]: authorised by the userA to NestStaking about nest ...`);
     
-    tx = await NestToken.connect(userB).approve(NestStaking.address, NEST("10000000000"));
-    await tx.wait();
-    console.log(`> [INIT]: authorised by the userB to NestStaking about nest ...`);
+    //tx = await NestToken.connect(userB).approve(NestStaking.address, NEST("10000000000"));
+    //await tx.wait();
+    //console.log(`> [INIT]: authorised by the userB to NestStaking about nest ...`);
 
     tx = await CUSDT.transfer(userA.address, USDT('1000000'));
     await tx.wait();
@@ -102,14 +109,34 @@ const main = async function () {
     await tx.wait();
     console.log(`> [INIT]: authorised by the userA to NestPool about usdt ...`);
     
-    tx = await CUSDT.transfer(userB.address, USDT('1000000'));
-    await tx.wait();
-    console.log(`> [INIT]: transfer usdt to userB about usdt ...`);
+    //tx = await CUSDT.transfer(userB.address, USDT('1000000'));
+    //await tx.wait();
+    //console.log(`> [INIT]: transfer usdt to userB about usdt ...`);
 
-    tx = await CUSDT.connect(userB).approve(NestPool.address, USDT("1000000"));
-    await tx.wait();
-    console.log(`> [INIT]: authorised by the userB to NestPool about usdt ...`);
+    //tx = await CUSDT.connect(userB).approve(NestPool.address, USDT("1000000"));
+    //await tx.wait();
+    //console.log(`> [INIT]: authorised by the userB to NestPool about usdt ...`);
+    
 
+    tx = await CWBTC.transfer(userA.address, WBTC('1000000'));
+    await tx.wait();
+    console.log(`> [INIT]: transfer wbtc to userA about wbtc ...`);
+    
+    tx = await CWBTC.connect(userA).approve(NestPool.address, WBTC("1000000"));
+    await tx.wait();
+    console.log(`> [INIT]: authorised by the userA to NestPool about wbtc ...`);
+    
+
+    tx = await CNWBTC.setOfferMain(NestMining.address);
+    await tx.wait(1);
+
+    tx = await CNWBTC.transfer(userA.address, NWBTC('1000'));
+    await tx.wait();
+    console.log(`> [INIT]: transfer nwbtc to userA about nwbtc ...`);
+    
+    tx = await CNWBTC.connect(userA).approve(NestPool.address, NWBTC("1000000"));
+    await tx.wait();
+    console.log(`> [INIT]: authorised by the userA to NestPool about nwbtc ...`);
 
 }
 

@@ -127,6 +127,8 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         C_NestMining = INestPool(C_NestPool).addrOfNestMining();
     }
 
+
+    /// @dev The function opens redeeming and can only be executed once
     function start() override external onlyGovernance
     {  
         require(flag == DAO_FLAG_INITIALIZED, "Nest:DAO:!flag");
@@ -148,11 +150,14 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     /// @dev Resume service 
     function resume() external onlyGovernance
     {
-        require(flag == DAO_FLAG_ACTIVE || flag == DAO_FLAG_PAUSED, "Nest:DAO:!flag");
+        require(flag == DAO_FLAG_PAUSED, "Nest:DAO:!flag");
         flag = DAO_FLAG_ACTIVE;
         emit FlagSet(address(msg.sender), uint256(DAO_FLAG_ACTIVE));
     }
 
+    /// @dev The function sets the parameters of ntokenRepurchaseThreshold and collectInterval
+    /// @param _ntokenRepurchaseThreshold Only total supply of ntoken is over this value, can run redem function
+    /// @param _collectInterval The interval of collecting ETH and rewards 
     function setParams(uint256 _ntokenRepurchaseThreshold, uint256 _collectInterval) external onlyGovernance
     {
         emit ParamsSetup(address(msg.sender), ntokenRepurchaseThreshold, _ntokenRepurchaseThreshold);
@@ -161,6 +166,8 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         collectInterval = _collectInterval;
     }
 
+    /// @dev The function returns eth rewards of specified ntoken
+    /// @param ntoken The notoken address
     function totalETHRewards(address ntoken)
         external view returns (uint256) 
     {
@@ -197,6 +204,8 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     }
 
     /// @dev The function shall be called when ethers are taken from Nestv3.0
+    /// @param ntoken The ntoken address 
+    /// @param amount The amount of ntoken
     function initEthLedger(address ntoken, uint256 amount) 
         override external
         onlyGovernance 
@@ -252,16 +261,12 @@ contract NestDAO is INestDAO, ReentrancyGuard {
 
         uint256 ntokenAmount = ERC20(ntoken).balanceOf(address(this));
 
-        // if (ntokenAmount == 0) {
-        //     return 0;
-        // }
-        // // stake new NEST/NTOKENs into StakingPool
-        // INestStaking(C_NestStaking).stake(ntoken, ntokenAmount);
-
         if (ntokenAmount != 0) {
-            // stake new NEST/NTOKENs into StakingPool
+            
+            // NestStaking need to be approved
             ERC20(ntoken).approve(C_NestStaking, uint(-1));
-
+            
+            // stake new NEST/NTOKENs into StakingPool
             INestStaking(C_NestStaking).stake(ntoken, ntokenAmount);
 
             ERC20(ntoken).approve(C_NestStaking, uint(0));
@@ -274,6 +279,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         return _rewards;
     }
 
+    /// @notice The function can not be called directly
     function _collect(address ntoken) internal
     {
         if (block.number < uint256(lastCollectingBlock).add(collectInterval)) {
@@ -289,6 +295,9 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     }
 
     /// @dev Redeem ntokens for ethers
+    /// @notice Ethfee will be charged
+    /// @param ntoken The address of ntoken
+    /// @param amount  The amount of ntoken
     function redeem(address ntoken, uint256 amount) 
         external payable nonReentrant whenActive
     {
@@ -323,6 +332,8 @@ contract NestDAO is INestDAO, ReentrancyGuard {
             if(msg.value > _ethFee){
                 TransferHelper.safeTransferETH(msg.sender, msg.value.sub(_ethFee));
             }
+
+            // NestDAO need charge user ethfee
             this.addETHReward{value:_ethFee}(address(ntoken));
 
         }
@@ -360,6 +371,8 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     //     isDeviated = (diff.mul(100) < avg.mul(DAO_REPURCHASE_PRICE_DEVIATION))? false : true;
     // }
 
+    /// @notice The function can not be called directly
+    /// @dev The function is used to get amount for repurchase
     function _quota(address ntoken) internal view returns (uint256 quota) 
     {
         if (INToken(ntoken).totalSupply() < ntokenRepurchaseThreshold) {
@@ -370,6 +383,8 @@ contract NestDAO is INestDAO, ReentrancyGuard {
         Ledger memory it = ntokenLedger[ntoken];
         uint256 _acc;
         uint256 n;
+
+        // check if ntoken is NESTTOKEN
         if(ntoken == C_NestToken){
              n = 1000;
             uint256 intv = (it.lastBlock == 0) ? 
@@ -382,6 +397,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
             _acc = (n * intv > 3000)? 3000 : (n * intv);
         }
 
+        // check if total amounts overflow
         uint256 total;
          total = _acc.mul(1e18).add(it.quotaAmount);
         if(ntoken == C_NestToken){
@@ -402,6 +418,8 @@ contract NestDAO is INestDAO, ReentrancyGuard {
 
     /* ========== VIEWS ========== */
 
+    /// @dev Get the current amount available for repurchase
+    /// @param ntoken The address of ntoken
     function quotaOf(address ntoken) public view returns (uint256 quota) 
     {
        // check if ntoken is a NTOKEN

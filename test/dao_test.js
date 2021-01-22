@@ -408,6 +408,7 @@ describe("NestToken contract", function () {
             const total_pre0 = await NestDAO.totalETHRewards(_C_NWBTC);
 
             const nestDAO_eth0 = await provider.getBalance(NestDAO.address);
+            console.log("nestDAO_eth0 = ",nestDAO_eth0.toString());
             
             await NestDAO.addETHReward(_C_NWBTC, { value: ETH(2)});
 
@@ -420,7 +421,7 @@ describe("NestToken contract", function () {
             console.log("total_pre = ", total_pre.toString());
 
             const nestDAO_eth_pre = await provider.getBalance(NestDAO.address);
-        
+            console.log("nestDAO_eth_pre = ",nestDAO_eth_pre.toString());
 
             await NestDAO.connect(userA).redeem(_C_NWBTC, NWBTC(10), {value: ETH(5) , gasPrice: 0});
             const eth_A_post = await userA.getBalance(); 
@@ -428,8 +429,10 @@ describe("NestToken contract", function () {
 
            
             const total_pos = await NestDAO.totalETHRewards(_C_NWBTC);
+            console.log("total_pos = ",total_pos.toString());
         
             const nestDAO_eth_pos = await provider.getBalance(NestDAO.address);
+            console.log("nestDAO_eth_pos = ",nestDAO_eth_pos.toString());
 
             //await NestDAO.connect(userA).redeem(_C_NWBTC, NWBTC(10), {value: ETH(5) , gasPrice: 0});
         
