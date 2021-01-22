@@ -11,7 +11,7 @@ const {deployUSDT, deployWBTC, deployNN,
     setupNest} = require("./deploy.js");
 
 const {usdtdec, wbtcdec, nestdec, ethdec, 
-        ETH, USDT, WBTC, MBTC, NEST, BigNum,BigN, 
+        ETH, USDT, WBTC, NWBTC, MBTC, NEST, BigNum,BigN, 
         show_eth, show_usdt, show_64x64, advanceBlock,goBlocks} = require("./utils.js");
         
 let provider = ethers.provider;

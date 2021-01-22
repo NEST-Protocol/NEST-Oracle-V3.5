@@ -45,8 +45,9 @@ async function main() {
     const NestDAO = contracts.NestDAO;
 
     const balance_nest_nestpool = await NestPool.balanceOfNestInPool(NestPool.address);
+    console.log("balance_nest_nestpool = ",balance_nest_nestpool);
     
-    if (balance_nest_nestpool < NEST(3000000000)) {
+    if (balance_nest_nestpool < NEST("3000000000")) {
         let tx = await NestToken.transfer(NestPool.address, NEST("3000000000"));
         await tx.wait();
         console.log(`> [INIT]: transfer Nest to NestPool about nest ...  OK`);
@@ -116,19 +117,12 @@ async function main() {
     tx = await NestPool.setNTokenToToken(CUSDT.address, NestToken.address);
     receipt = await tx.wait();
     console.log(`>>> [STUP] deployer: set (USDT <-> NEST) to NestPool ...... ok`);
-    
-    const NTokenContract = await ethers.getContractFactory("NestNToken");
 
-    const CNWBTC = await NTokenContract.deploy("900000000000000000000000", "NWBTC", "NWBTC", owner.address);
-    console.log(`>>> [DPLY]: NWBTC deployed, address=${CNWBTC.address}, block=${tx.blockNumber}`);
-
-    tx = CNWBTC.deployTransaction;
-    await tx.wait(1);
-
-    tx = await NestPool.setNTokenToToken(CWBTC.address, CNWBTC.address);
+    tx = await NestPool.setNTokenToToken(CWBTC.address, addrList.NWBTC);
     tx.wait(1);
     console.log(`>>> [STUP] deployer: set (WBTC <-> CWBTC) to NestPool ...... ok`);
 
+    
     tx = await NestMining.setup(genesis, lastB, mined, params);
     tx.wait(1);
     console.log(`>>> [STUP] NestMining.setup() ...... OK`);
@@ -145,6 +139,7 @@ async function main() {
     ts = (await ethers.provider.getBlock(bn)).timestamp;
     nw = (await ethers.provider.getNetwork()).name;
     console.log(`>>>       network=${nw}, block=${bn}, time=${timeConverter(ts)} `);
+    
 }
 
 main()

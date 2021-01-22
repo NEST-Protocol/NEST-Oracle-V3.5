@@ -38,7 +38,7 @@ async function main() {
     // const NNToken = contracts.NNToken;
     // const NNRewardPool = contracts.NNRewardPool;
     // const NestQuery = contracts.NestQuery;
-     const NestDAO = contracts.NestDAO;
+    //const NestDAO = contracts.NestDAO;
 
     console.log(`> [INIT]: Starting to upgrade Nest-Protocol v3.5 ...`);
 
@@ -73,6 +73,10 @@ async function main() {
     console.log(`>>> [UPGD]: NestMining upgraded with Proxy ...... [OK]`);
     console.log(`>>>    [INFO]: NestMining.address=${NewNestMining.address}`);
 
+    const para = await NestMining.parameters();
+    console.log("para =",para);
+
+    /*
     let tx = await NestMining.incVersion();
     await tx.wait();
     
@@ -81,7 +85,6 @@ async function main() {
 
     await printContracts("js", addrList);
 
-    /*
    const NewNestDAOContract = await ethers.getContractFactory("NestDAO");
    const NewNestDAO = await upgrades.upgradeProxy(addrList.NestDAO, NewNestDAOContract, 
     { unsafeAllowCustomTypes: true, unsafeAllowLinkedLibraries: true});

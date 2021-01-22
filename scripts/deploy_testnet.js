@@ -1,6 +1,6 @@
 
 const {deployUSDT, deployWBTC, deployNN, 
-    deployNEST, 
+    deployNEST, deployNWBTC,
     deployNestProtocol,
     deployNestProtocolWithProxy, printContracts,
     setupNest} = require("./deploy.js");
@@ -19,6 +19,9 @@ async function main() {
 
     CWBTC = await deployWBTC();
     console.log(`> [INIT]: Starting to deployWBTC ... ok`);
+    
+    CNWBTC = await deployNWBTC(owner);
+    console.log(`> [INIT]: Starting to deployNWBTC ... ok`);
 
     [NestToken, IterableMapping] = await deployNEST();
     console.log(`> [INIT]: Starting to deployNEST ... ok`);
@@ -26,7 +29,7 @@ async function main() {
     NNToken = await deployNN();
     console.log(`> [INIT]: Starting to deployNN ... ok`);
 
-    let contracts = {USDT: CUSDT, WBTC: CWBTC, NEST: NestToken, NN: NNToken, IterableMapping: IterableMapping}; 
+    let contracts = {USDT: CUSDT, WBTC: CWBTC, NWBTC: CNWBTC, NEST: NestToken, NN: NNToken, IterableMapping: IterableMapping}; 
     let addrOfNest = await deployNestProtocolWithProxy(owner, contracts);
     console.log(`>>> [DPLY] deployNestProtocolWithProxy .......ok`);
 
