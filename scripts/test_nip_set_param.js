@@ -53,6 +53,10 @@ async function main() {
     const dur = await NestVote.voteDuration();
     console.log(`> [INFO] NestVote.voteDuration = ${dur}`);
 
+    tx = await NestToken.transfer(userA.address, NEST("200000"));
+    await tx.wait();
+    console.log(`> [INIT]: transfer Nest to userA about nest ...`);
+
     tx = await NestToken.connect(userA).approve(contracts.NestVote.address, NEST(100000));
     tx.wait();
     console.log(`> [INFO] userA: NestToken.approve(NestVote)`);
@@ -60,6 +64,10 @@ async function main() {
     tx = await NestVote.connect(userA).propose(NIPSetParam.address, calldata, 'NIP-003-NIPSetParam');
     tx.wait();
     console.log(`> [INFO] NIP proposed id=${id}, calldata=${calldata}, NIP=${NIPSetParam.address} ✅`);
+
+    tx = await NestToken.transfer(userB.address, NEST("200000"));
+    await tx.wait();
+    console.log(`> [INIT]: transfer Nest to userB about nest ...`);
 
     tx = await NestToken.connect(userB).approve(contracts.NestVote.address, NEST(100000));
     await tx.wait(1);
