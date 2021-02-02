@@ -60,10 +60,18 @@ const BigNum = function (n) {
     return BigNumber.from(n);
 }
 
+exports.show_nest = function (amount){
+    bn = toBN(amount);
+    const nestskip = (new BN('10')).pow(new BN('13'));
+    const nestdec = (new BN('10')).pow(new BN('18'));
+    return (bn.div(nestdec).toString(10) + '.' + bn.mod(nestdec).div(nestskip).toString(10, 5));
+}
+
 exports.show_eth = function (amount){
+    bn = toBN(amount)
     const ethskip = (new BN('10')).pow(new BN('13'));
     const ethdec = (new BN('10')).pow(new BN('18'));
-    return (amount.div(ethdec).toString(10) + '.' + amount.mod(ethdec).div(ethskip).toString(10, 5));
+    return (bn.div(ethdec).toString(10) + '.' + bn.mod(ethdec).div(ethskip).toString(10, 5));
 }
 
 exports.show_usdt = function (amount){

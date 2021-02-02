@@ -1,13 +1,119 @@
 const { expect } = require('chai');
 const { WeiPerEther, BigNumber } = require("ethers");
 
-const {usdtdec, wbtcdec, nestdec, ethdec, 
+const { usdtdec, wbtcdec, nestdec, ethdec,
     ETH, USDT, WBTC, MBTC, NEST, BigNum, BigN,
-    show_eth, show_usdt, show_64x64} = require("../scripts/utils.js");
+    show_eth, show_nest, show_usdt, show_64x64 } = require("../scripts/utils.js");
 
-const {deployUSDT, deployWBTC, deployNWBTC, deployNN, deployNEST,
-    deployNestProtocol, printContracts, setupNest} = require("../scripts/deploy.js");
+const { deployUSDT, deployWBTC, deployNWBTC, deployNN, deployNEST,
+    deployNestProtocol, printContracts, setupNest } = require("../scripts/deploy.js");
 const { ethers } = require('hardhat');
+
+const show_token_in_nestpool = async function (TokenContract, userA, nameA, userB, nameB, userC, nameC, userD, nameD) {
+    let rs;
+    // let rs = await NestToken.balanceOf(userA);
+    // let A_nest = rs.div(ethdec).toString(10);
+
+    // rs = await NestToken.balanceOf(userB);
+    // let B_nest = rs.div(ethdec).toString(10);
+
+    // rs = await NestToken.balanceOf(userC);
+    // let C_nest = rs.div(ethdec).toString(10);
+
+    // rs = await NestToken.balanceOf(userD);
+    // let D_nest = rs.div(ethdec).toString(10);
+
+    // rs = await NestToken.balanceOf(_C_NestPool);
+    // let Pool_nest = rs.div(ethdec).toString(10);
+
+    // rs = await NestToken.balanceOf(dev);
+    // let dev_nest = rs.div(ethdec).toString(10);        
+
+    // rs = await NestToken.balanceOf(NN);
+    // let NN_nest = rs.div(ethdec).toString(10);
+
+    // rs = await NestToken.balanceOf(burnNest);
+    // let burn_nest = show_eth(rs);
+
+    // nest pool
+
+    let tokenAddr = TokenContract.address
+    let tokenSym = await TokenContract.Symbol();
+
+    rs = await userA.getBalance();
+    let A_eth = rs.div(ethdec).toString();
+
+    rs = await userB.getBalance();
+    let B_eth = rs.div(ethdec).toString();
+
+    rs = await userC.getBalance();
+    let C_eth = rs.div(ethdec).toString();
+
+    rs = await NestPoolContract.balanceOfEthInPool(userA.address);
+    let A_pool_eth = rs.div(ethdec).toString();
+
+    rs = await NestPoolContract.balanceOfEthInPool(userB.address);
+    let B_pool_eth = rs.div(ethdec).toString();
+
+    rs = await NestPoolContract.balanceOfEthInPool(userC.address);
+    let C_pool_eth = rs.div(ethdec).toString();
+
+
+    rs = await NestPoolContract.balanceOfNestInPool(userA.address);
+    let A_pool_nest = rs.div(nestdec).toString();
+    rs = await NestToken.balanceOf(userA.address);
+    let A_nest = rs.div(nestdec).toString();
+
+    rs = await NestPoolContract.balanceOfNestInPool(userB.address);
+    let B_pool_nest = rs.div(nestdec).toString();
+    rs = await NestToken.balanceOf(userB.address);
+    let B_nest = rs.div(nestdec).toString();
+
+    rs = await NestPoolContract.balanceOfNestInPool(userC.address);
+    let C_pool_nest = rs.div(nestdec).toString();
+    rs = await NestToken.balanceOf(userC.address);
+    let C_nest = rs.div(nestdec).toString();
+
+
+    rs = await NestPoolContract.balanceOfTokenInPool(userA.address, tokenAddr);
+    let A_pool_token = rs.div(nestdec).toString();
+    rs = await TokenContract.balanceOf(userA.address);
+    let A_token = rs.div(nestdec).toString();
+
+    rs = await NestPoolContract.balanceOfTokenInPool(userB.address, tokenAddr);
+    let B_pool_token = rs.div(nestdec).toString();
+    rs = await TokenContract.balanceOf(userB.address);
+    let B_token = rs.div(nestdec).toString();
+
+    rs = await NestPoolContract.balanceOfTokenInPool(userC.address, tokenAddr);
+    let C_pool_token = rs.div(nestdec).toString();
+    rs = await TokenContract.balanceOf(userC.address);
+    let C_token = rs.div(nestdec).toString();
+
+    function Record(NEST, POOL_NEST, ETH, POOL_ETH, TOKEN, POOL_TOKEN) {
+        this.NEST = NEST;
+        this.POOL_NEST = POOL_NEST;
+        this.ETH = ETH;
+        this.POOL_ETH = POOL_ETH;
+        this.TOKEN = TOKEN;
+        this.POOL_TOKEN = POOL_TOKEN;
+    }
+
+    function new_record(user_nest, user_pool_nest, user_eth, user_pool_eth, user_token, user_pool_token) {
+        let rec = new Record(`NEST(${user_nest})`, `P_NEST(${user_pool_nest})`,
+            `ETH(${user_eth})`, `P_ETH(${user_pool_eth})`,
+            `${tokenSym}(${user_token})`, `P_${tokenSym}(${user_pool_token})`);
+        return rec
+    }
+
+    var records = {};
+
+    records.userA = new_record(A_nest, A_pool_nest, A_eth, A_pool_eth, A_token, A_pool_token);
+    records.userB = new_record(B_nest, B_pool_nest, B_eth, B_pool_eth, B_token, B_pool_token);
+    records.userC = new_record(C_nest, C_pool_nest, C_eth, C_pool_eth, C_token, C_pool_token);
+    console.table(records);
+}
+
 
 describe("Nest Protocol v3.5 contract", function () {
     // Mocha has four functions that let you hook into the the test runner's
@@ -46,7 +152,8 @@ describe("Nest Protocol v3.5 contract", function () {
 
     before(async () => {
 
-        [gov, userA, userB, ghost] = await ethers.getSigners();
+        [deployer, userA, userB, ghost] = await ethers.getSigners();
+        gov = deployer;
 
         CUSDT = await deployUSDT();
         CWBTC = await deployWBTC();
@@ -55,12 +162,13 @@ describe("Nest Protocol v3.5 contract", function () {
         [NestToken, IterableMapping] = await deployNEST();
         NNToken = await deployNN();
         let contracts = {
-            USDT: CUSDT, 
-            WBTC: CWBTC, 
+            USDT: CUSDT,
+            WBTC: CWBTC,
             NWBTC: CNWBTC,
-            NEST: NestToken, 
+            NEST: NestToken,
             IterableMapping: IterableMapping,
-            NN: NNToken}; 
+            NN: NNToken
+        };
         const addrOfNest = await deployNestProtocol(gov, contracts);
         await printContracts("", addrOfNest);
         await setupNest(gov, addrOfNest);
@@ -90,12 +198,90 @@ describe("Nest Protocol v3.5 contract", function () {
 
         // NOTE: Some functions in NestPool require `onlyMiningContract`, 
         //     so we set gov as the MiningContract.
-        tx = await NestPool.setContracts(NestToken.address, 
+        tx = await NestPool.setContracts(NestToken.address,
             ghost.address, // fake NestMining
             NestStaking.address, NTokenController.address, NNToken.address,
             NNRewardPool.address, NestQuery.address, NestDAO.address);
         receipt = await tx.wait();
         console.log(`>>> [STUP] NestPool.setContracts() ..... OK`);
+
+        let amount = NEST('1000000000');
+        await NestPool.initNestLedger(amount);
+
+        await NestToken.transfer(NestPool.address, amount);
+
+        let user_eth = await provider.getBalance(userA.address);
+
+
+        const list_nest = async function (provider, user_list, tokenContract) {
+
+            let tokenAddr;
+            let tokenSym = "XXX";
+            if (tokenContract != undefined) {
+                tokenAddr = TokenContract.address;
+                tokenSym = await TokenContract.Symbol();
+                user_token = await NestToken.balanceOf(user.address);
+                user_pool_nest = await NestPool.balanceOfNestInPool(user.address);
+            }
+
+            async function getBalances(user, tokenContract) {
+                let user_eth = await provider.getBalance(user.address);
+                let user_pool_eth = await NestPool.balanceOfEthInPool(user.address);
+                let user_nest = await NestToken.balanceOf(user.address);
+                let user_pool_nest = await NestPool.balanceOfNestInPool(user.address);
+
+                let user_token = BigN(0);
+                let user_pool_token = BigN(0);
+                if (tokenContract != undefined) {
+                    let tokenAddr = TokenContract.address;
+                    let tokenSym = await TokenContract.Symbol();
+                    user_token = await NestToken.balanceOf(user.address);
+                    user_pool_nest = await NestPool.balanceOfNestInPool(user.address);
+                }
+                return {
+                    nest: user_nest,
+                    pool_nest: user_pool_nest,
+                    eth: user_eth,
+                    pool_eth: user_pool_eth,
+                    token: user_token,
+                    pool_token: user_pool_token
+                }
+            }
+
+            function Record(NEST, POOL_NEST, ETH, POOL_ETH, TOKEN, POOL_TOKEN) {
+                this.NEST = NEST;
+                this.POOL_NEST = POOL_NEST;
+                this.ETH = ETH;
+                this.POOL_ETH = POOL_ETH;
+                this.TOKEN = TOKEN;
+                this.POOL_TOKEN = POOL_TOKEN;
+            }
+
+            function new_record_from_bal(bal) {
+                let rec = new Record(
+                    `NEST(${show_nest(bal.nest)})`, 
+                    `P_NEST(${show_nest(bal.pool_nest)})`,
+                    `ETH(${show_eth(bal.eth)})`, `P_ETH(${show_eth(bal.pool_eth)})`,
+                    `${tokenSym}(${bal.token})`, `P_${tokenSym}(${bal.pool_token})`);
+                return rec
+            }
+
+            var records = {};
+
+            for (let i = 0; i < user_list.length; i++) {
+                [user, nm] = user_list[i];
+                bal = await getBalances(user, tokenContract);
+                records[nm] = new_record_from_bal(bal);
+            }
+
+            console.table(records);
+        }
+
+
+        await list_nest(provider, [[deployer,"deployer"], [userA,"A"], [userB,"B"],
+            [NestPool, "NestPool"]]);
+
+
         // bn = tx.blockNumber;
         // ts = (await ethers.provider.getBlock(bn)).timestamp;
         // nw = (await ethers.provider.getNetwork()).name;
@@ -120,7 +306,7 @@ describe("Nest Protocol v3.5 contract", function () {
         });
 
         it("should (userB) approve to NestPool USDT(1000000)", async () => {
-            await CUSDT.connect(userB).approve(_C_NestPool, USDT("1000000"));        
+            await CUSDT.connect(userB).approve(_C_NestPool, USDT("1000000"));
             const allowed_b = await CUSDT.allowance(userB.address, _C_NestPool);
             expect(allowed_b).to.equal(USDT("1000000"));
         });
@@ -132,7 +318,6 @@ describe("Nest Protocol v3.5 contract", function () {
             const expectedTotalSupply = NEST("10000000000");
             const totalSupply = await NestToken.totalSupply();
             const amount = NEST("200000");
-            await NestPool.initNestLedger(amount);
             expect(totalSupply).to.equal(expectedTotalSupply);
         })
 
@@ -183,7 +368,7 @@ describe("Nest Protocol v3.5 contract", function () {
         });
 
         it("should be able to transfer NEST from a miner to another within the pool", async () => {
-            const amount =  NEST(50);
+            const amount = NEST(50);
 
             await NestPool.connect(ghost).freezeNest(userA.address, NEST(10000));
             await NestPool.connect(ghost).unfreezeNest(userA.address, NEST(10000));
@@ -191,7 +376,7 @@ describe("Nest Protocol v3.5 contract", function () {
             const nest_B_pre = await NestPool.balanceOfNestInPool(userB.address);
 
             await NestPool.connect(ghost).transferNestInPool(userA.address, userB.address, amount);
-            
+
             const nest_A_post = await NestPool.balanceOfNestInPool(userA.address);
             const nest_B_post = await NestPool.balanceOfNestInPool(userB.address);
 
@@ -200,7 +385,7 @@ describe("Nest Protocol v3.5 contract", function () {
         });
 
         it("should be able to transfer Token from a miner to another within the pool", async () => {
-            const amount =  WBTC(50);
+            const amount = WBTC(50);
 
             await CWBTC.transfer(userA.address, WBTC('1000000'));
             await CWBTC.connect(userA).approve(_C_NestPool, WBTC('1000000'));
@@ -210,7 +395,7 @@ describe("Nest Protocol v3.5 contract", function () {
             const token_B_pre = await NestPool.balanceOfTokenInPool(userB.address, _C_WBTC);
 
             await NestPool.connect(ghost).transferTokenInPool(_C_WBTC, userA.address, userB.address, amount);
-            
+
             const token_A_post = await NestPool.balanceOfTokenInPool(userA.address, _C_WBTC);
             const token_B_post = await NestPool.balanceOfTokenInPool(userB.address, _C_WBTC);
 
@@ -219,7 +404,7 @@ describe("Nest Protocol v3.5 contract", function () {
         });
 
         it("should be able to freeze/unfreeze ether+token within the pool", async () => {
-            const amount =  WBTC(50);
+            const amount = WBTC(50);
 
             await CWBTC.transfer(userA.address, WBTC('10000'));
             await CWBTC.connect(userA).approve(_C_NestPool, WBTC('10000'));
@@ -236,13 +421,13 @@ describe("Nest Protocol v3.5 contract", function () {
             const token_A_post = await CWBTC.balanceOf(userA.address);
             const token_A_pool_post = await NestPool.balanceOfTokenInPool(userA.address, _C_WBTC);
             const eth_A_pool_post = await NestPool.balanceOfEthInPool(userA.address);
-            
+
             expect(token_A_pre.add(token_A_pool_pre)).to.equal(token_A_post.add(token_A_pool_post));
             expect(eth_A_pool_pre).to.equal(eth_A_pool_post);
         });
 
         it("should be able to add NEST to a miner's internal account", async () => {
-            const amount =  NEST(50);
+            const amount = NEST(50);
 
             const nest_pre = await NestPool.minedNestAmount();
             const nest_A_pre = await NestPool.balanceOfNestInPool(userA.address);
@@ -266,7 +451,7 @@ describe("Nest Protocol v3.5 contract", function () {
 
         it("should be able to withdraw ETH", async () => {
             const amount = ETH(10);
-            await NestPool.connect(ghost).depositEth(userA.address, {value: ETH(40)});
+            await NestPool.connect(ghost).depositEth(userA.address, { value: ETH(40) });
             await NestPool.connect(ghost).freezeEth(userA.address, amount);
             await NestPool.connect(ghost).freezeEth(userA.address, amount);
             const bal_freeze_eth = await NestPool.balanceOfEthFreezed();

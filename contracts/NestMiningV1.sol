@@ -677,8 +677,8 @@ contract NestMiningV1 {
     /// @notice Get the latest effective price for a token
     /// @dev It shouldn't be read from any contracts other than NestQuery
     function latestPriceOf(address token) 
-        public 
-        view 
+        public
+        view
         onlyByNestOrNoContract
         returns(uint256 ethAmount, uint256 tokenAmount, uint256 blockNum) 
     {
@@ -696,6 +696,9 @@ contract NestMiningV1 {
             if (_first == 0 && uint256(_sheet.height) + state.priceDurationBlock < block.number) {
                 _first = uint256(_sheet.height);
                 _ethNum = uint256(_sheet.remainNum);
+                if (_ethNum == 0) {
+                    continue;  // jump over a bitten sheet
+                }
                 tokenAmount = uint256(_sheet.tokenAmountPerEth).mul(_ethNum);
                 ethAmount = _ethNum.mul(1 ether);
                 blockNum = _first;

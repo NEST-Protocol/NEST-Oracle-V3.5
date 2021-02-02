@@ -84,10 +84,12 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     function initialize(address NestPool) external 
     {
         require(flag == DAO_FLAG_UNINITIALIZED, "Nest:DAO:!flag");
+
         governance = msg.sender;
-        flag = DAO_FLAG_INITIALIZED;
         C_NestPool = NestPool;
         ntokenRepurchaseThreshold = DAO_REPURCHASE_NTOKEN_TOTALSUPPLY;
+
+        flag = DAO_FLAG_INITIALIZED;
     }
 
     /* ========== MODIFIERS ========== */
@@ -132,10 +134,12 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     function start() override external onlyGovernance
     {  
         require(flag == DAO_FLAG_INITIALIZED, "Nest:DAO:!flag");
+
         startedBlock = uint32(block.number);
         lastCollectingBlock = uint32(block.number);
-        flag = DAO_FLAG_ACTIVE;
         collectInterval = DAO_COLLECT_INTERVAL;
+
+        flag = DAO_FLAG_ACTIVE;
         emit FlagSet(address(msg.sender), uint256(DAO_FLAG_ACTIVE));
     }
 
@@ -143,6 +147,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     function pause() external onlyGovernance
     {
         require(flag == DAO_FLAG_ACTIVE, "Nest:DAO:!flag");
+
         flag = DAO_FLAG_PAUSED;
         emit FlagSet(address(msg.sender), uint256(DAO_FLAG_PAUSED));
     }
@@ -175,12 +180,17 @@ contract NestDAO is INestDAO, ReentrancyGuard {
     }
 
     /// @notice Migrate ethers to a new NestDAO
+    /// @dev 
     /// @param newDAO_ The address of the new contract
     /// @param ntokenL_ The list of ntokens whose ethers are going to be migrated
     function migrateTo(address newDAO_, address[] memory ntokenL_) external onlyGovernance
     {
+        // check flag, only allowed when NestDAO was paused
         require(flag == DAO_FLAG_PAUSED, "Nest:DAO:!flag");
+
+        // 
         uint256 _len = ntokenL_.length;
+
         for (uint256 i; i < _len; i++) {
             address _ntoken = ntokenL_[i];
             uint256 _blncs = ethLedger[_ntoken];
