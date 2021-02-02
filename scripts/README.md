@@ -6,11 +6,22 @@ Please make sure that `.contracts_localhost.json` contains all of the addresses 
 
 #### Deploy NestVote contract
 
+Deploy `NestVote` to  localhost/testnet/mainnet.
+
 ```
 $ npx hardhat run --network localhost scripts/deploy_vote.js
 ```
 
+Initialize parameters of `NestVote`.
+
+```
+$ npx hardhat run --network localhost scripts/setup_vote.js
+```
+
+
 #### Grant governance to NestVote
+
+Set governance of `NestPool` to `NestVote` and load the new values to other contracts.
 
 ```
 $ npx hardhat run --network localhost scripts/grant_gov_to_vote.js
