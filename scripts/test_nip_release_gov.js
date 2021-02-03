@@ -24,7 +24,7 @@ const {
     getImplementationAddress,
     getAdminAddress } = require('@openzeppelin/upgrades-core');
 
-const contracts = require('../.contract_list_localhost.json');
+const contracts = require('../.contracts_localhost.json');
 
 async function main() {
 

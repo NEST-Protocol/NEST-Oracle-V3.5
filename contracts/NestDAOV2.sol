@@ -92,7 +92,7 @@ contract NestDAOV2 is INestDAO, ReentrancyGuard {
         flag = DAO_FLAG_INITIALIZED;
     }
 
-    function version() public view returns (uint256) 
+    function version() public pure returns (uint256) 
     {   
         return 2;
     }
