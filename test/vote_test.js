@@ -87,7 +87,7 @@ describe("NestVote contract", function () {
         _C_NestDAO = NestDAOProxy.address;
 
         const NestVoteContract = await ethers.getContractFactory("NestVote");
-        NestVote = await NestVoteContract.deploy();
+        NestVote = await NestVoteContract.deploy(NestPool.address);
         tx = NestVote.deployTransaction;
         receipt = await tx.wait();
         console.log(`>>> [DPLY] NestVote deployed, address=${NestVote.address}, block=${tx.blockNumber}`);
@@ -116,9 +116,6 @@ describe("NestVote contract", function () {
         console.log(`>>> [STUP] NestDAO.loadContracts() ....... OK `);
 
         await NestPool.setNTokenToToken(_C_USDT, _C_NestToken);
-
-        await NestVote.initialize(_C_NestPool);
-        console.log(`>>> [INIT] NestVote initialized ................ OK`);
 
         await NestVote.loadContracts();
         console.log(`>>> [LOAD] NestVote loadContracts ................ OK`);
@@ -295,12 +292,12 @@ describe("NestVote contract", function () {
 
             const id = (await NestVote.propsalNextId()).sub(1);
             console.log(`id=${id}`);
-            const staked_pre = await NestVote.connect(userC).balanceOf(id);
+            const staked_pre = await NestVote.votedNestAmountOf(userC.address, id);
             const nest_pre = await NestToken.balanceOf(NestVote.address);
 
             await NestVote.connect(userC).withdraw(id);
 
-            const staked_post = await NestVote.connect(userC).balanceOf(id);
+            const staked_post = await NestVote.votedNestAmountOf(userC.address, id);
             expect(staked_post).to.equal(0);
 
             const nest_post = await NestToken.balanceOf(NestVote.address);
@@ -323,13 +320,14 @@ describe("NestVote contract", function () {
 
             const nest_pre = await NestToken.balanceOf(NestVote.address);
             const proposal_pre = await NestVote.proposalById(id);
+            const staked = await NestVote.stakedNestAmountById(id);
             expect(proposal_pre.state).to.equal(0);
             await NestVote.connect(userB).revoke(id, 'test');
             const proposal_post = await NestVote.proposalById(id);
             expect(proposal_post.state).to.equal(1);
 
             const nest_post = await NestToken.balanceOf(NestVote.address);
-            expect(nest_post).to.equal(nest_pre);
+            expect(nest_post.add(staked)).to.equal(nest_pre);
 
         });
 
