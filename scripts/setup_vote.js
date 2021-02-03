@@ -64,6 +64,17 @@ async function main() {
     console.log(`> [INIT] NestVote.setParam(4) ... OK ✅`);
 
     // TODO: read parameters from NestVote
+    tx = await NestVote.voteDuration();
+    console.log("voteDuration = ", tx.toString());
+
+    tx = await NestVote.acceptancePercentage();
+    console.log("acceptancePercentage = ", tx.toString());
+
+    tx = await NestVote.proposalStakingAmount();
+    console.log("proposalStakingAmount = ", tx.toString());
+
+    tx = await NestVote.minimalVoteAmount();
+    console.log("minimalVoteAmount = ", tx.toString());
 }
 
 main()
