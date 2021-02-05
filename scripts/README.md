@@ -2,6 +2,8 @@
 
 ## Preparation
 
+$ npx hardhat run scripts/deploy_localhost.js --network localhost
+(or $ npx hardhat run scripts/deploy_kovan.js --network kovan)
 Please make sure that `.contracts_localhost.json` contains all of the addresses of contracts.
 
 #### Deploy NestVote contract
