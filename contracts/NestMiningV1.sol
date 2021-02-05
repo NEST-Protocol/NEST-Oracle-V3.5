@@ -743,7 +743,7 @@ contract NestMiningV1 {
         price = uint128(uint256(pi.tokenAmount).div(uint256(pi.ethNum)));
         avgPrice = pi.avgTokenAmount;
         bn = pi.height + uint32(state.priceDurationBlock);
-        require(price > 0 && avgPrice > 0 && vola > 0, "Nest:Mine:no(price)");
+        require(price > 0 && avgPrice > 0, "Nest:Mine:no(price)");
     }
 
     function priceOfTokenAtHeight(address token, uint64 atHeight)
