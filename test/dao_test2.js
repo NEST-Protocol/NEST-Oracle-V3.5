@@ -269,31 +269,31 @@ describe("NestToken contract", function () {
             await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
             await goBlocks(provider, 30);
 
-            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
+            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NWBTC(490), { value: msgValue });
             await goBlocks(provider, 30);
 
-            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
+            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NWBTC(495), { value: msgValue });
             await goBlocks(provider, 30);
 
-            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
+            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NWBTC(500), { value: msgValue });
             await goBlocks(provider, 30);
 
-            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
+            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NWBTC(496), { value: msgValue });
             await goBlocks(provider, 30);
 
-            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
+            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NWBTC(502), { value: msgValue });
             await goBlocks(provider, 30);
 
-            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
+            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NWBTC(501), { value: msgValue });
             await goBlocks(provider, 30);
 
-            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
+            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NWBTC(499), { value: msgValue });
             await goBlocks(provider, 30);
 
-            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
+            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NWBTC(503), { value: msgValue });
             await goBlocks(provider, 30);
 
-            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NTokenAmountPerEth, { value: msgValue });
+            await NestMining.connect(userA).post2(token, ethNum, tokenAmountPerEth, NWBTC(500), { value: msgValue });
 
         });
 
@@ -355,12 +355,12 @@ describe("NestToken contract", function () {
             
             await NestDAO.setParams(NWBTC(10000), 10)
             const price = await NestMining.latestPriceOf(token);
-            //console.log(`ethAmount=${price[0]} tokenAmount=${price[1]}, blockNum=${price[2]}`);
+            console.log(`ethAmount=${price[0]} tokenAmount=${price[1]}, blockNum=${price[2]}`);
 
 
             // priceAvgAndSigmaOf function
             const p1 = await NestMining.connect(_C_NestQuery).priceAvgAndSigmaOf(token);
-            //console.log(`price=${p1[0]} avg=${p1[1]}, sigma=${show_64x64(p1[2])}, height=${p1[3]}}`);
+            console.log(`price=${p1[0]} avg=${p1[1]}, sigma=${show_64x64(p1[2])}, height=${p1[3]}}`);
 
             await NestDAO.addETHReward(token, { value: ETH(30)});
 
@@ -370,7 +370,7 @@ describe("NestToken contract", function () {
             await NestDAO.connect(userA).redeem(token, NWBTC(500), {value: ETH(5) , gasPrice: 0});
             
             const quota_pos = await NestDAO.quotaOf(token);
-            console.log("quota_pos = ",quota_pos.toString());
+            //console.log("quota_pos = ",quota_pos.toString());
 
             const total_pre0 = await NestDAO.totalETHRewards(token);
 
@@ -391,7 +391,7 @@ describe("NestToken contract", function () {
 
             await NestDAO.connect(userA).redeem(token, NWBTC(500), {value: ETH(5) , gasPrice: 0});
             const eth_A_post = await userA.getBalance(); 
-            //console.log("eth_A_post = ", eth_A_post.toString());
+            console.log("eth_A_post = ", eth_A_post.toString());
 
            
             const total_pos = await NestDAO.totalETHRewards(token);

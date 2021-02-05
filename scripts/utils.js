@@ -60,10 +60,18 @@ const BigNum = function (n) {
     return BigNumber.from(n);
 }
 
+exports.show_nest = function (amount){
+    bn = toBN(amount);
+    const nestskip = (new BN('10')).pow(new BN('13'));
+    const nestdec = (new BN('10')).pow(new BN('18'));
+    return (bn.div(nestdec).toString(10) + '.' + bn.mod(nestdec).div(nestskip).toString(10, 5));
+}
+
 exports.show_eth = function (amount){
+    bn = toBN(amount)
     const ethskip = (new BN('10')).pow(new BN('13'));
     const ethdec = (new BN('10')).pow(new BN('18'));
-    return (amount.div(ethdec).toString(10) + '.' + amount.mod(ethdec).div(ethskip).toString(10, 5));
+    return (bn.div(ethdec).toString(10) + '.' + bn.mod(ethdec).div(ethskip).toString(10, 5));
 }
 
 exports.show_usdt = function (amount){
@@ -88,6 +96,7 @@ exports.show_64x64 = function (s) {
     const s3 = s2.mul(prec).div(sep);
     return (s1 + '.' + toBN(s3).toString(10, 8));
 }
+
 
 exports.advanceTime = async (provider, seconds) => {
     await provider.send("evm_increaseTime", [seconds]);

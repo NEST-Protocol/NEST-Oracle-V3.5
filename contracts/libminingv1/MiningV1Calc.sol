@@ -101,7 +101,7 @@ library MiningV1Calc {
             uint256 _remain = uint256(pL[i].remainNum);
             if (_remain == 0) {
                 i = i + 1;
-                continue;
+                continue;  // jump over a bitten sheet
             }
             ethA1 = ethA1 + _remain;
             tokenA1 = tokenA1 + _remain.mul(pL[i].tokenAmountPerEth);
@@ -253,7 +253,6 @@ library MiningV1Calc {
                 if (_curr + state.priceDurationBlock < block.number) {
                     _ethNum = uint256(_sheet.remainNum);
                     if(_ethNum > 0) {
-
                         data[_index] = uint128(_curr + state.priceDurationBlock); // safe math
                         data[_index + 1] = uint128(_ethNum.mul(1 ether));
                         data[_index + 2] = uint128(_ethNum.mul(_sheet.tokenAmountPerEth));
@@ -310,6 +309,9 @@ library MiningV1Calc {
             if (_prev == 0) {
                 if (_first + state.priceDurationBlock < uint256(atHeight)) {
                     _ethNum = uint256(_sheet.remainNum);
+                    if (_ethNum == 0) {
+                        continue; // jump over a bitten sheet
+                    }
                     ethAmount = _ethNum.mul(1 ether);
                     tokenAmount = _ethNum.mul(_sheet.tokenAmountPerEth);
                     blockNum = _first + state.priceDurationBlock;

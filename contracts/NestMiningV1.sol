@@ -677,8 +677,8 @@ contract NestMiningV1 {
     /// @notice Get the latest effective price for a token
     /// @dev It shouldn't be read from any contracts other than NestQuery
     function latestPriceOf(address token) 
-        public 
-        view 
+        public
+        view
         onlyByNestOrNoContract
         returns(uint256 ethAmount, uint256 tokenAmount, uint256 blockNum) 
     {
@@ -686,28 +686,33 @@ contract NestMiningV1 {
         uint256 len = _plist.length;
         uint256 _ethNum;
         MiningV1Data.PriceSheet memory _sheet;
+
         if (len == 0) {
-            return (0, 0, 0);
+            revert("Nest:Mine:no(price)");
         }
 
         uint256 _first = 0;
         for (uint i = 1; i <= len; i++) {
             _sheet = _plist[len-i];
             if (_first == 0 && uint256(_sheet.height) + state.priceDurationBlock < block.number) {
-                _first = uint256(_sheet.height);
                 _ethNum = uint256(_sheet.remainNum);
-                tokenAmount = uint256(_sheet.tokenAmountPerEth).mul(_ethNum);
+                if (_ethNum == 0) {
+                    continue;  // jump over a bitten sheet
+                }
+                _first = uint256(_sheet.height);
+                tokenAmount = _ethNum.mul(uint256(_sheet.tokenAmountPerEth));
                 ethAmount = _ethNum.mul(1 ether);
                 blockNum = _first;
             } else if (_first == uint256(_sheet.height)) {
-                _ethNum = _ethNum.add(_sheet.remainNum);
-                tokenAmount = tokenAmount.add(uint256(_sheet.tokenAmountPerEth).mul(_ethNum));
-                ethAmount = _ethNum.mul(1 ether);
+                _ethNum = uint256(_sheet.remainNum);
+                tokenAmount = tokenAmount.add(_ethNum.mul(uint256(_sheet.tokenAmountPerEth)));
+                ethAmount = ethAmount.add(_ethNum.mul(1 ether));
             } else if (_first > uint256(_sheet.height)) {
                 break;
             }
         }
         blockNum = blockNum + uint256(state.priceDurationBlock); // safe math
+        require(ethAmount > 0 && tokenAmount > 0, "Nest:Mine:no(price)");
     }
 
     /// @dev It shouldn't be read from any contracts other than NestQuery
@@ -719,7 +724,10 @@ contract NestMiningV1 {
     {
         MiningV1Data.PriceInfo memory pi = state.priceInfo[token];
         require(pi.height > 0, "Nest:Mine:NO(price)");
-        return (uint256(pi.ethNum).mul(1 ether), pi.tokenAmount, pi.height + state.priceDurationBlock);
+        ethAmount = uint256(pi.ethNum).mul(1 ether);
+        tokenAmount = uint256(pi.tokenAmount);
+        blockNum = uint256(pi.height + state.priceDurationBlock);
+        require(ethAmount > 0 && tokenAmount > 0, "Nest:Mine:no(price)");
     }
 
     /// @dev It shouldn't be read from any contracts other than NestQuery
@@ -727,13 +735,15 @@ contract NestMiningV1 {
         public 
         view 
         onlyByNestOrNoContract
-        returns (uint128, uint128, int128, uint32) 
+        returns (uint128 price, uint128 avgPrice, int128 vola, uint32 bn) 
     {
         MiningV1Data.PriceInfo memory pi = state.priceInfo[token];
         require(pi.height > 0, "Nest:Mine:NO(price)");
-        int128 v = ABDKMath64x64.sqrt(ABDKMath64x64.abs(pi.volatility_sigma_sq));
-        uint128 p = uint128(uint256(pi.tokenAmount).div(uint256(pi.ethNum)));
-        return (p, pi.avgTokenAmount, v, pi.height + uint32(state.priceDurationBlock)); // safe math
+        vola = ABDKMath64x64.sqrt(ABDKMath64x64.abs(pi.volatility_sigma_sq));
+        price = uint128(uint256(pi.tokenAmount).div(uint256(pi.ethNum)));
+        avgPrice = pi.avgTokenAmount;
+        bn = pi.height + uint32(state.priceDurationBlock);
+        require(price > 0 && avgPrice > 0, "Nest:Mine:no(price)");
     }
 
     function priceOfTokenAtHeight(address token, uint64 atHeight)
@@ -742,7 +752,8 @@ contract NestMiningV1 {
         noContractExcept(state.C_NestQuery)
         returns(uint256 ethAmount, uint256 tokenAmount, uint256 bn) 
     {
-        return state._priceOfTokenAtHeight(token, atHeight);
+        (ethAmount, tokenAmount, bn) = state._priceOfTokenAtHeight(token, atHeight);
+        require(ethAmount > 0 && tokenAmount > 0, "Nest:Mine:no(price)");
     }
 
     /// @notice Return a consecutive price list for a token 

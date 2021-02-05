@@ -17,7 +17,7 @@ import "./iface/INestQuery.sol";
 // import "hardhat/console.sol";
 
 /// @dev The contract is for redeeming nest token and getting ETH in return
-contract NestDAO is INestDAO, ReentrancyGuard {
+contract NestDAOV2 is INestDAO, ReentrancyGuard {
 
     using SafeMath for uint256;
 
@@ -94,7 +94,7 @@ contract NestDAO is INestDAO, ReentrancyGuard {
 
     function version() public pure returns (uint256) 
     {   
-        return 1;
+        return 2;
     }
 
     /* ========== MODIFIERS ========== */

@@ -17,6 +17,8 @@
 
 ## Changelog
 
+- 2020-1-29 修订
+
 - 2020-12-19 修订
 1. 修改 NTokenController 合约中 flag 值变化。
 2. 修改 NNRewardPool 合约中 flag 值变化。
@@ -127,7 +129,7 @@
 
 2. flag：1 ==> 2
 执行函数：初始化函数 `initialize()` ==> `start()`
-说明： 执行 `start()` 后，,flag 的值变为 `NNREWARD_FLAG_DAO_FLAG_ACTIVEACTIVE` (此值为 2)。
+说明： 执行 `start()` 后，,flag 的值变为 `DAO_FLAG_ACTIVE` (此值为 2)。
 
 
 3. flag：2 / 4 ==> 4
@@ -150,5 +152,9 @@
 2. flag：0 ==> 2
 执行函数：`shutdown()`
 说明：执行函数 `shutdown()`，flag 值变为 2 。
+
+3. flag: 0
+执行函数：`resume()`
+说明：执行函数 `resume()`，flag 值变为 0 。
 
 *注：flag 参数值经初始化为 0，后如果执行 `shutdown()` 函数，则 flag 值变为 2，且此状态不可逆。*

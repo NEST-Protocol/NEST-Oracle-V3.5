@@ -2,6 +2,7 @@
 require("ethers");
 const {expect} = require("chai");
 const { ethers } = require("hardhat");
+const fs = require('fs');
 
 const {usdtdec, wbtcdec, nestdec, ethdec, 
     ETH, USDT, WBTC, MBTC, NEST, BigNum, 
@@ -563,4 +564,220 @@ exports.checkDeployment = async function (deployer, addrList, userA, userB) {
     
     console.log(`> [INIT]: NestStaking.stake() unstake() ...... ok`);
 
+}
+
+exports.load_address = async function (name) {
+
+    let filename = `.${name}_${network.name}.json`
+    let rawdata = fs.readFileSync(filename);
+    let contracts_address = JSON.parse(rawdata);
+    const address = contracts_address[name];
+    if (!address) {
+        console.log(`> [EROR] Load address(${name}) from ${filename} ... FAILED ❌ `);
+        return {}
+    }
+    console.log(`> [INFO] Load address(${name}) from ${filename} ... OK `);
+    return address
+}
+
+exports.save_address = async function (address, name) {
+
+    const filename = `.${name}_${network.name}.json`
+
+    const bn = (await ethers.provider.getBlockNumber());
+    const ts = (await ethers.provider.getBlock(bn)).timestamp;
+
+    let contracts_address = {
+        network: network.name,
+        block: bn, 
+        timestamp: timeConverter(ts)
+    };
+    contracts_address[name] = address;
+    
+    fs.writeFileSync(filename, JSON.stringify(contracts_address, null, 4));
+
+    console.log(`> [INFO] Save address(${address}) into file ${filename} ... OK `);
+
+}
+
+
+exports.load_contract = async function (name) {
+
+    let filename = `.${name}_${network.name}.json`
+    let rawdata = fs.readFileSync(filename);
+    let contracts_address = JSON.parse(rawdata);
+    let contract = await ethers.getContractAt(name, contracts_address[name]);
+    if (!contract) {
+        console.log(`> [EROR] Load contract(${name}) from ${filename} ... FAILED ❌ `);
+        return {}
+    }
+    console.log(`> [INFO] Load contract(${name}) from ${filename} ... OK `);
+
+    return contract
+}
+
+exports.save_contract = async function (contract, name) {
+
+    const filename = `.${name}_${network.name}.json`
+
+    const bn = (await ethers.provider.getBlockNumber());
+    const ts = (await ethers.provider.getBlock(bn)).timestamp;
+
+    let contracts_address = {
+        network: network.name,
+        block: bn, 
+        timestamp: timeConverter(ts)
+    };
+    contracts_address[name] =  contract.address;
+    
+    fs.writeFileSync(filename, JSON.stringify(contracts_address, null, 4));
+
+    console.log(`> [INFO] Save contract(${name}) into file ${filename} ... OK `);
+}
+
+exports.load_contracts = async function (filename) {
+
+    let rawdata = fs.readFileSync(filename);
+    let contracts_address = JSON.parse(rawdata);
+
+    let contracts = {};
+
+    CUSDT = await ethers.getContractAt("UERC20", contracts_address.USDT);
+    console.log(`> [INFO] USDT.symbol=${await CUSDT.symbol()}`);
+    CWBTC = await ethers.getContractAt("UERC20", contracts_address.WBTC);
+    CNWBTC = await ethers.getContractAt("NNToken", contracts_address.NWBTC);
+    
+    console.log(`> [INFO] Load USDT(${contracts_address.USDT}), WBTC(${contracts_address.WBTC}), NWBTC(${contracts_address.NWBTC}) ... OK`);
+    contracts.USDT = CUSDT;
+    contracts.WBTC = CWBTC;
+    contracts.NWBTC = CNWBTC;
+
+    IterableMapping = await ethers.getContractAt("IterableMapping", contracts_address.IterableMapping);
+    NestToken = await ethers.getContractAt("IBNEST", contracts_address.NEST,
+        {
+            libraries: {
+                IterableMapping: contracts_address.IterableMapping
+            }
+        });
+    console.log(`> [INFO] Load NestToken(${contracts_address.NEST}) ... OK`);
+    contracts.NEST = NestToken;
+    contracts.IterableMapping = IterableMapping;
+
+    if (! contracts_address.NNToken || !contracts_address.NEST) {
+        console.log(`[ERRO] NN Token not found !!!`)
+        return {}
+    }
+
+    NNToken = await ethers.getContractAt("NNToken", contracts_address.NNToken);
+    console.log(`> [INFO] Load NNToken(${contracts_address.NNToken}) ... OK`);
+    contracts.NNToken = NNToken;
+
+    if (! contracts_address.NestPool) {
+        console.log(`[ERRO] NestPool not found !!!`)
+        return {}
+    }
+
+    NestPool = await ethers.getContractAt("NestPool", contracts_address.NestPool);
+    console.log(`> [INFO] Load NestPool(${contracts_address.NestPool}) ... OK`);
+    contracts.NestPool = NestPool;
+
+    if (!contracts_address.NestMiningV1Calc || !contracts_address.NestMiningV1Op 
+            || !contracts_address.NestMining || !contracts_address.NestMiningV1Impl) {
+        console.log(`[ERRO] NestMiningV1 (or MiningV1Calc, MiningV1Op) not found !!!`)
+        return {}
+    }
+
+    NestMiningV1Calc = await ethers.getContractAt("MiningV1Calc", contracts_address.NestMiningV1Calc);
+    NestMiningV1Op = await ethers.getContractAt("MiningV1Op", contracts_address.NestMiningV1Op);
+    contracts.NestMiningV1Calc = NestMiningV1Calc;
+    contracts.NestMiningV1Op = NestMiningV1Op;
+
+    NestMiningProxy = await ethers.getContractAt("NestMiningV1", contracts_address.NestMining,
+    {
+        libraries: {
+            MiningV1Calc: contracts_address.NestMiningV1Calc, 
+            MiningV1Op: contracts_address.NestMiningV1Op} 
+    });
+    NestMiningV1Impl = await ethers.getContractAt("NestMiningV1", contracts_address.NestMiningV1Impl,
+    {
+        libraries: {
+            MiningV1Calc: contracts_address.NestMiningV1Calc, 
+            MiningV1Op: contracts_address.NestMiningV1Op} 
+    });
+    console.log(`> [INFO] Load NestMiningProxy(${contracts_address.NestMining}), NestMiningImpl(${contracts_address.NestMiningV1Impl}) ... OK`);
+    contracts.NestMining = NestMiningProxy;
+    contracts.NestMiningV1Impl = NestMiningV1Impl;
+
+    if (! contracts_address.NestStaking || !contracts_address.NestStakingImpl) {
+        console.log(`[ERRO] NestStaking (or NestStakingImpl) not found !!!`)
+        return {}
+    }
+
+    NestStakingProxy = await ethers.getContractAt("NestStaking", contracts_address.NestStaking);
+    NestStakingImpl = await ethers.getContractAt("NestStaking", contracts_address.NestStakingImpl);
+    console.log(`> [INFO] Load NestStakingImpl(${contracts_address.NestStakingImpl}), NestStakingProxy(${contracts_address.NestStaking}) ... OK`);
+    contracts.NestStaking = NestStakingProxy;
+    contracts.NestStakingImpl = NestStakingImpl;
+
+    NNRewardPool = await ethers.getContractAt("NNRewardPool", contracts_address.NNRewardPool);
+    console.log(`> [INFO] Load NNRewardPool from ${contracts_address.NNRewardPool} ... OK`);
+    NTokenController = await ethers.getContractAt("NTokenController", contracts_address.NTokenController);
+    console.log(`> [INFO] Load NTokenController from ${contracts_address.NTokenController} ... OK`);
+    contracts.NNRewardPool = NNRewardPool;
+    contracts.NTokenController = NTokenController;
+
+    NestQueryContract = await ethers.getContractFactory("NestQuery");
+    NestQueryProxy = NestQueryContract.attach(contracts_address.NestQuery);
+    NestQueryImpl = await ethers.getContractAt("NestQuery", contracts_address.NestQueryImpl);
+    console.log(`> [INFO] Load NestQueryProxy from ${contracts_address.NestQuery} ... OK`);
+    contracts.NestQuery = NestQueryProxy;
+    contracts.NestQueryImpl = NestQueryImpl;
+
+    NestDAOContract = await ethers.getContractFactory("NestDAO");
+    NestDAOProxy = NestDAOContract.attach(contracts_address.NestDAO);
+    console.log(`> [INFO] Load NestDAOProxy from ${contracts_address.NestDAO} ... OK`);
+    contracts.NestDAO = NestDAOProxy;
+
+
+    if (contracts_address.ProxyAdmin) {
+        // NestVote = await ethers.getContractAt("NestVote", contracts_address.NestVote);
+        // console.log(`> [INIT] Load NestVote from ${contracts_address.NestVote} ... OK`);
+        // contracts.NestVote = NestVote;
+    }
+
+    if (contracts_address.NestVote) {
+        NestVote = await ethers.getContractAt("NestVote", contracts_address.NestVote);
+        console.log(`> [INFO] Load NestVote from ${contracts_address.NestVote} ... OK`);
+        contracts.NestVote = NestVote;
+    }
+
+    if (contracts_address.NIPReleaseGov) {
+        NIPReleaseGov = await ethers.getContractAt("NIPReleaseGov", contracts_address.NIPReleaseGov);
+        console.log(`> [INFO] Load NIPReleaseGov from ${contracts_address.NIPReleaseGov} ... OK`);
+        contracts.NIPReleaseGov = NIPReleaseGov;
+    }
+    console.log(`> [INFO] Load contracts from file ${filename} ... OK `);
+
+    return contracts;
+}
+
+exports.save_contracts = async function (contracts, filename) {
+
+    const bn = (await ethers.provider.getBlockNumber());
+    const ts = (await ethers.provider.getBlock(bn)).timestamp;
+
+    let contracts_address = {
+        network: network.name,
+        block: bn, 
+        timestamp: timeConverter(ts)
+    };
+
+    Object.entries(contracts).forEach((e) => {
+        const [k, v] = e;
+        contracts_address[k] = v.address;
+    })
+    
+    fs.writeFileSync(filename, JSON.stringify(contracts_address, null, 4));
+
+    console.log(`> [INFO] Save contracts into file ${filename} ... OK `);
 }

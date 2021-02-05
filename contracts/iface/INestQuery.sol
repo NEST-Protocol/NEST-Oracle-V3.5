@@ -73,6 +73,7 @@ interface INestQuery {
 
 
     event ClientActivated(address, uint256, uint256);
+    event ClientDeactivated(address);
     // event ClientRenewed(address, uint256, uint256, uint256);
     event PriceQueried(address client, address token, uint256 ethAmount, uint256 tokenAmount, uint256 bn);
     event PriceAvgVolaQueried(address client, address token, uint256 bn, uint128 avgPrice, int128 vola);
