@@ -229,6 +229,7 @@ contract NestMiningV1 {
         state.C_NestDAO = INestPool(state.C_NestPool).addrOfNestDAO();
     }
 
+    /*
     function setParams(Params calldata newParams) external 
         onlyGovernance
     {
@@ -246,6 +247,45 @@ contract NestMiningV1 {
                                     state.miningFeeRate, state.priceDurationBlock, state.maxBiteNestedLevel,
                                     state.biteInflateFactor, state.biteNestInflateFactor);
     }
+    */
+
+    /// @dev The function to setup one parameter of this contract
+    function setParam(uint256 index, uint256 value) external onlyGovernance returns (bool) 
+    {
+        uint256 old;
+        if (index == 1) {
+            old = uint256(state.miningEthUnit);
+            state.miningEthUnit = uint8(value);
+        } else if (index == 2) {
+            old = uint256(state.nestStakedNum1k);
+            state.nestStakedNum1k = uint32(value);
+        } else if (index == 3) {
+            old = uint256(state.biteFeeRate);
+            state.biteFeeRate = uint8(value);
+        } else if (index == 4) {
+            old = uint256(state.miningFeeRate);
+            state.miningFeeRate = uint8(value);
+        } else if (index == 5) {
+            old = uint256(state.priceDurationBlock);
+            state.priceDurationBlock = uint8(value);
+        } else if (index == 6) {
+            old = uint256(state.maxBiteNestedLevel);
+            state.maxBiteNestedLevel = uint8(value);
+        } else if (index == 7) {
+            old = uint256(state.biteInflateFactor);
+            state.biteInflateFactor = uint8(value);
+        } else if (index == 8) {
+            old = uint256(state.biteNestInflateFactor);
+            state.biteNestInflateFactor = uint8(value);
+        } else {
+            return false;
+        }
+
+        emit MiningV1Data.ParamSet(tx.origin, index, old, value);
+
+        return true;
+    }
+
 
     /// @dev only be used when upgrading 3.0 to 3.5
     /// @dev when the upgrade is complete, this function is disabled

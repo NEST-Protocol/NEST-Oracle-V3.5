@@ -144,6 +144,8 @@ library MiningV1Data {
                     uint8 miningFeeRate, uint8 priceDurationBlock, uint8 maxBiteNestedLevel,
                     uint8 biteInflateFactor, uint8 biteNestInflateFactor);
 
+    event ParamSet(address gov, uint256 index, uint256 old, uint256 value);
+
     // event GovSet(address oldGov, address newGov);
 
     /* ========== GIANT STATE VARIABLE ========== */

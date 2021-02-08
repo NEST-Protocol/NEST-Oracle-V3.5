@@ -155,6 +155,7 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         governance = INestPool(C_NestPool).governance();
     }
 
+    /* 
     /// @notice Setup the parameters for queryings, one price for all token
     /// @dev    Parameters can be reset by set time to zero
     function setParams(uint256 single, uint32 time, uint256 nestAmount)
@@ -172,6 +173,34 @@ contract NestQuery is INestQuery, ReentrancyGuard {
         paramsEncoded = encode_4x32_256(_singleFee, _time, _actFee, _res);
 
         emit ParamsSetup(address(msg.sender), oldParamsEncoded, paramsEncoded);
+    }
+    */
+
+    /// @notice Setup the parameter for queryings, one price for all token
+    /// @dev    Parameter can be reset by set time to zero
+    function setParam(uint256 index, uint256 value) external onlyGovernance returns (bool) 
+    {
+        (uint32 _singleFee, uint32 _time, uint32 _actFee, uint32 _res) =  decode_4x32_256(paramsEncoded);
+
+        uint256 old;
+        if (index == 1) {
+            old = uint256(_singleFee);
+            _singleFee = uint32(value);
+        } else if (index == 2) {
+            old = uint256(_time);
+            _time = uint32(value);
+        } else if (index == 3) {
+            old = uint256(_actFee);
+            _actFee = uint32(value / 1e18);
+        } else {
+            return false;
+        }
+        
+        paramsEncoded = encode_4x32_256(_singleFee, _time, _actFee, _res);
+
+        emit ParamSet(tx.origin, index, old, value);
+
+        return true;
     }
 
     function params() external view 

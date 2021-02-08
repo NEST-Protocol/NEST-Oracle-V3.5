@@ -82,5 +82,7 @@ interface INestQuery {
 
     // governance events
     event ParamsSetup(address gov, uint256 oldParams, uint256 newParams);
+    
+    event ParamSet(address gov, uint256 index, uint256 old, uint256 value);
     event FlagSet(address gov, uint256 flag);
 }
