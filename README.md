@@ -2,7 +2,14 @@
 
 ## Introduction
 
-## Development
+- [NestWhitePaper](https://nestprotocol.org/doc/ennestwhitepaper.pdf)
+## Documentation
+
+- [Decentralized Price oracle](https://docs.nestprotocol.org/)
+
+### Smart Contract Diagrams
+
+- [Contract Architecture](https://github.com/NEST-Protocol/NEST-Oracle-V3.5/blob/develop-miningv1/docs/nest35_contract_diagrams.pdf)
 
 ### Install dependencies
 
