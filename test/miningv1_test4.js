@@ -239,9 +239,10 @@ describe("NestToken contract", function () {
         it("should set parameters correctly" , async () => {
             
             const param = await NestMining.parameters();
-            //console.log("current param :", param);
+            console.log("current param :", param);
             
             // update params
+            /*
             await NestMining.setParams({
                 miningEthUnit: 15,
                 nestStakedNum1k: 1,
@@ -252,12 +253,24 @@ describe("NestToken contract", function () {
                 biteInflateFactor: 2,
                 biteNestInflateFactor: 2,
             });
+            */
 
-            //const param_now = await NestMining.parameters();
+            await NestMining.setParam(1, 15);
+            await NestMining.setParam(2, 1);
+            await NestMining.setParam(3, 1);
+            await NestMining.setParam(4, 1);
+            await NestMining.setParam(5, 30);
+            await NestMining.setParam(6, 3);
+            await NestMining.setParam(7, 2);
+            await NestMining.setParam(8, 2);
 
-            //console.log("now updated params :", param_now);
+
+            const param_now = await NestMining.parameters();
+
+            console.log("now updated params :", param_now);
 
             // reset params
+            /*
             await NestMining.setParams({
                 miningEthUnit: 10,
                 nestStakedNum1k: 1,
@@ -268,6 +281,17 @@ describe("NestToken contract", function () {
                 biteInflateFactor: 2,
                 biteNestInflateFactor: 2,
             });
+            */
+
+            await NestMining.setParam(1, 10);
+            await NestMining.setParam(2, 1);
+            await NestMining.setParam(3, 1);
+            await NestMining.setParam(4, 10);
+            await NestMining.setParam(5, 25);
+            await NestMining.setParam(6, 3);
+            await NestMining.setParam(7, 2);
+            await NestMining.setParam(8, 2);
+
         })
 
 

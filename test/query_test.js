@@ -300,10 +300,16 @@ describe("Nest Protocol", function () {
 
            expect(gov).to.equal(userD.address);
 
-           await NestQuery.connect(userD).setParams(100, 0, NEST(100000));
+           //await NestQuery.connect(userD).setParams(100, 0, NEST(100000));
+           await NestQuery.connect(userD).setParam(1, 100);
+           await NestQuery.connect(userD).setParam(2, 0);
+           await NestQuery.connect(userD).setParam(3, NEST(100000));
            
            // _singleFee is 100 X 1e12 wei
-           await NestQuery.connect(userD).setParams(100, 10, NEST(100000));
+           //await NestQuery.connect(userD).setParams(100, 10, NEST(100000));
+           await NestQuery.connect(userD).setParam(1, 100);
+           await NestQuery.connect(userD).setParam(2, 10);
+           await NestQuery.connect(userD).setParam(3, NEST(100000));
 
            const params = await NestQuery.params();
     
