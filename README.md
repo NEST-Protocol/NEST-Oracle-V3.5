@@ -78,22 +78,23 @@ npx hardhat scripts/setup_testnet.js --network ropsten
 
 | Contract | Address |
 | ------------ | ------------|
-| block | 9269298 |
-|timestamp| 2020-12-16 11:42:53 |
-| USDT |  0xb8094cfE8e7e1F86cE701B90732974bf7f445685 | 
-| WBTC |  0x0A55aB5c97660d5481c4befC164dAB9384DAe98d | 
-|NEST| 0x83A14BEbA0e93FfEd9dEdCFB2fFB41AD26BD11eC |
-| NN |  0x4D2B05366Bb2c57C8648311745358a0edE1392f2 | 
-| IterableMapping |  0xbaFB9df826550199ee97e77583F4723305BCe48a |  
-| NestPool |  0x4D7c1D2c332f3E7520D270aED5181E9296d8C722 | 
-| MiningV1Calc |  0x7648cB2e24cB3D53d065b78F087F014Af3FF4595 | 
-| MiningV1Op |  0x030290AC062E51B141E1eBD713a76585b92abaA0 | 
-| NestMining |  0x597a107db06Ca9A9fcd1f193B9f39743f926dc53 | 
-| NestStaking |  0xade85E22e757c19D87a88653011cEfec8ec2C45f | 
-| NNRewardPool |  0xE5D5B94F1054e87aB5F9Ad376af1cBB2B6c16c7D | 
-| NTokenController | 0x1eb958658c752510FC25C9c03eA6d5281fB64a32 |
-| NestQuery | 0xc726A3ae2c9bB2A904b4B62Cf59f5092ba8B6126 |
-| NestDAO | 0xfcDCE6D28498Cc8078db1D9Aa7B5a39390f689f1 |
+| block | 9622843 |
+|timestamp| 2021-2-8 18:20:15 |
+| USDT |  0x0B64C90403923d978713EFF36e638192c8F3307E | 
+| WBTC |  0x0732596120a9974E3f2784c09D5469029F59299b | 
+| NWBTC |  0x62e93A7dD4Ecfded4Ae08a8c080516E02950e39f | 
+|NEST| 0x6567da092FF12b00aEf048FDC8Af62aA0aFB0073 |
+| NN |  0x73bfd0a9f4A1270F693A4264A963B8Ef3700a1cc | 
+| IterableMapping |  0xbC4b8AF67781A209be1601243948f79C3A746521 |  
+| NestPool |  0xd49685716A238F0361363E7acCbe3ec26CEBA3ab | 
+| MiningV1Calc |  0xA004151Ff7edA4e3F0D25F9c1452F9720b3cda41 | 
+| MiningV1Op |  0xf906B5d962345885c543b3D553Cd892cFed20694 | 
+| NestMining |  0x66e43f3E39386dE8CA22fEf3e136Ac54de3E51BF | 
+| NestStaking |  0xA3946A86902Ed9A29f8DdF5c5af27703625EF930 | 
+| NNRewardPool |  0xF6Ac835A5870963DDc8A0B092a4ecB75921F0deb | 
+| NTokenController | 0xb3743f283E524c402040CB9B99A6013Afd63AFe8 |
+| NestQuery | 0xF0DfdC5Cc55aA01b3C90b9AD7DD994DbDCa6D7Fb |
+| NestDAO | 0x8bBfAc5917777299A3129e954d31388DC6130426 |
 
 
 
@@ -120,19 +121,20 @@ npx hardhat scripts/setup_testnet.js --network ropsten
 | ------------ | ------------|
 | network | ropsten |
 | genesisBlockNumber | 6236588 |
-| latestMiningHeight | 9269160 |
+| latestMiningHeight | 9622640 |
 | minedNestTotalAmount | NEST(1000) |
 | miningEthUnit | 1 |
 | nestStakedNum1k |1 |
 | biteFeeRate | 1 |
 | miningFeeRate | 1 |
-| priceDurationBlock | 5 |
+| priceDurationBlock | 10 |
 | maxBiteNestedLevel | 3 |
 | biteInflateFactor | 2 |
 | biteNestInflateFactor | 2 |
 
 ## Changelog
 
+- 2021-02-08: update ropsten address 
 - 2021-01-22: update kovan addresses
 - 2021-01-12: update kovan addresses
 - 2021-01-06: upgrade kovan addresses
